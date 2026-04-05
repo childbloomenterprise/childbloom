@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import { useChildById } from '../../hooks/useChild';
 import useAuthStore from '../../stores/authStore';
@@ -16,14 +17,8 @@ import { formatDate } from '../../lib/formatters';
 import { HealthIcon, PlusIcon, TrashIcon } from '../../assets/icons';
 import { RECORD_TYPES } from '../../lib/constants';
 
-const TABS = [
-  { value: 'all', label: 'All' },
-  { value: 'vaccination', label: 'Vaccines' },
-  { value: 'checkup', label: 'Checkups' },
-  { value: 'illness', label: 'Illness' },
-];
-
 export default function HealthRecordsPage() {
+  const { t } = useTranslation();
   const { id: childId } = useParams();
   const { data: child } = useChildById(childId);
   const user = useAuthStore((s) => s.user);
@@ -39,6 +34,13 @@ export default function HealthRecordsPage() {
     notes: '',
     next_due_date: '',
   });
+
+  const TABS = [
+    { value: 'all', label: t('health.all') },
+    { value: 'vaccination', label: t('health.vaccines') },
+    { value: 'checkup', label: t('health.checkups') },
+    { value: 'illness', label: t('health.illness') },
+  ];
 
   const { data: records, isLoading } = useQuery({
     queryKey: ['health-records', childId],
@@ -100,11 +102,11 @@ export default function HealthRecordsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-h1 font-serif text-forest-700">Health Records</h1>
-          <p className="text-body text-gray-500 mt-1 truncate">{child?.name || 'Your child'}'s medical history</p>
+          <h1 className="text-h1 font-serif text-forest-700">{t('health.title')}</h1>
+          <p className="text-body text-gray-500 mt-1 truncate">{t('health.medicalHistory', { name: child?.name || 'Your child' })}</p>
         </div>
         <Button onClick={() => setShowForm(true)} size="sm" className="flex-shrink-0">
-          <PlusIcon className="w-4 h-4 sm:mr-1" /> <span className="hidden sm:inline">Add Record</span><span className="sm:hidden">Add</span>
+          <PlusIcon className="w-4 h-4 sm:mr-1" /> <span className="hidden sm:inline">{t('health.addRecord')}</span><span className="sm:hidden">{t('common.add')}</span>
         </Button>
       </div>
 
@@ -112,9 +114,9 @@ export default function HealthRecordsPage() {
 
       {filtered.length === 0 ? (
         <EmptyState
-          title="No health records yet"
-          description="Keep track of vaccinations, doctor visits, and health events."
-          actionLabel="Add Record"
+          title={t('health.noRecords')}
+          description={t('health.keepTrack')}
+          actionLabel={t('health.addRecord')}
           onAction={() => setShowForm(true)}
           icon={<HealthIcon className="w-8 h-8" />}
         />
@@ -139,7 +141,7 @@ export default function HealthRecordsPage() {
                     <p className="text-micro text-gray-500 mt-2">{record.notes}</p>
                   )}
                   {record.next_due_date && (
-                    <p className="text-micro text-terracotta-400 font-medium mt-1">Next due: {formatDate(record.next_due_date)}</p>
+                    <p className="text-micro text-terracotta-400 font-medium mt-1">{t('health.nextDue', { date: formatDate(record.next_due_date) })}</p>
                   )}
                 </div>
                 <button
@@ -154,16 +156,16 @@ export default function HealthRecordsPage() {
         </div>
       )}
 
-      <Modal isOpen={showForm} onClose={() => setShowForm(false)} title="Add Health Record">
+      <Modal isOpen={showForm} onClose={() => setShowForm(false)} title={t('health.addRecord')}>
         <div className="space-y-4">
           <Input
-            label="Date"
+            label={t('growth.date')}
             type="date"
             value={formData.record_date}
             onChange={(e) => setFormData({ ...formData, record_date: e.target.value })}
           />
           <div className="space-y-1.5">
-            <label className="block text-caption font-semibold text-forest-700">Record Type</label>
+            <label className="block text-caption font-semibold text-forest-700">{t('health.recordType')}</label>
             <div className="grid grid-cols-2 gap-2">
               {RECORD_TYPES.map((type) => (
                 <button
@@ -181,31 +183,31 @@ export default function HealthRecordsPage() {
             </div>
           </div>
           <Input
-            label="Title"
-            placeholder="e.g. BCG Vaccine, 6-month checkup"
+            label={t('health.recordTitle')}
+            placeholder={t('health.titlePlaceholder')}
             value={formData.title}
             onChange={(e) => setFormData({ ...formData, title: e.target.value })}
           />
           <Input
-            label="Doctor Name (optional)"
-            placeholder="e.g. Dr. Sharma"
+            label={t('health.doctorName')}
+            placeholder={t('health.doctorPlaceholder')}
             value={formData.doctor_name}
             onChange={(e) => setFormData({ ...formData, doctor_name: e.target.value })}
           />
           <Input
-            label="Clinic / Hospital (optional)"
-            placeholder="e.g. Apollo Clinic"
+            label={t('health.clinicName')}
+            placeholder={t('health.clinicPlaceholder')}
             value={formData.clinic_name}
             onChange={(e) => setFormData({ ...formData, clinic_name: e.target.value })}
           />
           <Input
-            label="Notes (optional)"
-            placeholder="Any observations or instructions"
+            label={t('health.notesOptional')}
+            placeholder={t('health.notesPlaceholder')}
             value={formData.notes}
             onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
           />
           <Input
-            label="Next Due Date (optional)"
+            label={t('health.nextDueDate')}
             type="date"
             value={formData.next_due_date}
             onChange={(e) => setFormData({ ...formData, next_due_date: e.target.value })}
@@ -216,7 +218,7 @@ export default function HealthRecordsPage() {
             disabled={!formData.title.trim()}
             className="w-full"
           >
-            Save Record
+            {t('health.saveRecord')}
           </Button>
         </div>
       </Modal>

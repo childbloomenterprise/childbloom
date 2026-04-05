@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import { useChildById } from '../../hooks/useChild';
 import useAuthStore from '../../stores/authStore';
@@ -17,9 +18,8 @@ import FeedingStep from './steps/FeedingStep';
 import ConcernsStep from './steps/ConcernsStep';
 import AiInsightStep from './steps/AiInsightStep';
 
-const STEPS = ['Measurements', 'Mood & Sleep', 'Development', 'Feeding', 'Concerns', 'AI Insight'];
-
 export default function WeeklyUpdatePage() {
+  const { t } = useTranslation();
   const { id: childId } = useParams();
   const navigate = useNavigate();
   const { data: child } = useChildById(childId);
@@ -44,6 +44,15 @@ export default function WeeklyUpdatePage() {
     concerns: '',
     red_flags: [],
   });
+
+  const STEPS = [
+    t('weeklyUpdate.measurements'),
+    t('weeklyUpdate.moodSleep'),
+    t('weeklyUpdate.development'),
+    t('weeklyUpdate.feeding'),
+    t('weeklyUpdate.concerns'),
+    t('weeklyUpdate.aiInsight'),
+  ];
 
   const updateField = (field, value) => setFormData((prev) => ({ ...prev, [field]: value }));
 
@@ -139,9 +148,9 @@ export default function WeeklyUpdatePage() {
   return (
     <div className="max-w-xl mx-auto space-y-5">
       <div className="text-center">
-        <h1 className="text-h1 font-serif text-forest-700">Weekly Check-in</h1>
+        <h1 className="text-h1 font-serif text-forest-700">{t('weeklyUpdate.title')}</h1>
         <p className="text-body text-gray-500 mt-1">
-          {child?.name ? `How was ${child.name}'s week?` : 'How was this week?'}
+          {child?.name ? t('weeklyUpdate.howWasWeek', { name: child.name }) : t('weeklyUpdate.howWasWeekGeneric')}
         </p>
       </div>
 
@@ -166,12 +175,12 @@ export default function WeeklyUpdatePage() {
       <div className="flex gap-3">
         {step > 0 && (
           <Button variant="secondary" onClick={() => setStep(step - 1)} className="flex-1" size="lg">
-            Back
+            {t('common.back')}
           </Button>
         )}
         {step < STEPS.length - 1 ? (
           <Button onClick={handleNext} className="flex-1" size="lg">
-            Continue
+            {t('common.continue')}
           </Button>
         ) : (
           <Button
@@ -180,7 +189,7 @@ export default function WeeklyUpdatePage() {
             className="flex-1"
             size="lg"
           >
-            Save Update
+            {t('weeklyUpdate.saveUpdate')}
           </Button>
         )}
       </div>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import { useChildById } from '../../hooks/useChild';
 import useAuthStore from '../../stores/authStore';
@@ -19,12 +20,8 @@ import whoWeightGirls from '../../data/who-growth/weight-for-age-girls.json';
 import whoHeightBoys from '../../data/who-growth/height-for-age-boys.json';
 import whoHeightGirls from '../../data/who-growth/height-for-age-girls.json';
 
-const TABS = [
-  { value: 'weight', label: 'Weight' },
-  { value: 'height', label: 'Height' },
-];
-
 export default function GrowthPage() {
+  const { t } = useTranslation();
   const { id: childId } = useParams();
   const { data: child } = useChildById(childId);
   const user = useAuthStore((s) => s.user);
@@ -32,6 +29,11 @@ export default function GrowthPage() {
   const [activeTab, setActiveTab] = useState('weight');
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({ record_date: new Date().toISOString().split('T')[0], weight_kg: '', height_cm: '', head_circumference_cm: '' });
+
+  const TABS = [
+    { value: 'weight', label: t('growth.weight') },
+    { value: 'height', label: t('growth.height') },
+  ];
 
   const { data: records, isLoading } = useQuery({
     queryKey: ['growth-records', childId],
@@ -81,9 +83,9 @@ export default function GrowthPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-h1 font-serif text-forest-700">Growth Chart</h1>
+        <h1 className="text-h1 font-serif text-forest-700">{t('growth.title')}</h1>
         <Button onClick={() => setShowForm(true)} size="sm" className="flex-shrink-0">
-          <PlusIcon className="w-4 h-4 mr-1" /> Add
+          <PlusIcon className="w-4 h-4 mr-1" /> {t('growth.add')}
         </Button>
       </div>
 
@@ -113,9 +115,9 @@ export default function GrowthPage() {
         </Card>
       ) : (
         <EmptyState
-          title="No growth data yet"
-          description="Add your first measurement to start tracking growth."
-          actionLabel="Add Measurement"
+          title={t('growth.noData')}
+          description={t('growth.addFirst')}
+          actionLabel={t('growth.addMeasurement')}
           onAction={() => setShowForm(true)}
           icon={<GrowthIcon className="w-8 h-8" />}
         />
@@ -127,10 +129,10 @@ export default function GrowthPage() {
             <table className="w-full text-caption min-w-[320px]">
               <thead>
                 <tr className="border-b border-cream-300/60">
-                  <th className="text-left p-3 sm:p-4 font-semibold text-gray-400 text-micro uppercase tracking-wider">Date</th>
-                  <th className="text-left p-3 sm:p-4 font-semibold text-gray-400 text-micro uppercase tracking-wider">Weight</th>
-                  <th className="text-left p-3 sm:p-4 font-semibold text-gray-400 text-micro uppercase tracking-wider">Height</th>
-                  <th className="text-left p-3 sm:p-4 font-semibold text-gray-400 text-micro uppercase tracking-wider">Head</th>
+                  <th className="text-left p-3 sm:p-4 font-semibold text-gray-400 text-micro uppercase tracking-wider">{t('growth.date')}</th>
+                  <th className="text-left p-3 sm:p-4 font-semibold text-gray-400 text-micro uppercase tracking-wider">{t('growth.weight')}</th>
+                  <th className="text-left p-3 sm:p-4 font-semibold text-gray-400 text-micro uppercase tracking-wider">{t('growth.height')}</th>
+                  <th className="text-left p-3 sm:p-4 font-semibold text-gray-400 text-micro uppercase tracking-wider">{t('growth.head')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -148,16 +150,16 @@ export default function GrowthPage() {
         </Card>
       )}
 
-      <Modal isOpen={showForm} onClose={() => setShowForm(false)} title="Add Measurement">
+      <Modal isOpen={showForm} onClose={() => setShowForm(false)} title={t('growth.addMeasurement')}>
         <div className="space-y-4">
           <Input
-            label="Date"
+            label={t('growth.date')}
             type="date"
             value={formData.record_date}
             onChange={(e) => setFormData({ ...formData, record_date: e.target.value })}
           />
           <Input
-            label="Weight (kg)"
+            label={t('growth.weightKg')}
             type="number"
             step="0.1"
             value={formData.weight_kg}
@@ -165,7 +167,7 @@ export default function GrowthPage() {
             placeholder="e.g. 7.5"
           />
           <Input
-            label="Height (cm)"
+            label={t('growth.heightCm')}
             type="number"
             step="0.1"
             value={formData.height_cm}
@@ -173,7 +175,7 @@ export default function GrowthPage() {
             placeholder="e.g. 68.0"
           />
           <Input
-            label="Head Circumference (cm)"
+            label={t('growth.headCm')}
             type="number"
             step="0.1"
             value={formData.head_circumference_cm}
@@ -185,7 +187,7 @@ export default function GrowthPage() {
             loading={addMutation.isPending}
             className="w-full"
           >
-            Save Measurement
+            {t('growth.saveMeasurement')}
           </Button>
         </div>
       </Modal>

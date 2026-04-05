@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import api from '../../lib/api';
 import { useSelectedChild } from '../../hooks/useChild';
 import { formatAgeInDays } from '../../lib/formatters';
@@ -9,6 +10,7 @@ import MedicalDisclaimer from '../../components/layout/MedicalDisclaimer';
 import { ChatIcon, SendIcon } from '../../assets/icons';
 
 export default function AskAiPage() {
+  const { t } = useTranslation();
   const child = useSelectedChild();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
@@ -47,7 +49,7 @@ export default function AskAiPage() {
     } catch {
       setMessages((prev) => [
         ...prev,
-        { role: 'assistant', content: 'Sorry, something went wrong. Please try again in a moment.' },
+        { role: 'assistant', content: t('askAi.errorMessage') },
       ]);
     }
   };
@@ -60,20 +62,20 @@ export default function AskAiPage() {
   };
 
   const suggestedQuestions = [
-    'What milestones should I expect this month?',
-    'How much sleep does my child need?',
-    'What Indian foods are good for brain development?',
-    'When should I start potty training?',
-    'Is it normal for my child to not talk yet?',
-    'What vaccinations are due next?',
+    t('askAi.suggestedQ1'),
+    t('askAi.suggestedQ2'),
+    t('askAi.suggestedQ3'),
+    t('askAi.suggestedQ4'),
+    t('askAi.suggestedQ5'),
+    t('askAi.suggestedQ6'),
   ];
 
   return (
     <div className="flex flex-col h-[calc(100vh-10rem)] sm:h-[calc(100vh-12rem)]">
       <div className="mb-4">
-        <h1 className="text-h1 font-serif text-forest-700">Ask ChildBloom AI</h1>
+        <h1 className="text-h1 font-serif text-forest-700">{t('askAi.title')}</h1>
         <p className="text-body text-gray-500 mt-1">
-          Get personalised guidance about {child?.name || 'your child'}'s development
+          {child?.name ? t('askAi.subtitle', { name: child.name }) : t('askAi.subtitleGeneric')}
         </p>
       </div>
 
@@ -86,7 +88,7 @@ export default function AskAiPage() {
                 <ChatIcon className="w-7 h-7 text-forest-600" />
               </div>
               <p className="text-body text-gray-500">
-                Ask me anything about child development, nutrition, milestones, or parenting.
+                {t('askAi.askAnything')}
               </p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -140,7 +142,7 @@ export default function AskAiPage() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask about your child's development..."
+            placeholder={t('askAi.placeholder')}
             rows={1}
             className="input-field flex-1 resize-none min-h-[48px] max-h-32"
           />

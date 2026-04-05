@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import { useChildById } from '../../hooks/useChild';
 import useAuthStore from '../../stores/authStore';
@@ -16,6 +17,7 @@ import { FoodIcon, PlusIcon, TrashIcon } from '../../assets/icons';
 import { MEAL_TYPES } from '../../lib/constants';
 
 export default function FoodTrackerPage() {
+  const { t } = useTranslation();
   const { id: childId } = useParams();
   const { data: child } = useChildById(childId);
   const user = useAuthStore((s) => s.user);
@@ -92,19 +94,19 @@ export default function FoodTrackerPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-h1 font-serif text-forest-700">Food Tracker</h1>
-          <p className="text-body text-gray-500 mt-1 truncate">Track {child?.name || 'your child'}'s meals</p>
+          <h1 className="text-h1 font-serif text-forest-700">{t('food.title')}</h1>
+          <p className="text-body text-gray-500 mt-1 truncate">{t('food.trackMeals', { name: child?.name || 'your child' })}</p>
         </div>
         <Button onClick={() => setShowForm(true)} size="sm" className="flex-shrink-0">
-          <PlusIcon className="w-4 h-4 sm:mr-1" /> <span className="hidden sm:inline">Add Meal</span><span className="sm:hidden">Add</span>
+          <PlusIcon className="w-4 h-4 sm:mr-1" /> <span className="hidden sm:inline">{t('food.addMeal')}</span><span className="sm:hidden">{t('common.add')}</span>
         </Button>
       </div>
 
       {Object.keys(grouped).length === 0 ? (
         <EmptyState
-          title="No food logs yet"
-          description="Start tracking meals, breastfeeding, and food introductions."
-          actionLabel="Log a Meal"
+          title={t('food.noLogs')}
+          description={t('food.startTracking')}
+          actionLabel={t('food.logMeal')}
           onAction={() => setShowForm(true)}
           icon={<FoodIcon className="w-8 h-8" />}
         />
@@ -125,7 +127,7 @@ export default function FoodTrackerPage() {
                       {log.notes && <span>{log.notes}</span>}
                     </div>
                     {log.reaction && (
-                      <p className="text-micro text-red-500 mt-1">Reaction: {log.reaction}</p>
+                      <p className="text-micro text-red-500 mt-1">{t('food.reactionLabel')}: {log.reaction}</p>
                     )}
                   </div>
                   <button
@@ -141,16 +143,16 @@ export default function FoodTrackerPage() {
         ))
       )}
 
-      <Modal isOpen={showForm} onClose={() => setShowForm(false)} title="Log a Meal">
+      <Modal isOpen={showForm} onClose={() => setShowForm(false)} title={t('food.logMeal')}>
         <div className="space-y-4">
           <Input
-            label="Date"
+            label={t('food.date')}
             type="date"
             value={formData.log_date}
             onChange={(e) => setFormData({ ...formData, log_date: e.target.value })}
           />
           <div className="space-y-1.5">
-            <label className="block text-caption font-semibold text-forest-700">Meal Type</label>
+            <label className="block text-caption font-semibold text-forest-700">{t('food.mealType')}</label>
             <div className="grid grid-cols-2 gap-2">
               {MEAL_TYPES.map((type) => (
                 <button
@@ -168,26 +170,26 @@ export default function FoodTrackerPage() {
             </div>
           </div>
           <Input
-            label="Food Name"
-            placeholder="e.g. Rice cereal, Dal, Banana"
+            label={t('food.foodName')}
+            placeholder={t('food.foodPlaceholder')}
             value={formData.food_name}
             onChange={(e) => setFormData({ ...formData, food_name: e.target.value })}
           />
           <Input
-            label="Quantity (optional)"
-            placeholder="e.g. 2 tbsp, 100ml"
+            label={t('food.quantity')}
+            placeholder={t('food.quantityPlaceholder')}
             value={formData.quantity}
             onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
           />
           <Input
-            label="Notes (optional)"
-            placeholder="e.g. Enjoyed it, refused at first"
+            label={t('food.notes')}
+            placeholder={t('food.notesPlaceholder')}
             value={formData.notes}
             onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
           />
           <Input
-            label="Any Reaction? (optional)"
-            placeholder="e.g. Rash, loose stools, none"
+            label={t('food.reaction')}
+            placeholder={t('food.reactionPlaceholder')}
             value={formData.reaction}
             onChange={(e) => setFormData({ ...formData, reaction: e.target.value })}
           />
@@ -197,7 +199,7 @@ export default function FoodTrackerPage() {
             disabled={!formData.food_name.trim()}
             className="w-full"
           >
-            Save Meal
+            {t('food.saveMeal')}
           </Button>
         </div>
       </Modal>

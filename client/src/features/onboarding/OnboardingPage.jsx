@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import useAuthStore from '../../stores/authStore';
 import { useAuth } from '../../hooks/useAuth';
@@ -9,9 +10,8 @@ import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import { BabyIcon } from '../../assets/icons';
 
-const STEPS = ['Your Name', 'Child Type', 'Details', 'Complete'];
-
 export default function OnboardingPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const { updateProfile } = useAuth();
@@ -25,6 +25,8 @@ export default function OnboardingPage() {
     gender: 'male',
     dueDate: '',
   });
+
+  const STEPS = [t('onboarding.yourName'), t('onboarding.childType'), t('onboarding.details'), t('onboarding.complete')];
 
   const updateField = (field, value) => setFormData((prev) => ({ ...prev, [field]: value }));
 
@@ -69,8 +71,8 @@ export default function OnboardingPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
             </svg>
           </div>
-          <h1 className="text-h1 font-serif text-forest-700">Welcome to ChildBloom</h1>
-          <p className="text-body text-gray-500 mt-2">Let's set up your profile in a few quick steps</p>
+          <h1 className="text-h1 font-serif text-forest-700">{t('onboarding.welcome')}</h1>
+          <p className="text-body text-gray-500 mt-2">{t('onboarding.setupSteps')}</p>
         </div>
 
         <Stepper steps={STEPS} currentStep={step} />
@@ -79,17 +81,17 @@ export default function OnboardingPage() {
           {step === 0 && (
             <div className="space-y-6">
               <div className="text-center">
-                <h2 className="text-h3 font-serif text-forest-700 mb-1">What's your name?</h2>
-                <p className="text-body text-gray-500">We'll use this to personalise your experience</p>
+                <h2 className="text-h3 font-serif text-forest-700 mb-1">{t('onboarding.whatsYourName')}</h2>
+                <p className="text-body text-gray-500">{t('onboarding.personalise')}</p>
               </div>
               <Input
-                label="Full Name"
-                placeholder="Enter your name"
+                label={t('onboarding.fullName')}
+                placeholder={t('onboarding.enterName')}
                 value={formData.full_name}
                 onChange={(e) => updateField('full_name', e.target.value)}
               />
               <Button onClick={nextStep} disabled={!formData.full_name.trim()} className="w-full" size="lg">
-                Continue
+                {t('onboarding.continue')}
               </Button>
             </div>
           )}
@@ -97,8 +99,8 @@ export default function OnboardingPage() {
           {step === 1 && (
             <div className="space-y-6">
               <div className="text-center">
-                <h2 className="text-h3 font-serif text-forest-700 mb-1">Tell us about your child</h2>
-                <p className="text-body text-gray-500">Select what best describes your situation</p>
+                <h2 className="text-h3 font-serif text-forest-700 mb-1">{t('onboarding.tellUsAbout')}</h2>
+                <p className="text-body text-gray-500">{t('onboarding.selectSituation')}</p>
               </div>
               <div className="grid grid-cols-2 gap-3 sm:gap-4">
                 <button
@@ -114,8 +116,8 @@ export default function OnboardingPage() {
                   }`}>
                     <BabyIcon className={`w-7 h-7 ${formData.childType === 'born' ? 'text-forest-600' : 'text-gray-400'}`} />
                   </div>
-                  <p className="font-semibold text-forest-700 text-caption">I have a child</p>
-                  <p className="text-micro text-gray-400 mt-1">Already born</p>
+                  <p className="font-semibold text-forest-700 text-caption">{t('onboarding.haveChild')}</p>
+                  <p className="text-micro text-gray-400 mt-1">{t('onboarding.alreadyBorn')}</p>
                 </button>
                 <button
                   onClick={() => updateField('childType', 'pregnant')}
@@ -132,13 +134,13 @@ export default function OnboardingPage() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                     </svg>
                   </div>
-                  <p className="font-semibold text-forest-700 text-caption">I'm expecting</p>
-                  <p className="text-micro text-gray-400 mt-1">Currently pregnant</p>
+                  <p className="font-semibold text-forest-700 text-caption">{t('onboarding.expecting')}</p>
+                  <p className="text-micro text-gray-400 mt-1">{t('onboarding.currentlyPregnant')}</p>
                 </button>
               </div>
               <div className="flex gap-3">
-                <Button variant="secondary" onClick={prevStep} className="flex-1" size="lg">Back</Button>
-                <Button onClick={nextStep} className="flex-1" size="lg">Continue</Button>
+                <Button variant="secondary" onClick={prevStep} className="flex-1" size="lg">{t('onboarding.back')}</Button>
+                <Button onClick={nextStep} className="flex-1" size="lg">{t('onboarding.continue')}</Button>
               </div>
             </div>
           )}
@@ -147,38 +149,42 @@ export default function OnboardingPage() {
             <div className="space-y-6">
               <div className="text-center">
                 <h2 className="text-h3 font-serif text-forest-700 mb-1">
-                  {formData.childType === 'born' ? "Your child's details" : 'Pregnancy details'}
+                  {formData.childType === 'born' ? t('onboarding.childDetails') : t('onboarding.pregnancyDetails')}
                 </h2>
               </div>
 
               {formData.childType === 'born' ? (
                 <>
                   <Input
-                    label="Child's Name"
-                    placeholder="Enter name"
+                    label={t('onboarding.childName')}
+                    placeholder={t('onboarding.enterChildName')}
                     value={formData.childName}
                     onChange={(e) => updateField('childName', e.target.value)}
                   />
                   <Input
-                    label="Date of Birth"
+                    label={t('onboarding.dateOfBirth')}
                     type="date"
                     value={formData.dateOfBirth}
                     onChange={(e) => updateField('dateOfBirth', e.target.value)}
                   />
                   <div className="space-y-1.5">
-                    <label className="block text-caption font-semibold text-forest-700">Gender</label>
+                    <label className="block text-caption font-semibold text-forest-700">{t('onboarding.gender')}</label>
                     <div className="flex gap-3">
-                      {['male', 'female', 'other'].map((g) => (
+                      {[
+                        { value: 'male', label: t('onboarding.male') },
+                        { value: 'female', label: t('onboarding.female') },
+                        { value: 'other', label: t('onboarding.other') },
+                      ].map((g) => (
                         <button
-                          key={g}
-                          onClick={() => updateField('gender', g)}
-                          className={`flex-1 py-3 rounded-xl text-caption font-medium border-2 transition-all duration-200 capitalize ${
-                            formData.gender === g
+                          key={g.value}
+                          onClick={() => updateField('gender', g.value)}
+                          className={`flex-1 py-3 rounded-xl text-caption font-medium border-2 transition-all duration-200 ${
+                            formData.gender === g.value
                               ? 'border-forest-500 bg-forest-50 text-forest-700'
                               : 'border-cream-300 text-gray-500 hover:border-cream-300'
                           }`}
                         >
-                          {g}
+                          {g.label}
                         </button>
                       ))}
                     </div>
@@ -187,13 +193,13 @@ export default function OnboardingPage() {
               ) : (
                 <>
                   <Input
-                    label="Baby's Name (optional)"
-                    placeholder="Enter name or leave blank"
+                    label={t('onboarding.babyName')}
+                    placeholder={t('onboarding.enterNameOrBlank')}
                     value={formData.childName}
                     onChange={(e) => updateField('childName', e.target.value)}
                   />
                   <Input
-                    label="Expected Due Date"
+                    label={t('onboarding.dueDate')}
                     type="date"
                     value={formData.dueDate}
                     onChange={(e) => updateField('dueDate', e.target.value)}
@@ -202,14 +208,14 @@ export default function OnboardingPage() {
               )}
 
               <div className="flex gap-3">
-                <Button variant="secondary" onClick={prevStep} className="flex-1" size="lg">Back</Button>
+                <Button variant="secondary" onClick={prevStep} className="flex-1" size="lg">{t('onboarding.back')}</Button>
                 <Button
                   onClick={nextStep}
                   disabled={formData.childType === 'born' ? !formData.dateOfBirth : !formData.dueDate}
                   className="flex-1"
                   size="lg"
                 >
-                  Continue
+                  {t('onboarding.continue')}
                 </Button>
               </div>
             </div>
@@ -223,15 +229,15 @@ export default function OnboardingPage() {
                 </svg>
               </div>
               <div>
-                <h2 className="text-h3 font-serif text-forest-700 mb-2">You're all set!</h2>
+                <h2 className="text-h3 font-serif text-forest-700 mb-2">{t('onboarding.allSet')}</h2>
                 <p className="text-body text-gray-500 leading-relaxed">
                   {formData.childType === 'born'
-                    ? `We're ready to track ${formData.childName || 'your child'}'s development journey.`
-                    : `We'll guide you through your pregnancy week by week.`}
+                    ? t('onboarding.readyToTrack', { name: formData.childName || 'your child' })
+                    : t('onboarding.guidePregnancy')}
                 </p>
               </div>
               <Button onClick={handleComplete} loading={loading} className="w-full" size="lg">
-                Go to Dashboard
+                {t('onboarding.goToDashboard')}
               </Button>
             </div>
           )}

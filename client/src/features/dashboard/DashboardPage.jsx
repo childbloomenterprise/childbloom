@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import { useSelectedChild } from '../../hooks/useChild';
 import useAuthStore from '../../stores/authStore';
@@ -15,6 +16,7 @@ import { ClipboardIcon, GrowthIcon, FoodIcon, BookIcon, ChatIcon, HealthIcon, Ch
 import { differenceInDays } from 'date-fns';
 
 export default function DashboardPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const child = useSelectedChild();
   const profile = useAuthStore((s) => s.profile);
@@ -52,9 +54,9 @@ export default function DashboardPage() {
   if (!child) {
     return (
       <EmptyState
-        title="No children added yet"
-        description="Add your child or pregnancy to get started with tracking."
-        actionLabel="Go to Settings"
+        title={t('dashboard.noChildren')}
+        description={t('dashboard.addChildStart')}
+        actionLabel={t('dashboard.goToSettings')}
         onAction={() => navigate('/settings')}
         icon={<BabyIcon className="w-8 h-8" />}
       />
@@ -62,16 +64,16 @@ export default function DashboardPage() {
   }
 
   const quickLinks = [
-    { label: 'Weekly Update', icon: ClipboardIcon, to: `/child/${child.id}/weekly-update`, bg: 'bg-forest-50', iconColor: 'text-forest-600' },
-    { label: 'Growth Chart', icon: GrowthIcon, to: `/child/${child.id}/growth`, bg: 'bg-blue-50', iconColor: 'text-blue-600' },
-    { label: 'Food Tracker', icon: FoodIcon, to: `/child/${child.id}/food`, bg: 'bg-amber-50', iconColor: 'text-amber-600' },
-    { label: 'Health Records', icon: HealthIcon, to: `/child/${child.id}/health`, bg: 'bg-rose-50', iconColor: 'text-rose-600' },
-    { label: 'Guides', icon: BookIcon, to: '/guides', bg: 'bg-violet-50', iconColor: 'text-violet-600' },
-    { label: 'Ask AI', icon: ChatIcon, to: '/ask', bg: 'bg-terracotta-50', iconColor: 'text-terracotta-400' },
+    { label: t('nav.weeklyUpdate'), icon: ClipboardIcon, to: `/child/${child.id}/weekly-update`, bg: 'bg-forest-50', iconColor: 'text-forest-600' },
+    { label: t('dashboard.growthChart'), icon: GrowthIcon, to: `/child/${child.id}/growth`, bg: 'bg-blue-50', iconColor: 'text-blue-600' },
+    { label: t('nav.foodTracker'), icon: FoodIcon, to: `/child/${child.id}/food`, bg: 'bg-amber-50', iconColor: 'text-amber-600' },
+    { label: t('dashboard.healthRecords'), icon: HealthIcon, to: `/child/${child.id}/health`, bg: 'bg-rose-50', iconColor: 'text-rose-600' },
+    { label: t('nav.guides'), icon: BookIcon, to: '/guides', bg: 'bg-violet-50', iconColor: 'text-violet-600' },
+    { label: t('nav.askAi'), icon: ChatIcon, to: '/ask', bg: 'bg-terracotta-50', iconColor: 'text-terracotta-400' },
   ];
 
   if (child.is_pregnant) {
-    return <PregnancyDashboard child={child} profile={profile} navigate={navigate} quickLinks={quickLinks} />;
+    return <PregnancyDashboard child={child} profile={profile} navigate={navigate} quickLinks={quickLinks} t={t} />;
   }
 
   return (
@@ -88,7 +90,7 @@ export default function DashboardPage() {
             {latestUpdate && (
               <p className="text-micro text-gray-400 mt-3 flex items-center gap-2 uppercase tracking-wider">
                 <span className="w-1.5 h-1.5 bg-forest-400 rounded-full flex-shrink-0" />
-                Last update: {formatDate(latestUpdate.created_at)}
+                {t('dashboard.lastUpdate', { date: formatDate(latestUpdate.created_at) })}
               </p>
             )}
           </div>
@@ -102,9 +104,9 @@ export default function DashboardPage() {
       {(latestGrowth || latestUpdate) && (
         <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
           {[
-            { label: 'Weight', value: formatWeight(latestGrowth?.weight_kg || latestUpdate?.weight_kg), bg: 'bg-blue-50', accent: 'bg-blue-400' },
-            { label: 'Height', value: formatHeight(latestGrowth?.height_cm || latestUpdate?.height_cm), bg: 'bg-violet-50', accent: 'bg-violet-400' },
-            { label: 'Mood', value: latestUpdate?.mood?.replace('_', ' ') || '—', bg: 'bg-amber-50', accent: 'bg-amber-400' },
+            { label: t('dashboard.weight'), value: formatWeight(latestGrowth?.weight_kg || latestUpdate?.weight_kg), bg: 'bg-blue-50', accent: 'bg-blue-400' },
+            { label: t('dashboard.height'), value: formatHeight(latestGrowth?.height_cm || latestUpdate?.height_cm), bg: 'bg-violet-50', accent: 'bg-violet-400' },
+            { label: t('dashboard.mood'), value: latestUpdate?.mood?.replace('_', ' ') || '—', bg: 'bg-amber-50', accent: 'bg-amber-400' },
           ].map((stat) => (
             <Card key={stat.label} className={`p-3.5 sm:p-4 text-center ${stat.bg} border-transparent`}>
               <p className="text-micro font-semibold uppercase tracking-wider text-gray-400 mb-1.5 flex items-center justify-center gap-1.5">
@@ -124,7 +126,7 @@ export default function DashboardPage() {
         size="lg"
       >
         <ClipboardIcon className="w-5 h-5 mr-2" />
-        Log This Week
+        {t('dashboard.logThisWeek')}
       </Button>
 
       {/* AI Insight */}
@@ -134,7 +136,7 @@ export default function DashboardPage() {
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
-            AI Insight for {child.name}
+            {t('dashboard.aiInsight', { name: child.name })}
           </p>
           <p className="text-body text-gray-600 leading-relaxed">{latestUpdate.ai_insight}</p>
         </Card>
@@ -142,7 +144,7 @@ export default function DashboardPage() {
 
       {/* Quick Links */}
       <div>
-        <h2 className="text-h3 font-serif text-forest-700 mb-3">Quick Access</h2>
+        <h2 className="text-h3 font-serif text-forest-700 mb-3">{t('dashboard.quickAccess')}</h2>
         <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
           {quickLinks.map((link) => (
             <Card
@@ -163,7 +165,7 @@ export default function DashboardPage() {
   );
 }
 
-function PregnancyDashboard({ child, profile, navigate, quickLinks }) {
+function PregnancyDashboard({ child, profile, navigate, quickLinks, t }) {
   const pregnancy = formatPregnancyWeek(child.due_date);
   const daysUntilDue = differenceInDays(new Date(child.due_date), new Date());
   const progress = Math.min((pregnancy.weeks / 40) * 100, 100);
@@ -176,16 +178,16 @@ function PregnancyDashboard({ child, profile, navigate, quickLinks }) {
       <Card className="p-5 sm:p-7 overflow-hidden relative">
         <div className="absolute -top-10 -right-10 w-36 h-36 bg-forest-50/50 rounded-full blur-2xl" />
         <div className="relative">
-          <Badge variant="primary" className="mb-3">Trimester {pregnancy.trimester}</Badge>
+          <Badge variant="primary" className="mb-3">{t('dashboard.trimester', { number: pregnancy.trimester })}</Badge>
           <h1 className="text-h1 font-serif text-forest-700">Week {pregnancy.weeks}</h1>
           <p className="text-body text-gray-500 mt-1">
-            {daysUntilDue > 0 ? `${daysUntilDue} days until due date` : 'Due date has passed'}
+            {daysUntilDue > 0 ? t('dashboard.daysUntilDue', { days: daysUntilDue }) : t('dashboard.dueDatePassed')}
           </p>
 
           {/* Progress Bar */}
           <div className="mt-5 bg-cream-100 rounded-xl p-4">
             <div className="flex justify-between text-micro text-gray-500 mb-2.5 uppercase tracking-wider">
-              <span className="font-medium">Progress</span>
+              <span className="font-medium">{t('dashboard.progress')}</span>
               <span className="font-bold text-forest-600">{Math.round(progress)}%</span>
             </div>
             <div className="h-2.5 bg-cream-200 rounded-full overflow-hidden">
@@ -204,11 +206,11 @@ function PregnancyDashboard({ child, profile, navigate, quickLinks }) {
         size="lg"
       >
         <ClipboardIcon className="w-5 h-5 mr-2" />
-        Weekly Check-in
+        {t('dashboard.weeklyCheckin')}
       </Button>
 
       <div>
-        <h2 className="text-h3 font-serif text-forest-700 mb-3">Quick Access</h2>
+        <h2 className="text-h3 font-serif text-forest-700 mb-3">{t('dashboard.quickAccess')}</h2>
         <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
           {quickLinks.map((link) => (
             <Card key={link.to} hover className="p-3.5 sm:p-4 group" onClick={() => navigate(link.to)}>

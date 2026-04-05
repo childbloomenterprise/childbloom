@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
 import { BookIcon, ChevronRightIcon } from '../../assets/icons';
@@ -7,6 +8,7 @@ import { useSelectedChild } from '../../hooks/useChild';
 import { getAgeStage } from '../../lib/formatters';
 
 export default function GuidesPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const child = useSelectedChild();
   const currentStage = child?.date_of_birth ? getAgeStage(child.date_of_birth) : null;
@@ -14,9 +16,9 @@ export default function GuidesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-h1 font-serif text-forest-700">Development Guides</h1>
+        <h1 className="text-h1 font-serif text-forest-700">{t('guides.title')}</h1>
         <p className="text-body text-gray-500 mt-1">
-          Evidence-based guidance for every stage
+          {t('guides.subtitle')}
         </p>
       </div>
 
@@ -39,7 +41,7 @@ export default function GuidesPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1 flex-wrap">
                     <h3 className="text-caption font-semibold text-forest-700">{stage.title}</h3>
-                    {isCurrent && <Badge variant="primary">Current</Badge>}
+                    {isCurrent && <Badge variant="primary">{t('guides.current')}</Badge>}
                   </div>
                   <p className="text-micro font-medium text-terracotta-400 mb-0.5 sm:mb-1">{stage.ageRange}</p>
                   <p className="text-caption text-gray-500 line-clamp-2">{stage.description}</p>
@@ -53,8 +55,7 @@ export default function GuidesPage() {
 
       <Card className="p-5 bg-cream-100 border-cream-300">
         <p className="text-micro text-gray-400 text-center leading-relaxed uppercase tracking-wider">
-          These guides are based on WHO and IAP (Indian Academy of Pediatrics) recommendations.
-          Always consult your paediatrician for personalised advice.
+          {t('guides.whoDisclaimer')}
         </p>
       </Card>
     </div>
