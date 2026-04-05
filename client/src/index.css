@@ -14,9 +14,11 @@
 
   body {
     @apply font-sans;
-    background: linear-gradient(160deg, #FFF8F5 0%, #FFF0F5 30%, #F8F0FF 60%, #F0F5FF 85%, #F5FFF8 100%);
+    /* Exact from prompt */
+    background: linear-gradient(to bottom right, #111827, #000000, #1f2937);
     background-attachment: fixed;
-    color: #3C3C43;
+    min-height: 100vh;
+    color: rgba(255, 255, 255, 0.87);
     -webkit-tap-highlight-color: transparent;
     -webkit-touch-callout: none;
     overscroll-behavior: none;
@@ -24,125 +26,75 @@
 
   h1, h2, h3, h4, h5, h6 {
     @apply font-serif;
-    color: #1C1C1E;
+    color: rgba(255, 255, 255, 0.95);
   }
   h1 { @apply text-h1; }
   h2 { @apply text-h2; }
   h3 { @apply text-h3; }
 
   ::selection {
-    background: rgba(244, 63, 94, 0.15);
-    color: #BE123C;
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
   }
 }
 
 /* ── Components ───────────────────────────────── */
 @layer components {
 
-  /* iOS-style glass input */
+  /* Dark glass input */
   .input-field {
-    @apply w-full px-4 py-3.5 rounded-2xl border text-gray-800
-           placeholder-gray-400 focus:outline-none transition-all duration-200;
-    background: rgba(255, 255, 255, 0.75);
-    -webkit-backdrop-filter: blur(16px);
-    backdrop-filter: blur(16px);
-    border-color: rgba(209, 213, 219, 0.7);
+    @apply w-full px-4 py-3.5 rounded-xl border transition-all duration-200 focus:outline-none;
+    background: rgba(255, 255, 255, 0.05);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    border-color: rgba(255, 255, 255, 0.10);
+    color: rgba(255, 255, 255, 0.87);
     font-size: 0.9375rem;
   }
+  .input-field::placeholder {
+    color: rgba(255, 255, 255, 0.30);
+  }
   .input-field:hover:not(:focus) {
-    border-color: rgba(156, 163, 175, 0.8);
-    background: rgba(255, 255, 255, 0.85);
+    border-color: rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.07);
   }
   .input-field:focus {
-    background: rgba(255, 255, 255, 0.95);
-    border-color: rgba(244, 63, 94, 0.45);
-    box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.1);
+    border-color: rgba(255, 255, 255, 0.30);
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.06);
   }
 
-  /* Glass surface utility */
+  /* Glass card — exact dock aesthetic */
   .glass {
-    background: rgba(255, 255, 255, 0.72);
+    background: rgba(0, 0, 0, 0.40);
     -webkit-backdrop-filter: blur(24px);
     backdrop-filter: blur(24px);
-    border: 1px solid rgba(255, 255, 255, 0.65);
+    border: 1px solid rgba(255, 255, 255, 0.10);
   }
 
   .glass-card {
-    background: rgba(255, 255, 255, 0.78);
-    -webkit-backdrop-filter: blur(20px);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.6);
-    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(255, 255, 255, 0.7);
-  }
-
-  .glass-dark {
-    background: rgba(28, 28, 30, 0.72);
-    -webkit-backdrop-filter: blur(24px);
-    backdrop-filter: blur(24px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.10);
   }
 }
 
 /* ── Utilities ────────────────────────────────── */
 @layer utilities {
-  .text-gradient-rose {
-    @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, #FB7185, #F43F5E);
-  }
-
   .text-gradient {
     @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, #F43F5E, #FB7185);
+    background-image: linear-gradient(135deg, #ffffff, rgba(255,255,255,0.6));
   }
 
-  .safe-area-bottom {
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-  }
-  .safe-area-top {
-    padding-top: env(safe-area-inset-top, 0px);
-  }
+  .safe-area-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .safe-area-top    { padding-top: env(safe-area-inset-top, 0px); }
 
-  .hide-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-  .hide-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
+  .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  .hide-scrollbar::-webkit-scrollbar { display: none; }
 
-  /* Frosted blob decorations */
-  .blob-pink {
-    background: radial-gradient(circle, rgba(255, 182, 193, 0.45) 0%, transparent 70%);
-  }
-  .blob-lavender {
-    background: radial-gradient(circle, rgba(196, 181, 253, 0.4) 0%, transparent 70%);
-  }
-  .blob-sky {
-    background: radial-gradient(circle, rgba(186, 230, 253, 0.4) 0%, transparent 70%);
-  }
-  .blob-peach {
-    background: radial-gradient(circle, rgba(253, 186, 116, 0.3) 0%, transparent 70%);
-  }
-  .blob-mint {
-    background: radial-gradient(circle, rgba(110, 231, 183, 0.3) 0%, transparent 70%);
-  }
-
-  /* Accent borders */
-  .accent-left         { border-left: 3px solid #F43F5E; }
-  .accent-left-green   { border-left: 3px solid #52B788; }
-
-  /* Heading accent underline */
-  .heading-accent { position: relative; display: inline-block; }
-  .heading-accent::after {
-    content: '';
-    position: absolute;
-    bottom: -4px;
-    left: 0;
-    width: 2rem;
-    height: 3px;
-    background: linear-gradient(90deg, #F43F5E, #FB7185);
-    border-radius: 2px;
-  }
+  .accent-left       { border-left: 3px solid rgba(255,255,255,0.4); }
+  .accent-left-green { border-left: 3px solid rgba(255,255,255,0.2); }
 }
 
 /* ── Mobile ───────────────────────────────────── */
@@ -151,10 +103,7 @@
 }
 
 html { overscroll-behavior: none; }
-
-.overflow-y-auto, .overflow-x-auto {
-  -webkit-overflow-scrolling: touch;
-}
+.overflow-y-auto, .overflow-x-auto { -webkit-overflow-scrolling: touch; }
 
 @media screen and (max-width: 768px) {
   ::-webkit-scrollbar { display: none; }
@@ -162,13 +111,12 @@ html { overscroll-behavior: none; }
 }
 
 /* ── Scrollbar ────────────────────────────────── */
-::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(209,213,219,0.6); border-radius: 100px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(156,163,175,0.7); }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 100px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.20); }
 
 /* ── Animations ───────────────────────────────── */
-
 @keyframes fade-in-up {
   from { opacity: 0; transform: translateY(16px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -199,7 +147,7 @@ html { overscroll-behavior: none; }
 }
 @keyframes pulse-soft {
   0%, 100% { opacity: 1; }
-  50%      { opacity: 0.55; }
+  50%      { opacity: 0.5; }
 }
 @keyframes shimmer {
   0%   { background-position: -200% 0; }
@@ -222,13 +170,7 @@ html { overscroll-behavior: none; }
   0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
   40%           { transform: scale(1); opacity: 1; }
 }
-@keyframes blob-drift {
-  0%, 100% { transform: translate(0,0) scale(1); }
-  33%      { transform: translate(20px,-15px) scale(1.05); }
-  66%      { transform: translate(-15px,10px) scale(0.97); }
-}
 
-/* Utility animation classes */
 .animate-fade-in-up    { animation: fade-in-up 0.5s cubic-bezier(0.25, 0.1, 0.25, 1) both; }
 .animate-fade-in       { animation: fade-in 0.4s ease-out both; }
 .animate-scale-in      { animation: scale-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
@@ -240,9 +182,7 @@ html { overscroll-behavior: none; }
 .animate-gradient      { animation: gradient-shift 4s ease infinite; background-size: 200% 200%; }
 .animate-toast-in      { animation: toast-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
 .animate-bounce-subtle { animation: bounce-subtle 2.5s ease-in-out infinite; }
-.animate-blob          { animation: blob-drift 8s ease-in-out infinite; }
 
-/* Staggered children */
 .stagger-children > * { animation: fade-in-up 0.45s cubic-bezier(0.25, 0.1, 0.25, 1) both; }
 .stagger-children > *:nth-child(1) { animation-delay: 0ms; }
 .stagger-children > *:nth-child(2) { animation-delay: 70ms; }
@@ -253,55 +193,43 @@ html { overscroll-behavior: none; }
 .stagger-children > *:nth-child(7) { animation-delay: 420ms; }
 .stagger-children > *:nth-child(8) { animation-delay: 490ms; }
 
-/* Thinking dots */
 .thinking-dot { animation: pulse-dot 1.4s ease-in-out infinite; }
 .thinking-dot:nth-child(2) { animation-delay: 0.2s; }
 .thinking-dot:nth-child(3) { animation-delay: 0.4s; }
 
-/* Skeleton shimmer */
+/* Skeleton shimmer — dark */
 .skeleton {
   background: linear-gradient(90deg,
-    rgba(255,255,255,0.6) 25%,
-    rgba(255,255,255,0.9) 50%,
-    rgba(255,255,255,0.6) 75%
+    rgba(255,255,255,0.04) 25%,
+    rgba(255,255,255,0.08) 50%,
+    rgba(255,255,255,0.04) 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: 8px;
 }
 
-/* ── Interaction effects ─────────────────────── */
-
-.hover-lift {
-  transition: transform 0.25s cubic-bezier(0.25, 0.1, 0.25, 1),
-              box-shadow 0.25s ease;
-}
+/* Hover lift */
+.hover-lift { transition: transform 0.25s ease, box-shadow 0.25s ease; }
 .hover-lift:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 28px rgba(0,0,0,0.09);
+  box-shadow: 0 8px 28px rgba(0,0,0,0.4);
 }
 
-.press-effect { transition: transform 0.15s cubic-bezier(0.25, 0.1, 0.25, 1); }
+.press-effect { transition: transform 0.15s ease; }
 .press-effect:active { transform: scale(0.97); }
 
-/* Gradient border using rose */
+/* Gradient border — white */
 .gradient-border { position: relative; border: none; }
 .gradient-border::before {
   content: '';
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  padding: 1.5px;
-  background: linear-gradient(135deg, #F43F5E, #FB7185, #F43F5E);
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.3), rgba(255,255,255,0.05), rgba(255,255,255,0.2));
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
-}
-
-/* iOS dock reflection */
-.dock-reflection {
-  background: linear-gradient(to bottom, rgba(255,255,255,0.3), transparent);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
 }

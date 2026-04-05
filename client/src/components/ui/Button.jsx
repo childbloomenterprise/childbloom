@@ -1,33 +1,35 @@
+// Dark glass button — matches dock aesthetic
 export default function Button({ children, variant = 'primary', size = 'md', disabled, loading, className = '', ...props }) {
   const base = `
     inline-flex items-center justify-center font-semibold tracking-tight
-    rounded-2xl transition-all duration-250 ease-out
-    focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
-    disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none
+    rounded-xl transition-all duration-300 ease-out
+    focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent
+    disabled:opacity-40 disabled:cursor-not-allowed disabled:transform-none
     relative overflow-hidden select-none
+    border
   `;
 
   const variants = {
     primary: `
-      text-white
-      hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]
-      focus-visible:ring-rose-400
+      bg-white/10 backdrop-blur-sm border-white/20 text-white
+      hover:bg-white/15 hover:border-white/30 hover:-translate-y-0.5
+      hover:shadow-[0_4px_24px_0_rgba(255,255,255,0.08)]
+      active:translate-y-0 active:scale-[0.98]
     `,
     secondary: `
-      text-gray-700 border border-gray-200/80
-      hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]
-      focus-visible:ring-gray-300
+      bg-white/5 backdrop-blur-sm border-white/10 text-white/80
+      hover:bg-white/10 hover:border-white/20 hover:text-white hover:-translate-y-0.5
+      active:translate-y-0 active:scale-[0.98]
     `,
     ghost: `
-      bg-transparent text-gray-600
-      hover:text-gray-800
+      bg-transparent border-transparent text-white/60
+      hover:bg-white/5 hover:border-white/10 hover:text-white
       active:scale-[0.98]
-      focus-visible:ring-gray-300
     `,
     danger: `
-      text-white
-      hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]
-      focus-visible:ring-red-400
+      bg-red-500/10 border-red-500/20 text-red-400
+      hover:bg-red-500/20 hover:border-red-500/30 hover:text-red-300 hover:-translate-y-0.5
+      active:translate-y-0 active:scale-[0.98]
     `,
   };
 
@@ -38,47 +40,10 @@ export default function Button({ children, variant = 'primary', size = 'md', dis
     icon: 'p-2.5',
   };
 
-  const variantStyles = {
-    primary: {
-      background: 'linear-gradient(135deg, #FB7185 0%, #F43F5E 50%, #E11D48 100%)',
-      boxShadow: '0 4px 16px rgba(244,63,94,0.28), 0 1px 4px rgba(244,63,94,0.2)',
-    },
-    secondary: {
-      background: 'rgba(255, 255, 255, 0.8)',
-      backdropFilter: 'blur(12px)',
-      WebkitBackdropFilter: 'blur(12px)',
-      boxShadow: '0 1px 6px rgba(0,0,0,0.06), 0 0 0 1px rgba(255,255,255,0.7)',
-    },
-    ghost: {
-      background: 'transparent',
-    },
-    danger: {
-      background: 'linear-gradient(135deg, #F87171 0%, #EF4444 50%, #DC2626 100%)',
-      boxShadow: '0 4px 16px rgba(239,68,68,0.28), 0 1px 4px rgba(239,68,68,0.2)',
-    },
-  };
-
   return (
     <button
       className={`${base} ${variants[variant]} ${sizes[size]} ${className}`}
-      style={variantStyles[variant]}
       disabled={disabled || loading}
-      onMouseEnter={(e) => {
-        if (disabled || loading) return;
-        if (variant === 'primary') {
-          e.currentTarget.style.boxShadow = '0 6px 24px rgba(244,63,94,0.38), 0 2px 8px rgba(244,63,94,0.26)';
-        } else if (variant === 'secondary') {
-          e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.1), 0 0 0 1px rgba(255,255,255,0.8)';
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (disabled || loading) return;
-        if (variant === 'primary') {
-          e.currentTarget.style.boxShadow = '0 4px 16px rgba(244,63,94,0.28), 0 1px 4px rgba(244,63,94,0.2)';
-        } else if (variant === 'secondary') {
-          e.currentTarget.style.boxShadow = '0 1px 6px rgba(0,0,0,0.06), 0 0 0 1px rgba(255,255,255,0.7)';
-        }
-      }}
       {...props}
     >
       {loading && (
@@ -88,12 +53,6 @@ export default function Button({ children, variant = 'primary', size = 'md', dis
         </svg>
       )}
       {children}
-      {/* Subtle shine for primary */}
-      {variant === 'primary' && !disabled && !loading && (
-        <span className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none">
-          <span className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-white/20 to-transparent" />
-        </span>
-      )}
     </button>
   );
 }

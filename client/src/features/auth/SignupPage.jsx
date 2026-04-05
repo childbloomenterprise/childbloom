@@ -29,25 +29,20 @@ function LanguageSelector() {
 
   return (
     <div className="mb-6">
-      <p className="text-micro font-semibold uppercase tracking-wider text-center mb-3" style={{ color: '#AEAEB2' }}>
+      <p className="text-micro font-semibold uppercase tracking-wider text-center mb-3 text-white/30">
         Choose language / भाषा चुनें
       </p>
-      <div className="flex gap-1.5 overflow-x-auto hide-scrollbar pb-0.5 justify-center flex-wrap">
+      <div className="flex gap-1.5 flex-wrap justify-center">
         {LANGUAGES.map((lang) => (
           <button
             key={lang.code}
             type="button"
             onClick={() => handleChange(lang.code)}
-            className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 active:scale-95"
-            style={currentLang === lang.code ? {
-              background: 'linear-gradient(135deg, #FB7185, #F43F5E)',
-              color: '#fff',
-              boxShadow: '0 2px 8px rgba(244,63,94,0.3)',
-            } : {
-              background: 'rgba(255,255,255,0.7)',
-              color: '#636366',
-              border: '1px solid rgba(209,213,219,0.6)',
-            }}
+            className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 active:scale-95 border ${
+              currentLang === lang.code
+                ? 'bg-white/10 border-white/30 text-white'
+                : 'bg-white/5 border-white/10 text-white/50 hover:bg-white/8 hover:text-white/70'
+            }`}
           >
             {lang.label}
           </button>
@@ -83,62 +78,31 @@ export default function SignupPage() {
 
   if (success) {
     return (
-      <div
-        className="rounded-3xl p-8 sm:p-10 text-center animate-scale-in"
-        style={{
-          background: 'rgba(255,255,255,0.78)',
-          backdropFilter: 'blur(24px)',
-          WebkitBackdropFilter: 'blur(24px)',
-          border: '1px solid rgba(255,255,255,0.75)',
-          boxShadow: '0 8px 40px rgba(0,0,0,0.07), 0 0 0 1px rgba(255,255,255,0.8)',
-        }}
-      >
-        <div
-          className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6"
-          style={{ background: 'rgba(244,63,94,0.1)' }}
-        >
-          <svg className="w-8 h-8" style={{ color: '#F43F5E' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="rounded-2xl border border-white/10 p-8 sm:p-10 text-center animate-scale-in shadow-2xl"
+        style={{ background: 'rgba(0,0,0,0.40)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)' }}>
+        <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-white/10" style={{ background: 'rgba(255,255,255,0.08)' }}>
+          <svg className="w-8 h-8 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
           </svg>
         </div>
-        <h2 className="text-h2 font-serif mb-2" style={{ color: '#1C1C1E' }}>{t('auth.checkEmail')}</h2>
-        <p className="text-body mb-8 leading-relaxed" style={{ color: '#8E8E93' }}>
-          {t('auth.confirmationSent')}
-        </p>
-        <Link
-          to="/login"
-          className="font-semibold transition-colors hover:opacity-80"
-          style={{ color: '#F43F5E' }}
-        >
-          {t('auth.backToSignIn')}
-        </Link>
+        <h2 className="text-h2 font-serif text-white mb-2">{t('auth.checkEmail')}</h2>
+        <p className="text-body text-white/40 mb-8 leading-relaxed">{t('auth.confirmationSent')}</p>
+        <Link to="/login" className="text-white/70 font-semibold hover:text-white transition-colors">{t('auth.backToSignIn')}</Link>
       </div>
     );
   }
 
   return (
-    <div
-      className="rounded-3xl p-8 sm:p-10"
-      style={{
-        background: 'rgba(255, 255, 255, 0.78)',
-        backdropFilter: 'blur(24px)',
-        WebkitBackdropFilter: 'blur(24px)',
-        border: '1px solid rgba(255, 255, 255, 0.75)',
-        boxShadow: '0 8px 40px rgba(0,0,0,0.07), 0 2px 12px rgba(0,0,0,0.04), 0 0 0 1px rgba(255,255,255,0.8)',
-      }}
-    >
-      {/* Language selector — shown prominently on signup */}
+    <div className="rounded-2xl border border-white/10 p-8 sm:p-10 shadow-2xl"
+      style={{ background: 'rgba(0,0,0,0.40)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)' }}>
+
       <LanguageSelector />
 
-      <h2 className="text-h2 font-serif text-center mb-1" style={{ color: '#1C1C1E' }}>
-        {t('auth.createAccount')}
-      </h2>
-      <p className="text-body text-center mb-8" style={{ color: '#8E8E93' }}>
-        {t('auth.startJourney')}
-      </p>
+      <h2 className="text-h2 font-serif text-white text-center mb-1">{t('auth.createAccount')}</h2>
+      <p className="text-body text-white/40 text-center mb-8">{t('auth.startJourney')}</p>
 
       {error && (
-        <div className="rounded-2xl p-4 mb-6 flex items-center gap-2.5 animate-scale-in" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#DC2626' }}>
+        <div className="rounded-xl p-4 mb-6 flex items-center gap-2.5 animate-scale-in border border-red-500/20 text-red-400" style={{ background: 'rgba(239,68,68,0.08)' }}>
           <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
@@ -147,52 +111,26 @@ export default function SignupPage() {
       )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-        <Input
-          label={t('auth.email')}
-          type="email"
-          placeholder="you@example.com"
-          error={errors.email?.message}
-          {...register('email')}
-        />
-        <Input
-          label={t('auth.password')}
-          type="password"
-          placeholder="At least 6 characters"
-          error={errors.password?.message}
-          {...register('password')}
-        />
-        <Input
-          label={t('auth.confirmPassword')}
-          type="password"
-          placeholder="Repeat your password"
-          error={errors.confirmPassword?.message}
-          {...register('confirmPassword')}
-        />
-        <Button type="submit" loading={loading} className="w-full" size="lg">
+        <Input label={t('auth.email')} type="email" placeholder="you@example.com" error={errors.email?.message} {...register('email')} />
+        <Input label={t('auth.password')} type="password" placeholder="At least 6 characters" error={errors.password?.message} {...register('password')} />
+        <Input label={t('auth.confirmPassword')} type="password" placeholder="Repeat your password" error={errors.confirmPassword?.message} {...register('confirmPassword')} />
+        <Button type="submit" loading={loading} className="w-full" size="lg" variant="primary">
           {t('auth.createAccount')}
         </Button>
       </form>
 
       <div className="relative my-8">
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full" style={{ borderTop: '1px solid rgba(209,213,219,0.6)' }} />
+          <div className="w-full border-t border-white/10" />
         </div>
         <div className="relative flex justify-center">
-          <span className="px-4 text-micro uppercase tracking-wider" style={{ background: 'rgba(255,255,255,0.9)', color: '#AEAEB2' }}>
-            {t('auth.or')}
-          </span>
+          <span className="px-4 text-micro uppercase tracking-wider text-white/30">{t('auth.or')}</span>
         </div>
       </div>
 
-      <p className="text-body text-center" style={{ color: '#8E8E93' }}>
+      <p className="text-body text-white/40 text-center">
         {t('auth.haveAccount')}{' '}
-        <Link
-          to="/login"
-          className="font-semibold transition-colors hover:opacity-80"
-          style={{ color: '#F43F5E' }}
-        >
-          {t('auth.signIn')}
-        </Link>
+        <Link to="/login" className="text-white/80 font-semibold hover:text-white transition-colors">{t('auth.signIn')}</Link>
       </p>
     </div>
   );

@@ -1,12 +1,9 @@
 import { useTranslation } from 'react-i18next';
-import useUiStore from '../../stores/uiStore';
 import useAuthStore from '../../stores/authStore';
-import { MenuIcon } from '../../assets/icons';
 import { format } from 'date-fns';
 
 export default function Header() {
   const { t } = useTranslation();
-  const { toggleSidebar } = useUiStore();
   const profile = useAuthStore((s) => s.profile);
 
   const greeting = () => {
@@ -19,52 +16,31 @@ export default function Header() {
   const firstName = profile?.full_name?.split(' ')[0] || 'there';
 
   return (
+    // Exact dock bg treatment applied to header
     <header
       className="sticky top-0 z-30 safe-area-top"
       style={{
-        background: 'rgba(255, 255, 255, 0.65)',
-        backdropFilter: 'blur(32px)',
-        WebkitBackdropFilter: 'blur(32px)',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.7)',
-        boxShadow: '0 1px 0 rgba(0,0,0,0.04)',
+        background: 'rgba(0, 0, 0, 0.40)',
+        backdropFilter: 'blur(24px)',
+        WebkitBackdropFilter: 'blur(24px)',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.10)',
       }}
     >
-      <div className="flex items-center justify-between px-4 sm:px-5 lg:px-8 py-3.5 sm:py-4">
-        <div className="flex items-center gap-3 min-w-0">
-          {/* Mobile menu button */}
-          <button
-            onClick={toggleSidebar}
-            className="lg:hidden flex items-center justify-center w-9 h-9 rounded-full active:scale-95 transition-transform"
-            style={{
-              background: 'rgba(255,255,255,0.85)',
-              boxShadow: '0 1px 6px rgba(0,0,0,0.07), 0 0 0 1px rgba(255,255,255,0.9)',
-            }}
-            aria-label="Toggle menu"
-          >
-            <MenuIcon className="w-4 h-4" style={{ color: '#3C3C43' }} />
-          </button>
-
-          <div className="min-w-0">
-            <h2 className="text-body-lg font-serif font-semibold truncate" style={{ color: '#1C1C1E' }}>
-              {greeting()},{' '}
-              <span style={{ background: 'linear-gradient(135deg, #FB7185, #F43F5E)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-                {firstName}
-              </span>
-            </h2>
-            <p className="text-micro text-gray-400 mt-0.5 uppercase tracking-wider">
-              {format(new Date(), 'EEE, MMM d')}
-              <span className="hidden sm:inline">, {format(new Date(), 'yyyy')}</span>
-            </p>
-          </div>
+      <div className="flex items-center justify-between px-4 sm:px-6 lg:px-8 py-4">
+        <div className="min-w-0">
+          <h2 className="text-body-lg font-serif font-semibold text-white truncate">
+            {greeting()},{' '}
+            <span className="text-white/60">{firstName}</span>
+          </h2>
+          <p className="text-micro text-white/30 mt-0.5 uppercase tracking-wider">
+            {format(new Date(), 'EEE, MMM d, yyyy')}
+          </p>
         </div>
 
         {/* Avatar */}
         <div
-          className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center cursor-pointer active:scale-95 transition-transform flex-shrink-0"
-          style={{
-            background: 'linear-gradient(135deg, #FB7185 0%, #F43F5E 100%)',
-            boxShadow: '0 2px 10px rgba(244,63,94,0.32)',
-          }}
+          className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center cursor-pointer active:scale-95 transition-transform flex-shrink-0 border border-white/20"
+          style={{ background: 'rgba(255,255,255,0.10)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
         >
           <span className="text-xs sm:text-sm font-bold text-white">
             {firstName.charAt(0).toUpperCase()}
