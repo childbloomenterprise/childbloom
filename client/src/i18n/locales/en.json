@@ -95,17 +95,18 @@
     "trimester": "Trimester {{number}}"
   },
   "askAi": {
-    "title": "Ask ChildBloom AI",
-    "subtitle": "Get personalised guidance about {{name}}'s development",
-    "subtitleGeneric": "Get personalised guidance about your child's development",
-    "placeholder": "Ask about your child's development...",
-    "askAnything": "Ask me anything about child development, nutrition, milestones, or parenting.",
+    "title": "Ask Dr. Bloom",
+    "subtitle": "Paediatric guidance for {{name}}",
+    "subtitleGeneric": "Your AI paediatrician — ask anything",
+    "placeholder": "Type your question here...",
+    "doctorName": "Dr. Bloom · AI Paediatrician",
+    "askAnything": "Ask about milestones, nutrition, sleep, vaccinations, or any concern.",
     "suggestedQ1": "What milestones should I expect this month?",
-    "suggestedQ2": "How much sleep does my child need?",
-    "suggestedQ3": "What Indian foods are good for brain development?",
-    "suggestedQ4": "When should I start potty training?",
+    "suggestedQ2": "My child isn't eating well — what should I do?",
+    "suggestedQ3": "Which Indian foods are best for brain development?",
+    "suggestedQ4": "How much sleep does my child need at this age?",
     "suggestedQ5": "Is it normal for my child to not talk yet?",
-    "suggestedQ6": "What vaccinations are due next?",
+    "suggestedQ6": "Which vaccinations are due next as per IAP schedule?",
     "errorMessage": "Sorry, something went wrong. Please try again in a moment."
   },
   "growth": {

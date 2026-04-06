@@ -10,7 +10,6 @@ import { formatAgeInDays } from '../../lib/formatters';
 import Stepper from '../../components/ui/Stepper';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
-import MedicalDisclaimer from '../../components/layout/MedicalDisclaimer';
 import MeasurementsStep from './steps/MeasurementsStep';
 import MoodStep from './steps/MoodStep';
 import MilestonesStep from './steps/MilestonesStep';
@@ -118,7 +117,7 @@ export default function WeeklyUpdatePage() {
         feeding_notes: formData.solid_foods,
         concerns: formData.concerns,
       });
-      return response.data?.insight || response.insight || 'Great job tracking your child\'s development this week! Keep up the amazing work.';
+      return response.insight || 'Great job tracking your child\'s development this week! Keep up the amazing work.';
     },
   });
 
@@ -194,7 +193,6 @@ export default function WeeklyUpdatePage() {
         )}
       </div>
 
-      {step === 5 && <MedicalDisclaimer />}
     </div>
   );
 }

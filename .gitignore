@@ -10,3 +10,5 @@ Thumbs.db
 coverage/
 .vercel/
 .claude/
+.vercel
+.env*.local

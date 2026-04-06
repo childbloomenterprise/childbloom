@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import ReactMarkdown from 'react-markdown';
 import api from '../../lib/api';
 import { useSelectedChild } from '../../hooks/useChild';
 import { formatAgeInDays } from '../../lib/formatters';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
-import MedicalDisclaimer from '../../components/layout/MedicalDisclaimer';
 import { ChatIcon, SendIcon } from '../../assets/icons';
 
 export default function AskAiPage() {
@@ -32,7 +32,7 @@ export default function AskAiPage() {
         age_in_days: child?.date_of_birth ? formatAgeInDays(child.date_of_birth) : null,
         gender: child?.gender,
       });
-      return response.data?.answer || response.answer || 'I\'m sorry, I couldn\'t generate a response. Please try again.';
+      return response.answer || 'I\'m sorry, I couldn\'t generate a response. Please try again.';
     },
   });
 
@@ -70,6 +70,15 @@ export default function AskAiPage() {
     t('askAi.suggestedQ6'),
   ];
 
+  const handleSuggestedQuestion = (q) => {
+    setMessages((prev) => [...prev, { role: 'user', content: q }]);
+    askMutation.mutateAsync(q).then((answer) => {
+      setMessages((prev) => [...prev, { role: 'assistant', content: answer }]);
+    }).catch(() => {
+      setMessages((prev) => [...prev, { role: 'assistant', content: t('askAi.errorMessage') }]);
+    });
+  };
+
   return (
     <div className="flex flex-col h-[calc(100vh-10rem)] sm:h-[calc(100vh-12rem)]">
       <div className="mb-4">
@@ -84,12 +93,11 @@ export default function AskAiPage() {
         {messages.length === 0 ? (
           <div className="space-y-6 py-4">
             <div className="text-center">
-              <div className="w-14 h-14 bg-forest-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <ChatIcon className="w-7 h-7 text-forest-600" />
+              <div className="w-16 h-16 bg-forest-700 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-md">
+                <ChatIcon className="w-8 h-8 text-white" />
               </div>
-              <p className="text-body text-gray-500">
-                {t('askAi.askAnything')}
-              </p>
+              <p className="text-sm font-semibold text-forest-700">{t('askAi.doctorName')}</p>
+              <p className="text-caption text-gray-400 mt-1">{t('askAi.askAnything')}</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               {suggestedQuestions.map((q) => (
@@ -97,7 +105,7 @@ export default function AskAiPage() {
                   key={q}
                   hover
                   className="p-3.5 cursor-pointer"
-                  onClick={() => setInput(q)}
+                  onClick={() => handleSuggestedQuestion(q)}
                 >
                   <p className="text-caption text-gray-600">{q}</p>
                 </Card>
@@ -114,7 +122,18 @@ export default function AskAiPage() {
                     : 'bg-white border border-cream-300 text-gray-700 rounded-bl-md shadow-card'
                 }`}
               >
-                <p className="whitespace-pre-line">{msg.content}</p>
+                {msg.role === 'user' ? (
+                  <p className="whitespace-pre-line">{msg.content}</p>
+                ) : (
+                  <ReactMarkdown
+                    components={{
+                      p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
+                      strong: ({ children }) => <strong className="font-semibold text-forest-700">{children}</strong>,
+                      ul: ({ children }) => <ul className="list-disc pl-4 mb-2 space-y-1">{children}</ul>,
+                      li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+                    }}
+                  >{msg.content}</ReactMarkdown>
+                )}
               </div>
             </div>
           ))
@@ -155,7 +174,6 @@ export default function AskAiPage() {
             <SendIcon className="w-5 h-5" />
           </Button>
         </div>
-        <MedicalDisclaimer className="mt-2.5" />
       </div>
     </div>
   );

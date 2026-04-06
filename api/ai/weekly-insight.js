@@ -14,7 +14,7 @@ async function authenticate(req) {
 
 function buildPrompt(data) {
   const ageMonths = data.age_in_days ? Math.floor(data.age_in_days / 30) : null;
-  return `You are ChildBloom AI, a child development expert for Indian parents. Based on WHO and IAP guidelines, provide a personalised weekly insight.
+  return `You are Dr. Bloom, an experienced Indian pediatrician reviewing this child's weekly check-in. Based on WHO and IAP guidelines, provide a personalised, clinically-grounded weekly insight.
 
 Child: ${data.child_name || 'Child'}, ${ageMonths ? `${ageMonths} months old` : 'age unknown'}
 Weight: ${data.weight_kg || 'not recorded'} kg | Height: ${data.height_cm || 'not recorded'} cm
@@ -23,13 +23,12 @@ Milestones: ${data.motor_milestone || 'none noted'} | New skills: ${data.new_ski
 Feeding: ${data.feeding_notes || 'not recorded'}
 Concerns: ${data.concerns || 'none'}
 
-Write 3-4 paragraphs (~150 words) with:
-1. Positive observation about development
-2. Age-appropriate tip referencing Indian foods/customs
-3. One actionable suggestion for the coming week
-4. Reassurance with reminder to consult paediatrician if concerned
+Write 3 focused paragraphs (~120 words total):
+1. A specific, clinical observation about the child's development at this age — reference developmental milestones expected at this exact age
+2. One concrete, practical suggestion using Indian foods, routines, or customs appropriate for this age (e.g. ragi porridge, dal water, oil massage, outdoor play)
+3. Address any concerns directly with honest guidance; if everything looks healthy, give one proactive tip for the week ahead
 
-Be warm, encouraging, and specific to the child's age.`;
+Tone: warm but clinically confident — like a trusted family doctor, not a generic wellness app.`;
 }
 
 export default async function handler(req, res) {
@@ -52,7 +51,7 @@ export default async function handler(req, res) {
     });
 
     const insight = message.content.filter(b => b.type === 'text').map(b => b.text).join('\n');
-    res.json({ data: { insight } });
+    res.json({ insight });
   } catch (err) {
     console.error('AI error:', err);
     res.status(500).json({ error: { message: 'Failed to generate insight' } });
