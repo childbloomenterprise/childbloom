@@ -1,6 +1,7 @@
 import { getAgeInMonths } from '../../../lib/formatters';
+import VoiceInput from '../../../components/VoiceInput';
 
-export default function FeedingStep({ formData, updateField, child }) {
+export default function FeedingStep({ formData, updateField, child, voiceLang = 'en' }) {
   const ageMonths = child?.date_of_birth ? getAgeInMonths(child.date_of_birth) : 6;
   const name = child?.name || 'your little one';
 
@@ -54,9 +55,17 @@ export default function FeedingStep({ formData, updateField, child }) {
       {/* Solid foods */}
       {ageMonths >= 4 && (
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            What solids did {name} try this week?
-          </label>
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-sm font-medium text-gray-700">
+              What solids did {name} try this week?
+            </label>
+            <VoiceInput
+              language={voiceLang}
+              onTranscript={(text) => updateField('solid_foods', (formData.solid_foods ? formData.solid_foods + ' ' : '') + text)}
+              onError={() => {}}
+              size={30}
+            />
+          </div>
           <textarea
             value={formData.solid_foods}
             onChange={(e) => updateField('solid_foods', e.target.value)}

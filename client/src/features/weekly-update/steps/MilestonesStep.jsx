@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { getAgeInMonths } from '../../../lib/formatters';
 import milestonesData from '../../../data/milestones/milestones-by-age.json';
+import VoiceInput from '../../../components/VoiceInput';
 
 function getAgeGroup(months) {
   if (months < 3) return '0-3';
@@ -15,7 +16,7 @@ function getAgeGroup(months) {
   return '60-84';
 }
 
-export default function MilestonesStep({ formData, updateField, child }) {
+export default function MilestonesStep({ formData, updateField, child, voiceLang = 'en' }) {
   const ageMonths = child?.date_of_birth ? getAgeInMonths(child.date_of_birth) : 6;
   const ageGroup = getAgeGroup(ageMonths);
   const milestones = milestonesData[ageGroup];
@@ -73,9 +74,17 @@ export default function MilestonesStep({ formData, updateField, child }) {
 
       {/* Free text */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Anything new or surprising happen this week?
-        </label>
+        <div className="flex items-center justify-between mb-2">
+          <label className="block text-sm font-medium text-gray-700">
+            Anything new or surprising happen this week?
+          </label>
+          <VoiceInput
+            language={voiceLang}
+            onTranscript={(text) => updateField('new_skills', (formData.new_skills ? formData.new_skills + ' ' : '') + text)}
+            onError={() => {}}
+            size={30}
+          />
+        </div>
         <textarea
           value={formData.new_skills}
           onChange={(e) => updateField('new_skills', e.target.value)}

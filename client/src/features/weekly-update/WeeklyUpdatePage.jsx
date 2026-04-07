@@ -26,6 +26,9 @@ export default function WeeklyUpdatePage() {
   const queryClient = useQueryClient();
   const [step, setStep] = useState(0);
   const [aiInsight, setAiInsight] = useState('');
+  const [voiceLang, setVoiceLang] = useState(
+    () => localStorage.getItem('childbloom_voice_lang') || 'en'
+  );
   const [formData, setFormData] = useState({
     height_cm: '',
     weight_kg: '',
@@ -158,15 +161,16 @@ export default function WeeklyUpdatePage() {
       <Card className="p-5 sm:p-6">
         {step === 0 && <MeasurementsStep formData={formData} updateField={updateField} childName={child?.name} />}
         {step === 1 && <MoodStep formData={formData} updateField={updateField} childName={child?.name} />}
-        {step === 2 && <MilestonesStep formData={formData} updateField={updateField} child={child} />}
-        {step === 3 && <FeedingStep formData={formData} updateField={updateField} child={child} />}
-        {step === 4 && <ConcernsStep formData={formData} updateField={updateField} childName={child?.name} />}
+        {step === 2 && <MilestonesStep formData={formData} updateField={updateField} child={child} voiceLang={voiceLang} />}
+        {step === 3 && <FeedingStep formData={formData} updateField={updateField} child={child} voiceLang={voiceLang} />}
+        {step === 4 && <ConcernsStep formData={formData} updateField={updateField} childName={child?.name} voiceLang={voiceLang} />}
         {step === 5 && (
           <AiInsightStep
             insight={aiInsight}
             loading={insightMutation.isPending}
             childName={child?.name}
             onRetry={generateInsight}
+            voiceLang={voiceLang}
           />
         )}
       </Card>

@@ -1,4 +1,5 @@
 import { AlertIcon } from '../../../assets/icons';
+import VoiceInput from '../../../components/VoiceInput';
 
 const RED_FLAGS = [
   'Not making eye contact',
@@ -10,7 +11,7 @@ const RED_FLAGS = [
   'Not feeding well',
 ];
 
-export default function ConcernsStep({ formData, updateField, childName }) {
+export default function ConcernsStep({ formData, updateField, childName, voiceLang = 'en' }) {
   const toggleRedFlag = (flag) => {
     const current = formData.red_flags || [];
     if (current.includes(flag)) {
@@ -34,9 +35,17 @@ export default function ConcernsStep({ formData, updateField, childName }) {
 
       {/* Free text */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Is there anything about {name} that's been worrying you?
-        </label>
+        <div className="flex items-center justify-between mb-2">
+          <label className="block text-sm font-medium text-gray-700">
+            Is there anything about {name} that's been worrying you?
+          </label>
+          <VoiceInput
+            language={voiceLang}
+            onTranscript={(text) => updateField('concerns', (formData.concerns ? formData.concerns + ' ' : '') + text)}
+            onError={() => {}}
+            size={30}
+          />
+        </div>
         <textarea
           value={formData.concerns}
           onChange={(e) => updateField('concerns', e.target.value)}
