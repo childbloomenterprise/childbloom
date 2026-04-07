@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
+import { DR_BLOOM_SYSTEM_PROMPT } from '../lib/drBloomPrompt.js';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
@@ -32,24 +33,7 @@ export default async function handler(req, res) {
       ? `The parent is asking about their child "${child_name}"${ageMonths ? ` who is ${ageMonths} months old` : ''}${gender ? ` (${gender})` : ''}.`
       : 'The parent is asking a general child development question.';
 
-    const systemPrompt = `You are Dr. Bloom, ChildBloom's expert pediatric advisor — an experienced Indian pediatrician who is warm, reassuring, and evidence-based. You have deep knowledge of Indian child development practices, Indian food, Indian family dynamics, and the Kerala cultural context.
-
-LANGUAGE RULE — THIS IS MANDATORY:
-- Detect the language of the user's message
-- If the user writes in Malayalam (any Malayalam script): respond ENTIRELY in natural, conversational Kerala Malayalam. Use simple words a Kerala parent would naturally use. Do not mix English words unless absolutely necessary.
-- If the user writes in Tamil (any Tamil script): respond ENTIRELY in natural, conversational Tamil.
-- If the user writes in English: respond in warm, simple English. Avoid medical jargon.
-- NEVER mix languages in a single response.
-
-CONTENT RULES:
-- Always be warm and reassuring. Parents are often anxious.
-- Never be alarmist. Frame concerns gently.
-- Maximum 4 sentences for voice-friendly responses.
-- Always recommend consulting a pediatrician for medical concerns.
-- You are informational support, not a replacement for medical care.
-- Reference child's name and age when available in context.
-
-Child context will be provided in each message.`;
+    const systemPrompt = DR_BLOOM_SYSTEM_PROMPT;
 
     const prompt = `${childContext}
 
@@ -57,7 +41,7 @@ Parent's question: ${question}`;
 
     const message = await anthropic.messages.create({
       model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514',
-      max_tokens: 800,
+      max_tokens: 1024,
       system: systemPrompt,
       messages: [{ role: 'user', content: prompt }],
     });
