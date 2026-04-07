@@ -10,7 +10,7 @@ const RED_FLAGS = [
   'Not feeding well',
 ];
 
-export default function ConcernsStep({ formData, updateField }) {
+export default function ConcernsStep({ formData, updateField, childName }) {
   const toggleRedFlag = (flag) => {
     const current = formData.red_flags || [];
     if (current.includes(flag)) {
@@ -21,23 +21,26 @@ export default function ConcernsStep({ formData, updateField }) {
   };
 
   const hasRedFlags = (formData.red_flags || []).length > 0;
+  const name = childName || 'your little one';
 
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h3 className="text-lg font-serif font-semibold text-gray-900">Any concerns?</h3>
-        <p className="text-sm text-gray-500 mt-1">It's okay to note anything that worries you</p>
+        <h3 className="text-lg font-serif font-semibold text-forest-700">
+          Anything on your mind?
+        </h3>
+        <p className="text-sm text-gray-400 mt-1">This is just between you and Dr. Bloom</p>
       </div>
 
       {/* Free text */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Anything worrying you this week?
+          Is there anything about {name} that's been worrying you?
         </label>
         <textarea
           value={formData.concerns}
           onChange={(e) => updateField('concerns', e.target.value)}
-          placeholder="Share anything on your mind..."
+          placeholder={`Share whatever's on your mind — no concern is too small`}
           className="input-field min-h-[100px] resize-none"
           rows={4}
         />
@@ -46,7 +49,7 @@ export default function ConcernsStep({ formData, updateField }) {
       {/* Red flag checklist */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-3">
-          Have you noticed any of these?
+          Have you noticed any of these recently?
         </label>
         <div className="space-y-2">
           {RED_FLAGS.map((flag) => (
@@ -56,7 +59,7 @@ export default function ConcernsStep({ formData, updateField }) {
               className={`w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${
                 (formData.red_flags || []).includes(flag)
                   ? 'border-red-300 bg-red-50'
-                  : 'border-gray-100 hover:border-gray-200'
+                  : 'border-cream-200 hover:border-cream-300'
               }`}
             >
               <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 ${
@@ -76,15 +79,14 @@ export default function ConcernsStep({ formData, updateField }) {
         </div>
       </div>
 
-      {/* Doctor alert */}
+      {/* Doctor nudge */}
       {hasRedFlags && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3">
           <AlertIcon className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-medium text-amber-800">Consider speaking with your pediatrician</p>
+            <p className="text-sm font-medium text-amber-800">Worth mentioning to your paediatrician</p>
             <p className="text-xs text-amber-600 mt-1">
-              Some of the flags you've checked may benefit from a professional evaluation.
-              This is not a diagnosis — it's simply a reminder that early consultation is always a good idea.
+              A few things you've noted are worth a professional look. It's not an alarm — just a nudge to bring it up at your next visit.
             </p>
           </div>
         </div>

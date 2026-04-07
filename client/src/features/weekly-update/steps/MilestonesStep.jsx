@@ -19,6 +19,7 @@ export default function MilestonesStep({ formData, updateField, child }) {
   const ageMonths = child?.date_of_birth ? getAgeInMonths(child.date_of_birth) : 6;
   const ageGroup = getAgeGroup(ageMonths);
   const milestones = milestonesData[ageGroup];
+  const name = child?.name || 'your little one';
 
   const toggleMilestone = (milestone) => {
     const current = formData.milestones_checked || [];
@@ -32,9 +33,11 @@ export default function MilestonesStep({ formData, updateField, child }) {
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h3 className="text-lg font-serif font-semibold text-gray-900">Development this week</h3>
-        <p className="text-sm text-gray-500 mt-1">
-          Milestones for {milestones?.label || 'this age'}
+        <h3 className="text-lg font-serif font-semibold text-forest-700">
+          What's {name} up to?
+        </h3>
+        <p className="text-sm text-gray-400 mt-1">
+          Tick anything you've noticed — no pressure to check everything
         </p>
       </div>
 
@@ -47,13 +50,13 @@ export default function MilestonesStep({ formData, updateField, child }) {
               onClick={() => toggleMilestone(milestone)}
               className={`w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${
                 (formData.milestones_checked || []).includes(milestone)
-                  ? 'border-primary-500 bg-primary-50'
-                  : 'border-gray-100 hover:border-gray-200'
+                  ? 'border-forest-400 bg-forest-50'
+                  : 'border-cream-200 hover:border-cream-300'
               }`}
             >
               <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 ${
                 (formData.milestones_checked || []).includes(milestone)
-                  ? 'border-primary-500 bg-primary-500'
+                  ? 'border-forest-500 bg-forest-500'
                   : 'border-gray-300'
               }`}>
                 {(formData.milestones_checked || []).includes(milestone) && (
@@ -70,11 +73,13 @@ export default function MilestonesStep({ formData, updateField, child }) {
 
       {/* Free text */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Did anything new happen?</label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Anything new or surprising happen this week?
+        </label>
         <textarea
           value={formData.new_skills}
           onChange={(e) => updateField('new_skills', e.target.value)}
-          placeholder="Any new sounds, words, movements, or skills..."
+          placeholder={`New sounds, words, movements — even a funny face counts`}
           className="input-field min-h-[100px] resize-none"
           rows={4}
         />

@@ -156,11 +156,11 @@ export default function WeeklyUpdatePage() {
       <Stepper steps={STEPS} currentStep={step} onStepClick={(i) => i <= step && setStep(i)} />
 
       <Card className="p-5 sm:p-6">
-        {step === 0 && <MeasurementsStep formData={formData} updateField={updateField} />}
-        {step === 1 && <MoodStep formData={formData} updateField={updateField} />}
+        {step === 0 && <MeasurementsStep formData={formData} updateField={updateField} childName={child?.name} />}
+        {step === 1 && <MoodStep formData={formData} updateField={updateField} childName={child?.name} />}
         {step === 2 && <MilestonesStep formData={formData} updateField={updateField} child={child} />}
         {step === 3 && <FeedingStep formData={formData} updateField={updateField} child={child} />}
-        {step === 4 && <ConcernsStep formData={formData} updateField={updateField} child={child} />}
+        {step === 4 && <ConcernsStep formData={formData} updateField={updateField} childName={child?.name} />}
         {step === 5 && (
           <AiInsightStep
             insight={aiInsight}
@@ -188,7 +188,7 @@ export default function WeeklyUpdatePage() {
             className="flex-1"
             size="lg"
           >
-            {t('weeklyUpdate.saveUpdate')}
+            {child?.name ? t('weeklyUpdate.saveUpdate', { name: child.name }) : 'Save the week'}
           </Button>
         )}
       </div>

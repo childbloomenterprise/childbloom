@@ -5,6 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import { useChildById } from '../../hooks/useChild';
 import useAuthStore from '../../stores/authStore';
+import api from '../../lib/api';
+import { formatAgeInDays } from '../../lib/formatters';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
@@ -25,6 +27,7 @@ export default function HealthRecordsPage() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('all');
   const [showForm, setShowForm] = useState(false);
+  const [vaccineTip, setVaccineTip] = useState(null);
   const [formData, setFormData] = useState({
     record_date: new Date().toISOString().split('T')[0],
     record_type: 'vaccination',
@@ -70,10 +73,26 @@ export default function HealthRecordsPage() {
       });
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ['health-records'] });
+      const saved = { ...formData };
       setShowForm(false);
       setFormData({ record_date: new Date().toISOString().split('T')[0], record_type: 'vaccination', title: '', doctor_name: '', clinic_name: '', notes: '', next_due_date: '' });
+
+      // For vaccinations, ask Dr. Bloom what to expect
+      if (saved.record_type === 'vaccination' && child) {
+        try {
+          const response = await api.post('/api/ai/ask', {
+            question: `${child.name} just received the ${saved.title} vaccine. In 1-2 warm sentences, what should I expect in the next day or two?`,
+            child_name: child.name,
+            age_in_days: child.date_of_birth ? formatAgeInDays(child.date_of_birth) : null,
+            gender: child.gender,
+          });
+          setVaccineTip({ vaccine: saved.title, tip: response.answer });
+        } catch {
+          // Silently skip
+        }
+      }
     },
   });
 
@@ -98,17 +117,41 @@ export default function HealthRecordsPage() {
 
   const typeLabel = (type) => RECORD_TYPES.find((r) => r.value === type)?.label || type;
 
+  const pageTitle = child?.name ? t('health.title', { name: child.name }) : t('health.titleGeneric');
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-h1 font-serif text-forest-700">{t('health.title')}</h1>
-          <p className="text-body text-gray-500 mt-1 truncate">{t('health.medicalHistory', { name: child?.name || 'Your child' })}</p>
+          <h1 className="text-h1 font-serif text-forest-700">{pageTitle}</h1>
+          {child?.name && (
+            <p className="text-body text-gray-500 mt-1 truncate">{t('health.medicalHistory', { name: child.name })}</p>
+          )}
         </div>
         <Button onClick={() => setShowForm(true)} size="sm" className="flex-shrink-0">
-          <PlusIcon className="w-4 h-4 sm:mr-1" /> <span className="hidden sm:inline">{t('health.addRecord')}</span><span className="sm:hidden">{t('common.add')}</span>
+          <PlusIcon className="w-4 h-4 sm:mr-1" />
+          <span className="hidden sm:inline">{t('health.addRecord')}</span>
+          <span className="sm:hidden">{t('common.add')}</span>
         </Button>
       </div>
+
+      {/* Dr. Bloom vaccine tip */}
+      {vaccineTip && (
+        <Card accent="green" className="p-4 bg-forest-50/50">
+          <div className="flex gap-3">
+            <div className="w-8 h-8 bg-forest-700 rounded-xl flex items-center justify-center flex-shrink-0">
+              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <p className="text-micro font-bold text-forest-600 uppercase tracking-wider mb-1">Dr. Bloom on {vaccineTip.vaccine}</p>
+              <p className="text-sm text-gray-700 leading-relaxed">{vaccineTip.tip}</p>
+            </div>
+            <button onClick={() => setVaccineTip(null)} className="text-gray-300 hover:text-gray-500 text-lg leading-none self-start">×</button>
+          </div>
+        </Card>
+      )}
 
       <Tabs tabs={TABS} activeTab={activeTab} onChange={setActiveTab} />
 
@@ -156,7 +199,7 @@ export default function HealthRecordsPage() {
         </div>
       )}
 
-      <Modal isOpen={showForm} onClose={() => setShowForm(false)} title={t('health.addRecord')}>
+      <Modal isOpen={showForm} onClose={() => setShowForm(false)} title="Something happened — let's note it">
         <div className="space-y-4">
           <Input
             label={t('growth.date')}
@@ -218,7 +261,7 @@ export default function HealthRecordsPage() {
             disabled={!formData.title.trim()}
             className="w-full"
           >
-            {t('health.saveRecord')}
+            {addMutation.isPending ? 'Saving...' : t('health.saveRecord')}
           </Button>
         </div>
       </Modal>

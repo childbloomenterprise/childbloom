@@ -80,7 +80,7 @@ export default function DashboardPage() {
     <div className="space-y-6 stagger-children">
       <ChildSwitcher />
 
-      {/* Hero Card — child overview */}
+      {/* Hero Card */}
       <Card className="p-5 sm:p-7 overflow-hidden relative">
         <div className="absolute top-0 right-0 w-28 h-28 bg-forest-50/50 rounded-full blur-2xl -translate-y-8 translate-x-8" />
         <div className="relative flex items-start justify-between gap-4">
@@ -119,17 +119,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* CTA Button */}
-      <Button
-        onClick={() => navigate(`/child/${child.id}/weekly-update`)}
-        className="w-full"
-        size="lg"
-      >
-        <ClipboardIcon className="w-5 h-5 mr-2" />
-        {t('dashboard.logThisWeek')}
-      </Button>
-
-      {/* AI Insight */}
+      {/* Dr. Bloom AI Insight */}
       {latestUpdate?.ai_insight && (
         <Card accent="green" className="p-5 sm:p-6 bg-forest-50/40">
           <p className="text-micro font-bold uppercase tracking-wider text-forest-600/70 mb-2.5 flex items-center gap-2">
@@ -139,12 +129,31 @@ export default function DashboardPage() {
             {t('dashboard.aiInsight', { name: child.name })}
           </p>
           <p className="text-body text-gray-600 leading-relaxed">{latestUpdate.ai_insight}</p>
+          <button
+            onClick={() => navigate('/ask')}
+            className="mt-3 text-micro text-forest-600 font-semibold hover:text-forest-700 flex items-center gap-1"
+          >
+            Ask Dr. Bloom anything
+            <ChevronRightIcon className="w-3.5 h-3.5" />
+          </button>
         </Card>
       )}
 
+      {/* Primary CTA */}
+      <Button
+        onClick={() => navigate(`/child/${child.id}/weekly-update`)}
+        className="w-full"
+        size="lg"
+      >
+        <ClipboardIcon className="w-5 h-5 mr-2" />
+        {child.name ? t('dashboard.logThisWeek', { name: child.name }) : t('dashboard.logThisWeekGeneric')}
+      </Button>
+
       {/* Quick Links */}
       <div>
-        <h2 className="text-h3 font-serif text-forest-700 mb-3">{t('dashboard.quickAccess')}</h2>
+        <h2 className="text-h3 font-serif text-forest-700 mb-3">
+          {child.name ? t('dashboard.quickAccess', { name: child.name }) : t('dashboard.quickAccessGeneric')}
+        </h2>
         <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
           {quickLinks.map((link) => (
             <Card
@@ -210,7 +219,7 @@ function PregnancyDashboard({ child, profile, navigate, quickLinks, t }) {
       </Button>
 
       <div>
-        <h2 className="text-h3 font-serif text-forest-700 mb-3">{t('dashboard.quickAccess')}</h2>
+        <h2 className="text-h3 font-serif text-forest-700 mb-3">{t('dashboard.quickAccessGeneric')}</h2>
         <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
           {quickLinks.map((link) => (
             <Card key={link.to} hover className="p-3.5 sm:p-4 group" onClick={() => navigate(link.to)}>

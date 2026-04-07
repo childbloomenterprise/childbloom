@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
+import { useChildById } from '../../hooks/useChild';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
@@ -12,6 +13,7 @@ import { ClipboardIcon, ChevronRightIcon } from '../../assets/icons';
 export default function UpdateHistoryPage() {
   const { id: childId } = useParams();
   const navigate = useNavigate();
+  const { data: child } = useChildById(childId);
 
   const { data: updates, isLoading } = useQuery({
     queryKey: ['weekly-updates', childId],
@@ -28,12 +30,14 @@ export default function UpdateHistoryPage() {
 
   if (isLoading) return <SkeletonList count={4} />;
 
+  const name = child?.name || 'your child';
+
   if (!updates?.length) {
     return (
       <EmptyState
-        title="No updates yet"
-        description="Start your weekly check-in to track your child's development."
-        actionLabel="Log This Week"
+        title={`No check-ins yet for ${name}`}
+        description="Start your first weekly check-in — it only takes a few minutes."
+        actionLabel={`Start ${name}'s first check-in`}
         onAction={() => navigate(`/child/${childId}/weekly-update`)}
         icon={<ClipboardIcon className="w-8 h-8" />}
       />
@@ -43,9 +47,9 @@ export default function UpdateHistoryPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-serif font-bold text-gray-900">Weekly Updates</h1>
+        <h1 className="text-2xl font-serif font-bold text-forest-700">{name}'s journal</h1>
         <Button onClick={() => navigate(`/child/${childId}/weekly-update`)} size="sm">
-          New Update
+          New check-in
         </Button>
       </div>
 
@@ -66,7 +70,7 @@ export default function UpdateHistoryPage() {
                   {update.sleep_hours && <span>{update.sleep_hours}h sleep</span>}
                 </div>
                 {update.ai_insight && (
-                  <p className="text-xs text-gray-500 mt-2 line-clamp-2">{update.ai_insight}</p>
+                  <p className="text-xs text-gray-500 mt-2 line-clamp-2 italic">{update.ai_insight}</p>
                 )}
               </div>
               <ChevronRightIcon className="w-4 h-4 text-gray-300 flex-shrink-0 mt-1" />

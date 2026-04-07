@@ -82,7 +82,10 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-5 max-w-2xl">
-      <h1 className="text-h1 font-serif text-forest-700">{t('settings.title')}</h1>
+      <div>
+        <h1 className="text-h1 font-serif text-forest-700">{t('settings.title')}</h1>
+        <p className="text-body text-gray-400 mt-1">{t('settings.subtitle')}</p>
+      </div>
 
       {/* Language Section */}
       <Card className="p-5 sm:p-6">
@@ -94,7 +97,6 @@ export default function SettingsPage() {
           </div>
           <div>
             <h2 className="text-h3 font-serif text-forest-700">{t('settings.language')}</h2>
-            <p className="text-micro text-gray-400">{t('settings.selectLanguage')}</p>
           </div>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -128,7 +130,7 @@ export default function SettingsPage() {
 
         {editingProfile ? (
           <div className="space-y-4">
-            <Input label={t('onboarding.fullName')} value={profileName} onChange={(e) => setProfileName(e.target.value)} />
+            <Input label={t('settings.name')} value={profileName} onChange={(e) => setProfileName(e.target.value)} />
             <div className="flex gap-2">
               <Button onClick={() => profileMutation.mutate()} loading={profileMutation.isPending} size="sm">{t('settings.save')}</Button>
               <Button variant="ghost" onClick={() => setEditingProfile(false)} size="sm">{t('settings.cancel')}</Button>
@@ -144,14 +146,14 @@ export default function SettingsPage() {
               <Button variant="ghost" size="sm" onClick={() => { setProfileName(profile?.full_name || ''); setEditingProfile(true); }}>{t('settings.edit')}</Button>
             </div>
             <div>
-              <p className="text-micro text-gray-400 uppercase tracking-wider">{t('auth.email')}</p>
+              <p className="text-micro text-gray-400 uppercase tracking-wider">Email</p>
               <p className="text-caption font-medium text-forest-700">{user?.email}</p>
             </div>
           </div>
         )}
       </Card>
 
-      {/* Children Section */}
+      {/* Children / Family Section */}
       <Card className="p-5 sm:p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
@@ -211,7 +213,7 @@ export default function SettingsPage() {
       </Button>
 
       {/* Add Child Modal */}
-      <Modal isOpen={showAddChild} onClose={() => setShowAddChild(false)} title={t('settings.addChild')}>
+      <Modal isOpen={showAddChild} onClose={() => setShowAddChild(false)} title="Add someone to your family">
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <button onClick={() => setChildForm({ ...childForm, childType: 'born' })} className={`p-4 rounded-xl border-2 text-center transition-all duration-200 ${childForm.childType === 'born' ? 'border-forest-500 bg-forest-50' : 'border-cream-300'}`}>
@@ -221,7 +223,7 @@ export default function SettingsPage() {
               <p className="text-caption font-semibold text-forest-700">{t('onboarding.expecting')}</p>
             </button>
           </div>
-          <Input label={t('settings.name')} placeholder={t('onboarding.enterChildName')} value={childForm.name} onChange={(e) => setChildForm({ ...childForm, name: e.target.value })} />
+          <Input label="What's their name?" placeholder={t('onboarding.enterChildName')} value={childForm.name} onChange={(e) => setChildForm({ ...childForm, name: e.target.value })} />
           {childForm.childType === 'born' ? (
             <>
               <Input label={t('onboarding.dateOfBirth')} type="date" value={childForm.date_of_birth} onChange={(e) => setChildForm({ ...childForm, date_of_birth: e.target.value })} />
@@ -240,7 +242,7 @@ export default function SettingsPage() {
             <Input label={t('onboarding.dueDate')} type="date" value={childForm.due_date} onChange={(e) => setChildForm({ ...childForm, due_date: e.target.value })} />
           )}
           <Button onClick={() => addChildMutation.mutate()} loading={addChildMutation.isPending} disabled={childForm.childType === 'born' ? !childForm.date_of_birth : !childForm.due_date} className="w-full">
-            {t('settings.addChild')}
+            Add to family
           </Button>
         </div>
       </Modal>

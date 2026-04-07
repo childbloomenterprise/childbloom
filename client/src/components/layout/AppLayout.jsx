@@ -1,15 +1,16 @@
-import { Outlet } from 'react-router-dom';
+import { Outlet, useNavigate } from 'react-router-dom';
 import MinimalDock from '../ui/MinimalDock';
 import Header from './Header';
 import MobileNav from './MobileNav';
 import { useChildren } from '../../hooks/useChild';
 import ErrorBoundary from '../shared/ErrorBoundary';
+import { ChatIcon } from '../../assets/icons';
 
 export default function AppLayout() {
   useChildren();
+  const navigate = useNavigate();
 
   return (
-    // 60% (#F7F4EF) — main canvas
     <div className="min-h-screen flex" style={{ background: '#F7F4EF' }}>
 
       {/* Vertical dock — desktop left */}
@@ -33,6 +34,21 @@ export default function AppLayout() {
 
       {/* Mobile horizontal dock */}
       <MobileNav />
+
+      {/* Floating Dr. Bloom button */}
+      <button
+        onClick={() => navigate('/ask')}
+        title="Ask Dr. Bloom"
+        className="fixed bottom-24 right-4 lg:bottom-8 lg:right-6 z-40 w-13 h-13 flex items-center justify-center rounded-full shadow-lg active:scale-95 transition-all duration-200 hover:scale-105"
+        style={{
+          width: '52px',
+          height: '52px',
+          background: 'linear-gradient(135deg, #2D6A4F 0%, #1B4332 100%)',
+          boxShadow: '0 4px 20px rgba(45, 106, 79, 0.35)',
+        }}
+      >
+        <ChatIcon className="w-5 h-5 text-white" />
+      </button>
     </div>
   );
 }

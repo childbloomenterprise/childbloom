@@ -5,6 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import { useChildById } from '../../hooks/useChild';
 import useAuthStore from '../../stores/authStore';
+import api from '../../lib/api';
+import { formatAgeInDays } from '../../lib/formatters';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
@@ -23,6 +25,7 @@ export default function FoodTrackerPage() {
   const user = useAuthStore((s) => s.user);
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
+  const [reactionAdvisory, setReactionAdvisory] = useState(null);
   const [formData, setFormData] = useState({
     log_date: new Date().toISOString().split('T')[0],
     meal_type: 'solid',
@@ -59,10 +62,26 @@ export default function FoodTrackerPage() {
       });
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ['food-logs'] });
+      const saved = { ...formData };
       setShowForm(false);
       setFormData({ log_date: new Date().toISOString().split('T')[0], meal_type: 'solid', food_name: '', quantity: '', notes: '', reaction: '' });
+
+      // If a reaction was noted, ask Dr. Bloom
+      if (saved.reaction?.trim() && child) {
+        try {
+          const response = await api.post('/api/ai/ask', {
+            question: `${child.name} had a reaction after eating ${saved.food_name}: "${saved.reaction}". In 1-2 warm sentences, what should I watch for or do?`,
+            child_name: child.name,
+            age_in_days: child.date_of_birth ? formatAgeInDays(child.date_of_birth) : null,
+            gender: child.gender,
+          });
+          setReactionAdvisory({ food: saved.food_name, reaction: saved.reaction, advice: response.answer });
+        } catch {
+          // Silently skip
+        }
+      }
     },
   });
 
@@ -90,23 +109,48 @@ export default function FoodTrackerPage() {
     return acc;
   }, {});
 
+  const pageTitle = child?.name ? t('food.title', { name: child.name }) : t('food.titleGeneric');
+  const pageSubtitle = child?.name ? t('food.trackMeals', { name: child.name }) : t('food.trackMealsGeneric');
+  const modalTitle = child?.name ? t('food.logMeal', { name: child.name }) : t('food.logMealGeneric');
+  const emptyDesc = child?.name ? t('food.startTracking', { name: child.name }) : t('food.startTrackingGeneric');
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-h1 font-serif text-forest-700">{t('food.title')}</h1>
-          <p className="text-body text-gray-500 mt-1 truncate">{t('food.trackMeals', { name: child?.name || 'your child' })}</p>
+          <h1 className="text-h1 font-serif text-forest-700">{pageTitle}</h1>
+          <p className="text-body text-gray-500 mt-1 truncate">{pageSubtitle}</p>
         </div>
         <Button onClick={() => setShowForm(true)} size="sm" className="flex-shrink-0">
-          <PlusIcon className="w-4 h-4 sm:mr-1" /> <span className="hidden sm:inline">{t('food.addMeal')}</span><span className="sm:hidden">{t('common.add')}</span>
+          <PlusIcon className="w-4 h-4 sm:mr-1" />
+          <span className="hidden sm:inline">{t('food.addMeal')}</span>
+          <span className="sm:hidden">{t('common.add')}</span>
         </Button>
       </div>
+
+      {/* Dr. Bloom reaction advisory */}
+      {reactionAdvisory && (
+        <Card accent="green" className="p-4 bg-forest-50/50">
+          <div className="flex gap-3">
+            <div className="w-8 h-8 bg-forest-700 rounded-xl flex items-center justify-center flex-shrink-0">
+              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <p className="text-micro font-bold text-forest-600 uppercase tracking-wider mb-1">Dr. Bloom on that reaction</p>
+              <p className="text-sm text-gray-700 leading-relaxed">{reactionAdvisory.advice}</p>
+            </div>
+            <button onClick={() => setReactionAdvisory(null)} className="text-gray-300 hover:text-gray-500 text-lg leading-none self-start">×</button>
+          </div>
+        </Card>
+      )}
 
       {Object.keys(grouped).length === 0 ? (
         <EmptyState
           title={t('food.noLogs')}
-          description={t('food.startTracking')}
-          actionLabel={t('food.logMeal')}
+          description={emptyDesc}
+          actionLabel={modalTitle}
           onAction={() => setShowForm(true)}
           icon={<FoodIcon className="w-8 h-8" />}
         />
@@ -143,7 +187,7 @@ export default function FoodTrackerPage() {
         ))
       )}
 
-      <Modal isOpen={showForm} onClose={() => setShowForm(false)} title={t('food.logMeal')}>
+      <Modal isOpen={showForm} onClose={() => setShowForm(false)} title={modalTitle}>
         <div className="space-y-4">
           <Input
             label={t('food.date')}
@@ -171,7 +215,7 @@ export default function FoodTrackerPage() {
           </div>
           <Input
             label={t('food.foodName')}
-            placeholder={t('food.foodPlaceholder')}
+            placeholder={child?.name ? `What did you give ${child.name}?` : t('food.foodPlaceholder')}
             value={formData.food_name}
             onChange={(e) => setFormData({ ...formData, food_name: e.target.value })}
           />
@@ -199,7 +243,7 @@ export default function FoodTrackerPage() {
             disabled={!formData.food_name.trim()}
             className="w-full"
           >
-            {t('food.saveMeal')}
+            {addMutation.isPending ? 'Saving...' : t('food.saveMeal')}
           </Button>
         </div>
       </Modal>

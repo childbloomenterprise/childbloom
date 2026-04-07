@@ -32,7 +32,7 @@ export default function AskAiPage() {
         age_in_days: child?.date_of_birth ? formatAgeInDays(child.date_of_birth) : null,
         gender: child?.gender,
       });
-      return response.answer || 'I\'m sorry, I couldn\'t generate a response. Please try again.';
+      return response.answer || "I'm sorry, I couldn't generate a response. Please try again.";
     },
   });
 
@@ -61,13 +61,22 @@ export default function AskAiPage() {
     }
   };
 
-  const suggestedQuestions = [
-    t('askAi.suggestedQ1'),
-    t('askAi.suggestedQ2'),
+  // Suggested questions — personalized with child name if available
+  const name = child?.name;
+  const suggestedQuestions = name ? [
+    t('askAi.suggestedQ1', { name }),
+    t('askAi.suggestedQ2', { name }),
     t('askAi.suggestedQ3'),
-    t('askAi.suggestedQ4'),
-    t('askAi.suggestedQ5'),
-    t('askAi.suggestedQ6'),
+    t('askAi.suggestedQ4', { name }),
+    t('askAi.suggestedQ5', { name }),
+    t('askAi.suggestedQ6', { name }),
+  ] : [
+    'What milestones should I expect this month?',
+    "My child isn't eating well — what should I do?",
+    'Best Indian foods for brain development?',
+    'How much sleep does my child need at this age?',
+    "Is my child's development on track?",
+    'Which vaccines are coming up?',
   ];
 
   const handleSuggestedQuestion = (q) => {
@@ -84,7 +93,7 @@ export default function AskAiPage() {
       <div className="mb-4">
         <h1 className="text-h1 font-serif text-forest-700">{t('askAi.title')}</h1>
         <p className="text-body text-gray-500 mt-1">
-          {child?.name ? t('askAi.subtitle', { name: child.name }) : t('askAi.subtitleGeneric')}
+          {name ? t('askAi.subtitle', { name }) : t('askAi.subtitleGeneric')}
         </p>
       </div>
 
@@ -161,7 +170,7 @@ export default function AskAiPage() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={t('askAi.placeholder')}
+            placeholder={name ? `Ask Dr. Bloom about ${name}...` : t('askAi.placeholder')}
             rows={1}
             className="input-field flex-1 resize-none min-h-[48px] max-h-32"
           />

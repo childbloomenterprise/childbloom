@@ -1,11 +1,15 @@
 import { MOODS, SLEEP_QUALITY } from '../../../lib/constants';
 
-export default function MoodStep({ formData, updateField }) {
+export default function MoodStep({ formData, updateField, childName }) {
+  const name = childName || 'they';
+
   return (
     <div className="space-y-8">
       <div className="text-center">
-        <h3 className="text-lg font-serif font-semibold text-gray-900">How were they this week?</h3>
-        <p className="text-sm text-gray-500 mt-1">Select the overall mood</p>
+        <h3 className="text-lg font-serif font-semibold text-forest-700">
+          How was {name} feeling this week?
+        </h3>
+        <p className="text-sm text-gray-400 mt-1">Pick what felt most like {name}</p>
       </div>
 
       {/* Mood Selector */}
@@ -16,8 +20,8 @@ export default function MoodStep({ formData, updateField }) {
             onClick={() => updateField('mood', mood.value)}
             className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all ${
               formData.mood === mood.value
-                ? 'border-primary-500 bg-primary-50'
-                : 'border-gray-100 hover:border-gray-200'
+                ? 'border-forest-500 bg-forest-50'
+                : 'border-cream-200 hover:border-cream-300'
             }`}
           >
             <div
@@ -34,7 +38,8 @@ export default function MoodStep({ formData, updateField }) {
       {/* Sleep Hours */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-3">
-          Average sleep per day: <span className="text-primary-600">{formData.sleep_hours}h</span>
+          How many hours of sleep a day?{' '}
+          <span className="text-forest-600 font-semibold">{formData.sleep_hours}h</span>
         </label>
         <input
           type="range"
@@ -43,7 +48,7 @@ export default function MoodStep({ formData, updateField }) {
           step="0.5"
           value={formData.sleep_hours}
           onChange={(e) => updateField('sleep_hours', parseFloat(e.target.value))}
-          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary-500"
+          className="w-full h-2 bg-cream-200 rounded-lg appearance-none cursor-pointer accent-forest-500"
         />
         <div className="flex justify-between text-xs text-gray-400 mt-1">
           <span>0h</span>
@@ -53,7 +58,9 @@ export default function MoodStep({ formData, updateField }) {
 
       {/* Sleep Quality */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-3">Sleep quality</label>
+        <label className="block text-sm font-medium text-gray-700 mb-3">
+          How was the sleep quality?
+        </label>
         <div className="flex gap-3">
           {SLEEP_QUALITY.map((sq) => (
             <button
@@ -61,8 +68,8 @@ export default function MoodStep({ formData, updateField }) {
               onClick={() => updateField('sleep_quality', sq.value)}
               className={`flex-1 py-3 rounded-xl text-sm font-medium border-2 transition-all ${
                 formData.sleep_quality === sq.value
-                  ? 'border-primary-500 bg-primary-50 text-primary-700'
-                  : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                  ? 'border-forest-500 bg-forest-50 text-forest-700'
+                  : 'border-cream-200 text-gray-600 hover:border-cream-300'
               }`}
             >
               {sq.label}
