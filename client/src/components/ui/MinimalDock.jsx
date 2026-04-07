@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useSelectedChild } from '../../hooks/useChild';
 import { useAuth } from '../../hooks/useAuth';
 import { LayoutDashboard, TrendingUp, BookOpen, MessageCircle, Settings, ClipboardList, Utensils, HeartPulse, LogOut } from 'lucide-react';
+import { LogoMark } from './LogoMark';
 
 // Dock item — exact interaction from prompt, colors from 60/30/10 palette
 function DockNavItem({ to, icon, label }) {
@@ -188,17 +189,7 @@ export default function MinimalDock() {
         onMouseLeave={() => setHoveredAny(false)}
       >
         {/* App logo mark */}
-        <div
-          className="flex items-center justify-center w-11 h-11 rounded-xl mb-1 border"
-          style={{
-            background: 'rgba(143, 186, 200, 0.20)',  // 10% teal accent
-            borderColor: 'rgba(143, 186, 200, 0.40)',
-          }}
-        >
-          <svg className="w-5 h-5" style={{ color: '#8FBAC8' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-          </svg>
-        </div>
+        <LogoMark size={44} className="mb-1 rounded-xl" />
 
         {/* Divider */}
         <div className="w-6 h-px mb-1" style={{ background: 'rgba(61,43,35,0.15)' }} />

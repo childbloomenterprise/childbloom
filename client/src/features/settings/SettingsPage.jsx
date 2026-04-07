@@ -16,6 +16,7 @@ import Badge from '../../components/ui/Badge';
 import { UserIcon, BabyIcon, PlusIcon, TrashIcon, LogoutIcon, SettingsIcon } from '../../assets/icons';
 import { formatAge, formatDate } from '../../lib/formatters';
 import { GENDERS } from '../../lib/constants';
+import { LogoWordmark } from '../../components/ui/LogoMark';
 
 export default function SettingsPage() {
   const { t, i18n } = useTranslation();
@@ -83,8 +84,8 @@ export default function SettingsPage() {
   return (
     <div className="space-y-5 max-w-2xl">
       <div>
-        <h1 className="text-h1 font-serif text-forest-700">{t('settings.title')}</h1>
-        <p className="text-body text-gray-400 mt-1">{t('settings.subtitle')}</p>
+        <LogoWordmark iconSize={40} className="mb-1" />
+        <p className="text-body text-gray-400 mt-2">{t('settings.subtitle')}</p>
       </div>
 
       {/* Language Section */}

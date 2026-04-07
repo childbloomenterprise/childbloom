@@ -1,5 +1,6 @@
 import { Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { LogoWordmark } from '../ui/LogoMark';
 
 export default function AuthLayout() {
   const { t } = useTranslation();
@@ -18,22 +19,9 @@ export default function AuthLayout() {
         <div className="w-full max-w-sm">
 
           {/* Brand */}
-          <div className="text-center mb-10 animate-fade-in-up">
-            {/* App icon — 10% teal */}
-            <div
-              className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-5 border"
-              style={{
-                background: 'rgba(143, 186, 200, 0.20)',
-                borderColor: 'rgba(143, 186, 200, 0.40)',
-                boxShadow: '0 4px 20px rgba(143,186,200,0.18)',
-              }}
-            >
-              <svg className="w-8 h-8" style={{ color: '#8FBAC8' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-              </svg>
-            </div>
-            <h1 className="text-display font-serif" style={{ color: '#2A1C15' }}>{t('app.name')}</h1>
-            <p className="text-body mt-2" style={{ color: 'rgba(61,43,35,0.50)' }}>{t('app.tagline')}</p>
+          <div className="flex flex-col items-center mb-10 animate-fade-in-up">
+            <LogoWordmark iconSize={52} className="mb-4" />
+            <p className="text-body text-center" style={{ color: 'rgba(61,43,35,0.50)' }}>{t('app.tagline')}</p>
           </div>
 
           {/* Form */}
