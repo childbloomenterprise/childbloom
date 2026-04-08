@@ -1,0 +1,76 @@
+{
+  "name": "ChildBloom",
+  "short_name": "ChildBloom",
+  "description": "Your child's development companion. Growing together, week by week.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F8FAF9",
+  "theme_color": "#1D9E75",
+  "lang": "en",
+  "categories": ["health", "medical", "parenting"],
+  "icons": [
+    {
+      "src": "/logo48.png",
+      "sizes": "48x48",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Weekly Check-in",
+      "short_name": "Check-in",
+      "description": "Log this week's update",
+      "url": "/weekly-update",
+      "icons": [{ "src": "/logo96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Ask Dr. Bloom",
+      "short_name": "Ask",
+      "description": "Ask Dr. Bloom a question",
+      "url": "/ask",
+      "icons": [{ "src": "/logo96.png", "sizes": "96x96" }]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshot-mobile.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "ChildBloom Dashboard"
+    }
+  ]
+}

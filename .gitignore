@@ -12,3 +12,11 @@ coverage/
 .claude/
 .vercel
 .env*.local
+
+# Android signing — NEVER commit these
+android-keystore.jks
+*.jks
+*.keystore
+
+# Lighthouse report
+lighthouse-report.json

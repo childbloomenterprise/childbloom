@@ -1,0 +1,37 @@
+{
+  "packageId": "com.childbloom.app",
+  "host": "childbloom-pi.vercel.app",
+  "name": "ChildBloom",
+  "launcherName": "ChildBloom",
+  "display": "standalone",
+  "themeColor": "#1D9E75",
+  "navigationColor": "#1D9E75",
+  "navigationColorDark": "#085041",
+  "navigationDividerColor": "#1D9E75",
+  "backgroundColor": "#F8FAF9",
+  "enableNotifications": true,
+  "startUrl": "/",
+  "iconUrl": "https://childbloom-pi.vercel.app/logo512.png",
+  "maskableIconUrl": "https://childbloom-pi.vercel.app/logo512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "./android-keystore.jks",
+    "alias": "childbloom"
+  },
+  "appVersionCode": 1,
+  "appVersionName": "1.0.0",
+  "shortcuts": [
+    {
+      "name": "Weekly Check-in",
+      "shortName": "Check-in",
+      "url": "/weekly-update",
+      "icons": [{ "src": "/logo96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Ask Dr. Bloom",
+      "shortName": "Ask",
+      "url": "/ask",
+      "icons": [{ "src": "/logo96.png", "sizes": "96x96" }]
+    }
+  ]
+}

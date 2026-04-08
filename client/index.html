@@ -2,17 +2,62 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+
+    <!-- PWA manifest -->
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- Icons -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <!-- Viewport -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <meta name="description" content="ChildBloom — Growing together, week by week. A child development companion for parents." />
+
+    <!-- Theme -->
     <meta name="theme-color" content="#1D9E75" />
+    <meta name="background-color" content="#F8FAF9" />
+
+    <!-- PWA capability -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="application-name" content="ChildBloom" />
+
+    <!-- iOS Safari PWA -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="ChildBloom" />
+
+    <!-- SEO -->
+    <meta name="description" content="Your child's development companion. From pregnancy to age 7 — guided by Dr. Bloom, your AI pediatric advisor." />
+    <meta name="keywords" content="child development, parenting, India, Kerala, baby tracker, Dr. Bloom, pediatrician" />
+
+    <!-- Open Graph / Social -->
+    <meta property="og:title" content="ChildBloom" />
+    <meta property="og:description" content="Growing together, week by week. AI-powered child development guidance for Indian parents." />
+    <meta property="og:image" content="/logo512.png" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://childbloom-pi.vercel.app" />
+
+    <!-- Twitter card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="ChildBloom" />
+    <meta name="twitter:description" content="AI-powered child development companion for Indian parents." />
+    <meta name="twitter:image" content="/logo512.png" />
+
     <title>ChildBloom</title>
   </head>
   <body class="bg-background text-gray-900 antialiased overscroll-none">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+
+    <!-- Service Worker registration -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js', { scope: '/' })
+            .then(() => {})
+            .catch(() => {});
+        });
+      }
+    </script>
   </body>
 </html>

@@ -18,6 +18,8 @@ import GuideDetailPage from './features/guides/GuideDetailPage';
 import AskAiPage from './features/ask/AskAiPage';
 import SettingsPage from './features/settings/SettingsPage';
 import Toast from './components/ui/Toast';
+import InstallPrompt from './components/InstallPrompt';
+import PrivacyPage from './features/privacy/PrivacyPage';
 
 export default function App() {
   useAuth();
@@ -49,10 +51,14 @@ export default function App() {
           </Route>
         </Route>
 
+        {/* Public pages — no auth required */}
+        <Route path="/privacy" element={<PrivacyPage />} />
+
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
       <Toast />
+      <InstallPrompt />
     </>
   );
 }

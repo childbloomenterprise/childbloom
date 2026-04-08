@@ -9,5 +9,14 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          ui: ['recharts', 'lucide-react'],
+          supabase: ['@supabase/supabase-js'],
+        },
+      },
+    },
   },
 });
