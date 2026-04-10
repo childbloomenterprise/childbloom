@@ -1,62 +1,86 @@
+import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import AuthLayout from './components/layout/AuthLayout';
 import AppLayout from './components/layout/AppLayout';
 import ProtectedRoute from './components/shared/ProtectedRoute';
-import LoginPage from './features/auth/LoginPage';
-import SignupPage from './features/auth/SignupPage';
-import AuthCallback from './features/auth/AuthCallback';
-import OnboardingPage from './features/onboarding/OnboardingPage';
-import DashboardPage from './features/dashboard/DashboardPage';
-import WeeklyUpdatePage from './features/weekly-update/WeeklyUpdatePage';
-import UpdateHistoryPage from './features/weekly-update/UpdateHistoryPage';
-import GrowthPage from './features/growth/GrowthPage';
-import FoodTrackerPage from './features/food/FoodTrackerPage';
-import HealthRecordsPage from './features/health/HealthRecordsPage';
-import GuidesPage from './features/guides/GuidesPage';
-import GuideDetailPage from './features/guides/GuideDetailPage';
-import AskAiPage from './features/ask/AskAiPage';
-import SettingsPage from './features/settings/SettingsPage';
+import Skeleton from './components/ui/Skeleton';
 import Toast from './components/ui/Toast';
 import InstallPrompt from './components/InstallPrompt';
-import PrivacyPage from './features/privacy/PrivacyPage';
+
+// ── Auth pages: eager (critical first-load paths) ──
+import AuthPage from './features/auth/AuthPage';
+import AuthCallback from './features/auth/AuthCallback';
+import OnboardingPage from './features/onboarding/OnboardingPage';
+import LoginPage from './features/auth/LoginPage';
+import SignupPage from './features/auth/SignupPage';
+
+// ── App pages: lazy-loaded (only fetched when needed) ──
+const DashboardPage     = lazy(() => import('./features/dashboard/DashboardPage'));
+const WeeklyUpdatePage  = lazy(() => import('./features/weekly-update/WeeklyUpdatePage'));
+const UpdateHistoryPage = lazy(() => import('./features/weekly-update/UpdateHistoryPage'));
+const GrowthPage        = lazy(() => import('./features/growth/GrowthPage'));
+const FoodTrackerPage   = lazy(() => import('./features/food/FoodTrackerPage'));
+const HealthRecordsPage = lazy(() => import('./features/health/HealthRecordsPage'));
+const GuidesPage        = lazy(() => import('./features/guides/GuidesPage'));
+const GuideDetailPage   = lazy(() => import('./features/guides/GuideDetailPage'));
+const AskAiPage         = lazy(() => import('./features/ask/AskAiPage'));
+const SettingsPage      = lazy(() => import('./features/settings/SettingsPage'));
+const PrivacyPage       = lazy(() => import('./features/privacy/PrivacyPage'));
+
+function PageFallback() {
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="space-y-4 w-full max-w-md p-8">
+        <Skeleton className="h-8 w-40 mx-auto" />
+        <Skeleton className="h-4 w-56 mx-auto" />
+        <Skeleton className="h-4 w-48 mx-auto" />
+      </div>
+    </div>
+  );
+}
 
 export default function App() {
   useAuth();
 
   return (
     <>
-      <Routes>
-        {/* Public auth routes */}
-        <Route element={<AuthLayout />}>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/signup" element={<SignupPage />} />
-        </Route>
-        <Route path="/auth/callback" element={<AuthCallback />} />
-        <Route path="/onboarding" element={<OnboardingPage />} />
+      <Suspense fallback={<PageFallback />}>
+        <Routes>
+          {/* ── New combined auth page ─────────────────── */}
+          <Route path="/auth" element={<AuthPage />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
+          <Route path="/onboarding" element={<OnboardingPage />} />
 
-        {/* Protected app routes */}
-        <Route element={<ProtectedRoute />}>
-          <Route element={<AppLayout />}>
-            <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/child/:id/weekly-update" element={<WeeklyUpdatePage />} />
-            <Route path="/child/:id/updates" element={<UpdateHistoryPage />} />
-            <Route path="/child/:id/growth" element={<GrowthPage />} />
-            <Route path="/child/:id/food" element={<FoodTrackerPage />} />
-            <Route path="/child/:id/health" element={<HealthRecordsPage />} />
-            <Route path="/guides" element={<GuidesPage />} />
-            <Route path="/guides/:stage" element={<GuideDetailPage />} />
-            <Route path="/ask" element={<AskAiPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
+          {/* ── Legacy routes → redirect to /auth ─────── */}
+          <Route element={<AuthLayout />}>
+            <Route path="/login"  element={<Navigate to="/auth" replace />} />
+            <Route path="/signup" element={<Navigate to="/auth" replace />} />
           </Route>
-        </Route>
 
-        {/* Public pages — no auth required */}
-        <Route path="/privacy" element={<PrivacyPage />} />
+          {/* ── Protected app routes ───────────────────── */}
+          <Route element={<ProtectedRoute />}>
+            <Route element={<AppLayout />}>
+              <Route path="/dashboard"                    element={<DashboardPage />} />
+              <Route path="/child/:id/weekly-update"      element={<WeeklyUpdatePage />} />
+              <Route path="/child/:id/updates"            element={<UpdateHistoryPage />} />
+              <Route path="/child/:id/growth"             element={<GrowthPage />} />
+              <Route path="/child/:id/food"               element={<FoodTrackerPage />} />
+              <Route path="/child/:id/health"             element={<HealthRecordsPage />} />
+              <Route path="/guides"                       element={<GuidesPage />} />
+              <Route path="/guides/:stage"                element={<GuideDetailPage />} />
+              <Route path="/ask"                          element={<AskAiPage />} />
+              <Route path="/settings"                     element={<SettingsPage />} />
+            </Route>
+          </Route>
 
-        {/* Fallback */}
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
-      </Routes>
+          {/* ── Public pages ───────────────────────────── */}
+          <Route path="/privacy" element={<PrivacyPage />} />
+
+          {/* ── Fallback ───────────────────────────────── */}
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
+      </Suspense>
       <Toast />
       <InstallPrompt />
     </>

@@ -2,6 +2,27 @@
 
 A warm, emotionally intelligent child development companion for Indian parents — built with React, Vercel serverless functions, Supabase, and Claude AI (Dr. Bloom persona).
 
+## Google OAuth Setup
+
+1. Go to [console.cloud.google.com](https://console.cloud.google.com)
+2. Create or select a project
+3. **APIs & Services → Credentials → Create OAuth 2.0 Client ID**
+   - Application type: **Web Application**
+   - Name: `ChildBloom`
+   - Authorized redirect URIs — add all three:
+     ```
+     https://[YOUR_SUPABASE_PROJECT_REF].supabase.co/auth/v1/callback
+     https://childbloom-pi.vercel.app
+     http://localhost:5173
+     ```
+4. Copy the **Client ID** and **Client Secret**
+5. **Supabase Dashboard → Authentication → Providers → Google → Enable**
+6. Paste the Client ID and Client Secret → Save
+7. No new `.env` variables needed in the app — Supabase handles OAuth internally
+
+> **New users** who sign in with Google are routed to onboarding automatically.
+> **Returning users** skip onboarding and go directly to the dashboard.
+
 ## Voice Feature Setup
 
 To enable high-quality Malayalam and Tamil voice output:

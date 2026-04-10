@@ -33,23 +33,37 @@ export default async function handler(req, res) {
       ? `The parent is asking about their child "${child_name}"${ageMonths ? ` who is ${ageMonths} months old` : ''}${gender ? ` (${gender})` : ''}.`
       : 'The parent is asking a general child development question.';
 
-    const systemPrompt = DR_BLOOM_SYSTEM_PROMPT;
+    const prompt = `${childContext}\n\nParent's question: ${question}`;
 
-    const prompt = `${childContext}
+    // Stream via Server-Sent Events
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
 
-Parent's question: ${question}`;
-
-    const message = await anthropic.messages.create({
+    const stream = anthropic.messages.stream({
       model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514',
       max_tokens: 1024,
-      system: systemPrompt,
+      system: DR_BLOOM_SYSTEM_PROMPT,
       messages: [{ role: 'user', content: prompt }],
     });
 
-    const answer = message.content.filter(b => b.type === 'text').map(b => b.text).join('\n');
-    res.json({ answer });
+    for await (const event of stream) {
+      if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta') {
+        res.write(`data: ${JSON.stringify({ text: event.delta.text })}\n\n`);
+      }
+    }
+
+    res.write('data: [DONE]\n\n');
+    res.end();
   } catch (err) {
-    console.error('AI error:', err);
-    res.status(500).json({ error: { message: 'Failed to generate response' } });
+    console.error('AI stream error:', err);
+    // If headers not yet sent, return JSON error
+    if (!res.headersSent) {
+      res.status(500).json({ error: { message: 'Failed to generate response' } });
+    } else {
+      res.write(`data: ${JSON.stringify({ error: 'Stream interrupted' })}\n\n`);
+      res.end();
+    }
   }
 }

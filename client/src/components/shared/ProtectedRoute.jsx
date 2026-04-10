@@ -17,7 +17,7 @@ export default function ProtectedRoute() {
   }
 
   if (!session) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/auth" replace />;
   }
 
   if (profile && !profile.onboarding_complete) {
