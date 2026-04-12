@@ -248,3 +248,28 @@ html { overscroll-behavior: none; }
   50%      { opacity: 0; }
 }
 .typewriter-cursor { animation: cursor-blink 0.8s ease-in-out infinite; }
+
+/* ── Landing page ─────────────────────────────── */
+@keyframes grid-drift {
+  0%, 100% { background-position: 0 0; }
+  50%      { background-position: 6px 6px; }
+}
+
+/* Scroll-reveal: elements start hidden, become visible via IntersectionObserver */
+.reveal {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.55s ease-out, transform 0.55s ease-out;
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
