@@ -76,6 +76,7 @@ export default function FoodTrackerPage() {
             child_name: child.name,
             age_in_days: child.date_of_birth ? formatAgeInDays(child.date_of_birth) : null,
             gender: child.gender,
+            language: localStorage.getItem('childbloom_voice_lang') || 'en',
           });
           setReactionAdvisory({ food: saved.food_name, reaction: saved.reaction, advice: response.answer });
         } catch {

@@ -83,6 +83,7 @@ export default function GrowthPage() {
             child_name: child.name,
             age_in_days: formatAgeInDays(child.date_of_birth),
             gender: child.gender,
+            language: localStorage.getItem('childbloom_voice_lang') || 'en',
           });
           setDrBloomComment(response.answer);
         } catch {

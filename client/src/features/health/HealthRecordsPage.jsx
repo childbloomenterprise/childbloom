@@ -87,6 +87,7 @@ export default function HealthRecordsPage() {
             child_name: child.name,
             age_in_days: child.date_of_birth ? formatAgeInDays(child.date_of_birth) : null,
             gender: child.gender,
+            language: localStorage.getItem('childbloom_voice_lang') || 'en',
           });
           setVaccineTip({ vaccine: saved.title, tip: response.answer });
         } catch {

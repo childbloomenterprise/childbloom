@@ -87,6 +87,7 @@ export default function AskAiPage() {
           child_name: child?.name,
           age_in_days: child?.date_of_birth ? formatAgeInDays(child.date_of_birth) : null,
           gender: child?.gender,
+          language: voiceLang,
         }),
         signal: controller.signal,
       });

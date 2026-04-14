@@ -119,6 +119,7 @@ export default function WeeklyUpdatePage() {
         new_skills: formData.new_skills,
         feeding_notes: formData.solid_foods,
         concerns: formData.concerns,
+        language: voiceLang,
       });
       return response.insight || 'Great job tracking your child\'s development this week! Keep up the amazing work.';
     },

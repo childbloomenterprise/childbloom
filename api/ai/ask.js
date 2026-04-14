@@ -25,15 +25,18 @@ export default async function handler(req, res) {
   if (!user) return res.status(401).json({ error: { message: 'Unauthorized' } });
 
   try {
-    const { question, child_name, age_in_days, gender } = req.body;
+    const { question, child_name, age_in_days, gender, language = 'en' } = req.body;
     if (!question) return res.status(400).json({ error: { message: 'Question is required' } });
+
+    const langMap = { en: 'English', ml: 'Malayalam', ta: 'Tamil', hi: 'Hindi', kn: 'Kannada', te: 'Telugu' };
+    const langName = langMap[language] || 'English';
 
     const ageMonths = age_in_days ? Math.floor(age_in_days / 30) : null;
     const childContext = child_name
       ? `The parent is asking about their child "${child_name}"${ageMonths ? ` who is ${ageMonths} months old` : ''}${gender ? ` (${gender})` : ''}.`
       : 'The parent is asking a general child development question.';
 
-    const prompt = `${childContext}\n\nParent's question: ${question}`;
+    const prompt = `IMPORTANT: Respond ENTIRELY in ${langName}. Do not use any other language.\n\n${childContext}\n\nParent's question: ${question}`;
 
     // Stream via Server-Sent Events
     res.setHeader('Content-Type', 'text/event-stream');

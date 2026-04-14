@@ -14,8 +14,12 @@ async function authenticate(req) {
 }
 
 function buildPrompt(data) {
+  const langMap = { en: 'English', ml: 'Malayalam', ta: 'Tamil', hi: 'Hindi', kn: 'Kannada', te: 'Telugu' };
+  const langName = langMap[data.language] || 'English';
   const ageMonths = data.age_in_days ? Math.floor(data.age_in_days / 30) : null;
-  return `You are Dr. Bloom, an experienced Indian pediatrician reviewing this child's weekly check-in. Based on WHO and IAP guidelines, provide a personalised, clinically-grounded weekly insight.
+  return `IMPORTANT: Respond ENTIRELY in ${langName}. Do not use any other language.
+
+You are Dr. Bloom, an experienced Indian pediatrician reviewing this child's weekly check-in. Based on WHO and IAP guidelines, provide a personalised, clinically-grounded weekly insight.
 
 Child: ${data.child_name || 'Child'}, ${ageMonths ? `${ageMonths} months old` : 'age unknown'}
 Weight: ${data.weight_kg || 'not recorded'} kg | Height: ${data.height_cm || 'not recorded'} cm
