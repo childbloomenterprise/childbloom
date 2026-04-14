@@ -23,15 +23,11 @@ export default function AuthCallback() {
 
         // For Google sign-in, persist profile data from Google metadata
         if (user.app_metadata?.provider === 'google') {
-          await supabase.from('profiles').upsert(
-            {
-              id: user.id,
-              full_name: user.user_metadata?.full_name || '',
-              avatar_url: user.user_metadata?.avatar_url || '',
-              updated_at: new Date().toISOString(),
-            },
-            { onConflict: 'id' }
-          );
+          await supabase.from('profiles').update({
+            full_name: user.user_metadata?.full_name || '',
+            avatar_url: user.user_metadata?.avatar_url || '',
+            updated_at: new Date().toISOString(),
+          }).eq('id', user.id);
         }
 
         // Fast path: check localStorage before hitting DB
