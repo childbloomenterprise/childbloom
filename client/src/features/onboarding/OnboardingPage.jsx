@@ -240,7 +240,8 @@ export default function OnboardingPage() {
       localStorage.setItem('cb_onboarded', 'true');
     } catch (err) {
       console.error('Onboarding save error:', err);
-      setSaveError('Couldn\'t save your profile. Check your connection and try again.');
+      const msg = err?.message || err?.details || JSON.stringify(err) || 'Unknown error';
+      setSaveError(`Save failed: ${msg}`);
       return;
     }
 
