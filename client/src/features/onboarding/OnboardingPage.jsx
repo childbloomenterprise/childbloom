@@ -207,12 +207,11 @@ export default function OnboardingPage() {
     // Save profile + child simultaneously
     try {
       const [profileRes, childRes] = await Promise.all([
-        supabase.from('profiles').upsert({
-          id:                  userId,
+        supabase.from('profiles').update({
           full_name:           formData.parentName,
           onboarding_complete: true,
           updated_at:          new Date().toISOString(),
-        }, { onConflict: 'id' }),
+        }).eq('id', userId),
 
         supabase.from('children').insert({
           user_id:      userId,
