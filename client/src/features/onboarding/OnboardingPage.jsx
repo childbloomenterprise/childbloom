@@ -210,7 +210,6 @@ export default function OnboardingPage() {
         supabase.from('profiles').upsert({
           id:                  userId,
           full_name:           formData.parentName,
-          language:            formData.language,
           onboarding_complete: true,
           updated_at:          new Date().toISOString(),
         }, { onConflict: 'id' }),
