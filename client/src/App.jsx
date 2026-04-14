@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import AuthLayout from './components/layout/AuthLayout';
@@ -7,6 +7,7 @@ import ProtectedRoute from './components/shared/ProtectedRoute';
 import Skeleton from './components/ui/Skeleton';
 import Toast from './components/ui/Toast';
 import InstallPrompt from './components/InstallPrompt';
+import SplashScreen from './components/ui/SplashScreen';
 import useAuthStore from './stores/authStore';
 
 // ── Auth pages: eager (critical first-load paths) ──
@@ -62,9 +63,11 @@ function AuthGate({ children }) {
 
 export default function App() {
   useAuth();
+  const [splashDone, setSplashDone] = useState(false);
 
   return (
     <>
+      {!splashDone && <SplashScreen onDone={() => setSplashDone(true)} />}
       <Suspense fallback={<PageFallback />}>
         <Routes>
           {/* ── Landing page (public, guests only) ─────── */}
