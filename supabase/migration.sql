@@ -8,6 +8,7 @@ create table public.profiles (
   id uuid references auth.users on delete cascade primary key,
   full_name text,
   avatar_url text,
+  language text default 'en',
   onboarding_complete boolean default false,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
@@ -51,11 +52,15 @@ create table public.weekly_updates (
   id uuid default gen_random_uuid() primary key,
   child_id uuid references public.children on delete cascade not null,
   user_id uuid references auth.users on delete cascade not null,
+  week_date date,
+  age_in_days integer,
   weight_kg numeric(5,2),
   height_cm numeric(5,1),
   mood text,
+  sleep_hours numeric(4,1),
   sleep_quality text,
-  milestones text[] default '{}',
+  motor_milestone text,
+  new_skills text,
   feeding_notes text,
   concerns text,
   ai_insight text,
@@ -89,10 +94,11 @@ create table public.food_logs (
   child_id uuid references public.children on delete cascade not null,
   user_id uuid references auth.users on delete cascade not null,
   food_name text not null,
-  meal_type text not null check (meal_type in ('breakfast', 'lunch', 'dinner', 'snack')),
+  meal_type text not null check (meal_type in ('breast_milk', 'formula', 'solid', 'snack')),
   quantity text,
   notes text,
-  logged_date date not null default current_date,
+  reaction text,
+  log_date date not null default current_date,
   created_at timestamptz default now()
 );
 
@@ -105,9 +111,10 @@ create table public.health_records (
   id uuid default gen_random_uuid() primary key,
   child_id uuid references public.children on delete cascade not null,
   user_id uuid references auth.users on delete cascade not null,
-  record_type text not null check (record_type in ('vaccine', 'checkup', 'illness', 'other')),
+  record_type text not null check (record_type in ('vaccination', 'checkup', 'illness', 'milestone')),
   title text not null,
-  description text,
+  notes text,
+  clinic_name text,
   record_date date not null,
   doctor_name text,
   next_due_date date,
@@ -202,3 +209,47 @@ create policy "Users can update own health records"
   on public.health_records for update using (auth.uid() = user_id);
 create policy "Users can delete own health records"
   on public.health_records for delete using (auth.uid() = user_id);
+
+
+-- ============================================
+-- PATCH: Run this if tables already exist
+-- (fixes existing Supabase databases)
+-- ============================================
+/*
+-- Profiles: add missing language column
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS language text DEFAULT 'en';
+
+-- Weekly updates: add missing columns
+ALTER TABLE public.weekly_updates
+  ADD COLUMN IF NOT EXISTS week_date date,
+  ADD COLUMN IF NOT EXISTS age_in_days integer,
+  ADD COLUMN IF NOT EXISTS sleep_hours numeric(4,1),
+  ADD COLUMN IF NOT EXISTS motor_milestone text,
+  ADD COLUMN IF NOT EXISTS new_skills text;
+
+-- Food logs: rename column and add missing ones
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns
+             WHERE table_name='food_logs' AND column_name='logged_date') THEN
+    ALTER TABLE public.food_logs RENAME COLUMN logged_date TO log_date;
+  END IF;
+END $$;
+ALTER TABLE public.food_logs ADD COLUMN IF NOT EXISTS reaction text;
+ALTER TABLE public.food_logs DROP CONSTRAINT IF EXISTS food_logs_meal_type_check;
+ALTER TABLE public.food_logs ADD CONSTRAINT food_logs_meal_type_check
+  CHECK (meal_type IN ('breast_milk', 'formula', 'solid', 'snack'));
+
+-- Health records: rename column and add missing ones
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns
+             WHERE table_name='health_records' AND column_name='description') THEN
+    ALTER TABLE public.health_records RENAME COLUMN description TO notes;
+  END IF;
+END $$;
+ALTER TABLE public.health_records ADD COLUMN IF NOT EXISTS clinic_name text;
+ALTER TABLE public.health_records DROP CONSTRAINT IF EXISTS health_records_record_type_check;
+ALTER TABLE public.health_records ADD CONSTRAINT health_records_record_type_check
+  CHECK (record_type IN ('vaccination', 'checkup', 'illness', 'milestone'));
+*/

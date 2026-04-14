@@ -239,6 +239,7 @@ export default function OnboardingPage() {
     } catch (err) {
       console.error('Onboarding save error:', err);
       setSaveError('Couldn\'t save your profile. Check your connection and try again.');
+      return;
     }
 
     // Generate personalised welcome message (streaming)
@@ -577,7 +578,14 @@ Be warm and specific to their stage. End with one practical tip for this week or
 
             {saveError && (
               <div className="rounded-xl p-4 mb-5" style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', color: '#FCA5A5' }}>
-                <p className="text-sm">{saveError}</p>
+                <p className="text-sm mb-3">{saveError}</p>
+                <button
+                  onClick={handleStep8}
+                  className="w-full rounded-xl font-semibold flex items-center justify-center transition-all duration-200 active:scale-[0.98]"
+                  style={{ height: '44px', background: 'rgba(239,68,68,0.20)', border: '1px solid rgba(239,68,68,0.35)', color: '#FCA5A5', fontSize: '14px' }}
+                >
+                  Try again
+                </button>
               </div>
             )}
 
