@@ -42,7 +42,7 @@ export default async function handler(req, res) {
     res.setHeader('X-Accel-Buffering', 'no');
 
     const stream = anthropic.messages.stream({
-      model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514',
+      model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6',
       max_tokens: 1024,
       system: DR_BLOOM_SYSTEM_PROMPT,
       messages: [{ role: 'user', content: prompt }],
