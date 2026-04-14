@@ -210,7 +210,6 @@ export default function OnboardingPage() {
         supabase.from('profiles').upsert({
           id:                  userId,
           full_name:           formData.parentName,
-          language:            formData.language,
           onboarding_complete: true,
           updated_at:          new Date().toISOString(),
         }, { onConflict: 'id' }),
@@ -228,11 +227,14 @@ export default function OnboardingPage() {
       if (profileRes.error) throw profileRes.error;
       if (childRes.error)   throw childRes.error;
 
+      // Persist language in localStorage (both keys used across the app)
+      localStorage.setItem('childbloom_voice_lang', formData.language);
+      localStorage.setItem('childbloom-lang', formData.language);
+
       // Update store so ProtectedRoute doesn't bounce back to /onboarding
       useAuthStore.getState().setProfile({
         ...useAuthStore.getState().profile,
         full_name:           formData.parentName,
-        language:            formData.language,
         onboarding_complete: true,
       });
       localStorage.setItem('cb_onboarded', 'true');
