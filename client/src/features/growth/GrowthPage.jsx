@@ -53,18 +53,23 @@ export default function GrowthPage() {
   });
 
   const addMutation = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.from('growth_records').insert({
-        child_id: childId,
-        user_id: user.id,
-        record_date: formData.record_date,
-        weight_kg: formData.weight_kg || null,
-        height_cm: formData.height_cm || null,
-        head_circumference_cm: formData.head_circumference_cm || null,
-      });
+    mutationFn: async (record) => {
+      const { error } = await supabase.from('growth_records').insert(record);
       if (error) throw error;
     },
-    onSuccess: async () => {
+    onMutate: async (newRecord) => {
+      await queryClient.cancelQueries({ queryKey: ['growth-records', childId] });
+      const previous = queryClient.getQueryData(['growth-records', childId]);
+      queryClient.setQueryData(['growth-records', childId], (old) => [
+        ...(old || []),
+        { ...newRecord, id: `temp-${Date.now()}`, optimistic: true },
+      ]);
+      return { previous };
+    },
+    onError: (_err, _record, context) => {
+      queryClient.setQueryData(['growth-records', childId], context?.previous);
+    },
+    onSuccess: async (_data, _record) => {
       queryClient.invalidateQueries({ queryKey: ['growth-records'] });
       const saved = { ...formData };
       setSavedFormData(saved);
@@ -90,6 +95,9 @@ export default function GrowthPage() {
           // Silently skip
         }
       }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['growth-records', childId] });
     },
   });
 
@@ -118,53 +126,58 @@ export default function GrowthPage() {
         </Button>
       </div>
 
-      {/* Dr. Bloom comment after save */}
-      {drBloomComment && (
-        <Card accent="green" className="p-4 bg-forest-50/50">
-          <div className="flex gap-3">
-            <div className="w-8 h-8 bg-forest-700 rounded-xl flex items-center justify-center flex-shrink-0">
-              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-            </div>
-            <div className="flex-1">
-              <p className="text-micro font-bold text-forest-600 uppercase tracking-wider mb-1">Dr. Bloom</p>
-              <p className="text-sm text-gray-700 leading-relaxed">{drBloomComment}</p>
-            </div>
-            <button onClick={() => setDrBloomComment(null)} className="text-gray-300 hover:text-gray-500 text-lg leading-none self-start">×</button>
-          </div>
-        </Card>
-      )}
-
       <Tabs tabs={TABS} activeTab={activeTab} onChange={setActiveTab} />
 
       {chartData.length > 0 ? (
-        <Card className="p-3 sm:p-5">
-          <ResponsiveContainer width="100%" height={260}>
-            <ComposedChart data={chartData} margin={{ top: 5, right: 5, left: -15, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#E8E4DF" />
-              <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#8B9DAF' }} interval="preserveStartEnd" />
-              <YAxis tick={{ fontSize: 10, fill: '#8B9DAF' }} domain={['auto', 'auto']} width={35} />
-              <Tooltip
-                contentStyle={{ borderRadius: '12px', border: '1px solid #E8E4DF', fontSize: '12px', padding: '8px 12px', backgroundColor: '#fff' }}
-              />
-              <Line
-                type="monotone"
-                dataKey={activeTab}
-                stroke="#2D6A4F"
-                strokeWidth={2.5}
-                dot={{ fill: '#2D6A4F', r: 3.5, strokeWidth: 0 }}
-                activeDot={{ r: 5, strokeWidth: 2, stroke: '#E9F5EF', fill: '#2D6A4F' }}
-                connectNulls
-              />
-            </ComposedChart>
-          </ResponsiveContainer>
-        </Card>
+        <>
+          <Card className="p-3 sm:p-5">
+            <ResponsiveContainer width="100%" height={260}>
+              <ComposedChart data={chartData} margin={{ top: 5, right: 5, left: -15, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#E8E4DF" />
+                <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#8B9DAF' }} interval="preserveStartEnd" />
+                <YAxis tick={{ fontSize: 10, fill: '#8B9DAF' }} domain={['auto', 'auto']} width={35} />
+                <Tooltip
+                  contentStyle={{ borderRadius: '12px', border: '1px solid #E8E4DF', fontSize: '12px', padding: '8px 12px', backgroundColor: '#fff' }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey={activeTab}
+                  stroke="#2D6A4F"
+                  strokeWidth={2.5}
+                  dot={{ fill: '#2D6A4F', r: 3.5, strokeWidth: 0 }}
+                  activeDot={{ r: 5, strokeWidth: 2, stroke: '#E9F5EF', fill: '#2D6A4F' }}
+                  connectNulls
+                />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </Card>
+
+          {/* Dr. Bloom interpretation — shown below chart after a new measurement save */}
+          {drBloomComment && (
+            <div className="flex gap-3 items-start px-1">
+              <div className="w-6 h-6 bg-forest-700 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <p className="font-serif text-sm text-gray-600 leading-relaxed italic">{drBloomComment}</p>
+                <p className="text-micro text-gray-400 mt-1">Dr. Bloom · based on latest measurement</p>
+              </div>
+              <button onClick={() => setDrBloomComment(null)} className="text-gray-300 hover:text-gray-500 text-lg leading-none">×</button>
+            </div>
+          )}
+        </>
       ) : (
         <EmptyState
-          title={t('growth.noData')}
-          description={t('growth.addFirst')}
-          actionLabel={child?.name ? t('growth.addMeasurement', { name: child.name }) : t('growth.addMeasurementGeneric')}
+          title={child?.name ? `${child.name}'s growth story starts here` : 'Growth story starts here'}
+          description={(() => {
+            const weeks = child?.date_of_birth ? Math.floor((new Date() - new Date(child.date_of_birth)) / (7 * 24 * 60 * 60 * 1000)) : 0;
+            return weeks <= 8
+              ? `At ${weeks} week${weeks !== 1 ? 's' : ''} old, even one measurement shows how fast ${child?.name || 'your little one'} is growing. WHO charts will show exactly where they stand.`
+              : `Log ${child?.name || 'their'} weight and height to see their growth curve against WHO standards.`;
+          })()}
+          actionLabel={child?.name ? `Log ${child.name}'s first measurement` : 'Log first measurement'}
           onAction={() => setShowForm(true)}
           icon={<GrowthIcon className="w-8 h-8" />}
         />
@@ -230,7 +243,14 @@ export default function GrowthPage() {
             placeholder="e.g. 43.0"
           />
           <Button
-            onClick={() => addMutation.mutate()}
+            onClick={() => addMutation.mutate({
+              child_id: childId,
+              user_id: user.id,
+              record_date: formData.record_date,
+              weight_kg: formData.weight_kg || null,
+              height_cm: formData.height_cm || null,
+              head_circumference_cm: formData.head_circumference_cm || null,
+            })}
             loading={addMutation.isPending}
             className="w-full"
           >

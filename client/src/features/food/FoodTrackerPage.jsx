@@ -49,20 +49,23 @@ export default function FoodTrackerPage() {
   });
 
   const addMutation = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.from('food_logs').insert({
-        child_id: childId,
-        user_id: user.id,
-        log_date: formData.log_date,
-        meal_type: formData.meal_type,
-        food_name: formData.food_name,
-        quantity: formData.quantity || null,
-        notes: formData.notes || null,
-        reaction: formData.reaction || null,
-      });
+    mutationFn: async (record) => {
+      const { error } = await supabase.from('food_logs').insert(record);
       if (error) throw error;
     },
-    onSuccess: async () => {
+    onMutate: async (newRecord) => {
+      await queryClient.cancelQueries({ queryKey: ['food-logs', childId] });
+      const previous = queryClient.getQueryData(['food-logs', childId]);
+      queryClient.setQueryData(['food-logs', childId], (old) => [
+        { ...newRecord, id: `temp-${Date.now()}`, optimistic: true },
+        ...(old || []),
+      ]);
+      return { previous };
+    },
+    onError: (_err, newRecord, context) => {
+      queryClient.setQueryData(['food-logs', childId], context?.previous);
+    },
+    onSuccess: async (_data, record) => {
       queryClient.invalidateQueries({ queryKey: ['food-logs'] });
       const saved = { ...formData };
       setShowForm(false);
@@ -83,6 +86,9 @@ export default function FoodTrackerPage() {
           // Silently skip
         }
       }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['food-logs', childId] });
     },
   });
 
@@ -149,9 +155,14 @@ export default function FoodTrackerPage() {
 
       {Object.keys(grouped).length === 0 ? (
         <EmptyState
-          title={t('food.noLogs')}
-          description={emptyDesc}
-          actionLabel={modalTitle}
+          title={child?.name ? `What ${child.name} eats` : 'Food tracker'}
+          description={(() => {
+            const months = child?.date_of_birth ? Math.floor((new Date() - new Date(child.date_of_birth)) / (30 * 24 * 60 * 60 * 1000)) : 0;
+            return months < 6
+              ? `At ${months} month${months !== 1 ? 's' : ''} old, every feed is building the foundation. Even logging one feed today creates a pattern over time.`
+              : `${child?.name || 'Their'} nutrition story starts with one meal logged today.`;
+          })()}
+          actionLabel={child?.name ? `Log ${child.name}'s first meal` : 'Log first meal'}
           onAction={() => setShowForm(true)}
           icon={<FoodIcon className="w-8 h-8" />}
         />
@@ -239,7 +250,16 @@ export default function FoodTrackerPage() {
             onChange={(e) => setFormData({ ...formData, reaction: e.target.value })}
           />
           <Button
-            onClick={() => addMutation.mutate()}
+            onClick={() => addMutation.mutate({
+              child_id: childId,
+              user_id: user.id,
+              log_date: formData.log_date,
+              meal_type: formData.meal_type,
+              food_name: formData.food_name,
+              quantity: formData.quantity || null,
+              notes: formData.notes || null,
+              reaction: formData.reaction || null,
+            })}
             loading={addMutation.isPending}
             disabled={!formData.food_name.trim()}
             className="w-full"

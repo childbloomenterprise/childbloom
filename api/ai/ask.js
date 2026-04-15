@@ -83,13 +83,14 @@ export default async function handler(req, res) {
   if (!user) return res.status(401).json({ error: { message: 'Unauthorized' } });
 
   try {
-    const { question, child_name, child_id, age_in_days, gender, language = 'en' } = req.body;
-    if (!question) return res.status(400).json({ error: { message: 'Question is required' } });
+    const { question, child_name, child_id, age_in_days, gender, language = 'en', opening_message, parent_mood, last_concern } = req.body;
+    if (!opening_message && !question) return res.status(400).json({ error: { message: 'Question is required' } });
 
     const langMap = { en: 'English', ml: 'Malayalam', ta: 'Tamil', hi: 'Hindi', kn: 'Kannada', te: 'Telugu' };
     const langName = langMap[language] || 'English';
 
     const ageMonths = age_in_days ? Math.floor(age_in_days / 30) : null;
+    const ageWeeks = age_in_days ? Math.floor(age_in_days / 7) : null;
     const childContext = child_name
       ? `The parent is asking about their child "${child_name}"${ageMonths != null ? ` who is ${ageMonths} months old` : ''}${gender ? ` (${gender})` : ''}.`
       : 'The parent is asking a general child development question.';
@@ -103,7 +104,34 @@ export default async function handler(req, res) {
       }
     }
 
-    const prompt = `IMPORTANT: Respond ENTIRELY in ${langName}. Do not use any other language.\n\n${childContext}${recordsContext}\n\nParent's question: ${question}`;
+    // Build prompt
+    let prompt;
+    if (opening_message) {
+      // Opening greeting — short, personal, inviting
+      const moodClause = parent_mood
+        ? `The parent said they are feeling ${parent_mood} today.`
+        : '';
+      const concernClause = last_concern
+        ? `Last time they mentioned: "${last_concern}".`
+        : '';
+      const timeHour = new Date().getHours();
+      const timeOfDay = timeHour < 12 ? 'morning' : timeHour < 17 ? 'afternoon' : 'evening';
+
+      prompt = `IMPORTANT: Respond ENTIRELY in ${langName}. Do not use any other language.
+
+${childContext}${recordsContext}
+
+${moodClause} ${concernClause}
+
+Write a warm 2-3 sentence greeting from Dr. Bloom. It is ${timeOfDay}.
+${parent_mood ? `Acknowledge the parent's mood (${parent_mood}) gently in one short clause.` : ''}
+${last_concern ? `Naturally reference their last concern in one clause: "Last time you mentioned..."` : ''}
+End with one open question inviting them to share what is on their mind today.
+Tone: trusted family doctor meeting the family for the first time today.
+Maximum 60 words. Do NOT start with "Hello" or "Hi".`;
+    } else {
+      prompt = `IMPORTANT: Respond ENTIRELY in ${langName}. Do not use any other language.\n\n${childContext}${recordsContext}\n\nParent's question: ${question}`;
+    }
 
     // Stream via Server-Sent Events
     res.setHeader('Content-Type', 'text/event-stream');

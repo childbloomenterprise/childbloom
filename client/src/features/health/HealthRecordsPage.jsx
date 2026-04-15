@@ -59,21 +59,23 @@ export default function HealthRecordsPage() {
   });
 
   const addMutation = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.from('health_records').insert({
-        child_id: childId,
-        user_id: user.id,
-        record_date: formData.record_date,
-        record_type: formData.record_type,
-        title: formData.title,
-        doctor_name: formData.doctor_name || null,
-        clinic_name: formData.clinic_name || null,
-        notes: formData.notes || null,
-        next_due_date: formData.next_due_date || null,
-      });
+    mutationFn: async (record) => {
+      const { error } = await supabase.from('health_records').insert(record);
       if (error) throw error;
     },
-    onSuccess: async () => {
+    onMutate: async (newRecord) => {
+      await queryClient.cancelQueries({ queryKey: ['health-records', childId] });
+      const previous = queryClient.getQueryData(['health-records', childId]);
+      queryClient.setQueryData(['health-records', childId], (old) => [
+        { ...newRecord, id: `temp-${Date.now()}`, optimistic: true },
+        ...(old || []),
+      ]);
+      return { previous };
+    },
+    onError: (_err, _record, context) => {
+      queryClient.setQueryData(['health-records', childId], context?.previous);
+    },
+    onSuccess: async (_data, _record) => {
       queryClient.invalidateQueries({ queryKey: ['health-records'] });
       const saved = { ...formData };
       setShowForm(false);
@@ -94,6 +96,9 @@ export default function HealthRecordsPage() {
           // Silently skip
         }
       }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['health-records', childId] });
     },
   });
 
@@ -158,9 +163,11 @@ export default function HealthRecordsPage() {
 
       {filtered.length === 0 ? (
         <EmptyState
-          title={t('health.noRecords')}
-          description={t('health.keepTrack')}
-          actionLabel={t('health.addRecord')}
+          title={child?.name ? `${child.name}'s health record` : 'Health records'}
+          description={child?.name
+            ? `Everything in one place — vaccines, checkups, illnesses. Start with the first vaccine ${child.name} received.`
+            : 'Everything in one place — vaccines, checkups, illnesses. Start with the first entry.'}
+          actionLabel="Add first record"
           onAction={() => setShowForm(true)}
           icon={<HealthIcon className="w-8 h-8" />}
         />
@@ -257,7 +264,17 @@ export default function HealthRecordsPage() {
             onChange={(e) => setFormData({ ...formData, next_due_date: e.target.value })}
           />
           <Button
-            onClick={() => addMutation.mutate()}
+            onClick={() => addMutation.mutate({
+              child_id: childId,
+              user_id: user.id,
+              record_date: formData.record_date,
+              record_type: formData.record_type,
+              title: formData.title,
+              doctor_name: formData.doctor_name || null,
+              clinic_name: formData.clinic_name || null,
+              notes: formData.notes || null,
+              next_due_date: formData.next_due_date || null,
+            })}
             loading={addMutation.isPending}
             disabled={!formData.title.trim()}
             className="w-full"

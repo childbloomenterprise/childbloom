@@ -35,8 +35,8 @@ export default function UpdateHistoryPage() {
   if (!updates?.length) {
     return (
       <EmptyState
-        title={`No check-ins yet for ${name}`}
-        description="Start your first weekly check-in — it only takes a few minutes."
+        title={`${name}'s first check-in is waiting`}
+        description={`Three minutes. Mood, sleep, milestones, feeding. Dr. Bloom will have something personal to say about ${name} at the end.`}
         actionLabel={`Start ${name}'s first check-in`}
         onAction={() => navigate(`/child/${childId}/weekly-update`)}
         icon={<ClipboardIcon className="w-8 h-8" />}

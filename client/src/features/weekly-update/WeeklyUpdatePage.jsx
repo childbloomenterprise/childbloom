@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import { useChildById } from '../../hooks/useChild';
 import useAuthStore from '../../stores/authStore';
+
 import api from '../../lib/api';
 import { formatAgeInDays } from '../../lib/formatters';
 import Stepper from '../../components/ui/Stepper';
@@ -23,6 +24,7 @@ export default function WeeklyUpdatePage() {
   const navigate = useNavigate();
   const { data: child } = useChildById(childId);
   const user = useAuthStore((s) => s.user);
+  const profile = useAuthStore((s) => s.profile);
   const queryClient = useQueryClient();
   const [step, setStep] = useState(0);
   const [aiInsight, setAiInsight] = useState('');
@@ -109,6 +111,7 @@ export default function WeeklyUpdatePage() {
     mutationFn: async () => {
       const response = await api.post('/api/ai/weekly-insight', {
         child_name: child?.name,
+        parent_name: profile?.full_name?.split(' ')[0] || '',
         age_in_days: child ? formatAgeInDays(child.date_of_birth) : 0,
         height_cm: formData.height_cm,
         weight_kg: formData.weight_kg,
@@ -170,6 +173,7 @@ export default function WeeklyUpdatePage() {
             insight={aiInsight}
             loading={insightMutation.isPending}
             childName={child?.name}
+            parentName={profile?.full_name?.split(' ')[0]}
             onRetry={generateInsight}
             voiceLang={voiceLang}
           />

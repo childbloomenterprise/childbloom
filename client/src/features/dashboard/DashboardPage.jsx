@@ -1,5 +1,6 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import { useSelectedChild } from '../../hooks/useChild';
@@ -11,15 +12,107 @@ import { SkeletonCard } from '../../components/ui/Skeleton';
 import ChildSwitcher from '../../components/shared/ChildSwitcher';
 import AgeDisplay from '../../components/shared/AgeDisplay';
 import EmptyState from '../../components/shared/EmptyState';
-import { formatAge, formatWeight, formatHeight, formatDate, formatPregnancyWeek } from '../../lib/formatters';
+import { formatAge, formatWeight, formatHeight, formatDate, formatPregnancyWeek, formatAgeInDays } from '../../lib/formatters';
 import { ClipboardIcon, GrowthIcon, FoodIcon, BookIcon, ChatIcon, HealthIcon, ChevronRightIcon, BabyIcon } from '../../assets/icons';
 import { differenceInDays } from 'date-fns';
+
+const CHECKIN_KEY = 'childbloom_parent_checkin_date';
+
+const MOOD_OPTIONS = [
+  { emoji: '😴', label: 'Tired',   value: 'tired' },
+  { emoji: '😊', label: 'Good',    value: 'good' },
+  { emoji: '😰', label: 'Anxious', value: 'anxious' },
+  { emoji: '💪', label: 'Strong',  value: 'strong' },
+];
+
+function getAgeContext(ageInDays, childName) {
+  const name = childName || 'your little one';
+  if (ageInDays <= 30)   return `${name}'s brain is growing faster right now than it ever will again`;
+  if (ageInDays <= 90)   return 'This is the golden window for bonding';
+  if (ageInDays <= 180)  return `Every smile right now is building trust that lasts a lifetime`;
+  if (ageInDays <= 365)  return `Every word ${name} hears becomes a building block for language`;
+  if (ageInDays <= 730)  return 'Toddlerhood — the most curious year of human life';
+  if (ageInDays <= 1460) return 'These are the years that shape who they become';
+  return 'You have been showing up every single day. That is everything.';
+}
+
+function getNudgeCard(child, latestUpdate, latestGrowth, healthRecords) {
+  const name = child.name;
+  const ageInDays = child.date_of_birth ? differenceInDays(new Date(), new Date(child.date_of_birth)) : 0;
+
+  // Priority 1 — upcoming vaccine
+  if (healthRecords?.length) {
+    const upcoming = healthRecords.find(r => {
+      if (!r.next_due_date || r.record_type !== 'vaccination') return false;
+      const daysUntil = differenceInDays(new Date(r.next_due_date), new Date());
+      return daysUntil >= 0 && daysUntil <= 7;
+    });
+    if (upcoming) {
+      const daysUntil = differenceInDays(new Date(upcoming.next_due_date), new Date());
+      return {
+        text: `💉 ${name}'s ${upcoming.title} is ${daysUntil === 0 ? 'today' : `in ${daysUntil} day${daysUntil !== 1 ? 's' : ''}`}. Tap to see what to expect.`,
+        path: `/child/${child.id}/health`,
+      };
+    }
+  }
+
+  // Priority 2 — no growth logged in 14+ days
+  if (latestGrowth) {
+    const daysSince = differenceInDays(new Date(), new Date(latestGrowth.record_date));
+    if (daysSince >= 14) {
+      return {
+        text: `📏 ${name} hasn't been measured in ${daysSince} days. Even one measurement tells a story.`,
+        path: `/child/${child.id}/growth`,
+      };
+    }
+  } else if (ageInDays > 14) {
+    return {
+      text: `📏 ${name} hasn't been measured yet. Even one measurement tells a story.`,
+      path: `/child/${child.id}/growth`,
+    };
+  }
+
+  // Priority 3 — no food log today
+  const todayStr = new Date().toISOString().split('T')[0];
+  // we only nudge if child is 6+ months (solids age)
+  if (ageInDays > 180) {
+    return {
+      text: `🥗 What did ${name} eat today? One log creates a pattern over time.`,
+      path: `/child/${child.id}/food`,
+    };
+  }
+
+  // Priority 4 — weekly update not done this week
+  if (!latestUpdate) {
+    return {
+      text: `📋 ${name}'s first check-in is waiting. It takes 3 minutes and Dr. Bloom will have something personal to say afterwards.`,
+      path: `/child/${child.id}/weekly-update`,
+    };
+  }
+  const daysSinceUpdate = differenceInDays(new Date(), new Date(latestUpdate.created_at));
+  if (daysSinceUpdate >= 7) {
+    return {
+      text: `📋 This week's check-in is waiting. It takes 3 minutes and Dr. Bloom will have something to say about ${name} afterwards.`,
+      path: `/child/${child.id}/weekly-update`,
+    };
+  }
+
+  return null;
+}
 
 export default function DashboardPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const child = useSelectedChild();
   const profile = useAuthStore((s) => s.profile);
+  const user = useAuthStore((s) => s.user);
+  const queryClient = useQueryClient();
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  const lastCheckin = localStorage.getItem(CHECKIN_KEY);
+  const [showCheckin, setShowCheckin] = useState(lastCheckin !== todayStr);
+  const [checkinDone, setCheckinDone] = useState(false);
+  const [checkinConfirm, setCheckinConfirm] = useState('');
 
   const { data: latestUpdate, isLoading: updateLoading } = useQuery({
     queryKey: ['latest-update', child?.id],
@@ -51,6 +144,51 @@ export default function DashboardPage() {
     enabled: !!child?.id,
   });
 
+  const { data: healthRecords } = useQuery({
+    queryKey: ['health-records-nudge', child?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('health_records')
+        .select('id, title, record_type, next_due_date')
+        .eq('child_id', child.id)
+        .eq('record_type', 'vaccination')
+        .not('next_due_date', 'is', null);
+      return data || [];
+    },
+    enabled: !!child?.id,
+  });
+
+  const checkinMutation = useMutation({
+    mutationFn: async (mood) => {
+      if (!user || !child) return;
+      // Store in weekly_updates if one exists for today, otherwise just localStorage
+      const { data: todayUpdate } = await supabase
+        .from('weekly_updates')
+        .select('id')
+        .eq('child_id', child.id)
+        .eq('week_date', todayStr)
+        .single();
+
+      if (todayUpdate) {
+        await supabase.from('weekly_updates').update({ parent_mood: mood }).eq('id', todayUpdate.id);
+      }
+    },
+  });
+
+  const handleMoodSelect = async (mood) => {
+    localStorage.setItem(CHECKIN_KEY, todayStr);
+    checkinMutation.mutate(mood);
+    const confirmMap = {
+      tired: 'Rest when you can. Dr. Bloom knows.',
+      good: 'That energy comes through. Dr. Bloom knows.',
+      anxious: 'One thing at a time. Dr. Bloom knows.',
+      strong: 'That strength shows. Dr. Bloom knows.',
+    };
+    setCheckinConfirm(confirmMap[mood] || 'Thank you for checking in. Dr. Bloom knows.');
+    setCheckinDone(true);
+    setTimeout(() => setShowCheckin(false), 2200);
+  };
+
   if (!child) {
     return (
       <EmptyState
@@ -76,6 +214,11 @@ export default function DashboardPage() {
     return <PregnancyDashboard child={child} profile={profile} navigate={navigate} quickLinks={quickLinks} t={t} />;
   }
 
+  const ageInDays = child.date_of_birth ? differenceInDays(new Date(), new Date(child.date_of_birth)) : 0;
+  const ageContext = getAgeContext(ageInDays, child.name);
+  const nudge = getNudgeCard(child, latestUpdate, latestGrowth, healthRecords);
+  const parentName = profile?.full_name?.split(' ')[0] || 'you';
+
   return (
     <div className="space-y-6 stagger-children">
       <ChildSwitcher />
@@ -87,6 +230,8 @@ export default function DashboardPage() {
           <div className="min-w-0 flex-1">
             <h1 className="text-h1 font-serif text-forest-700 truncate">{child.name}</h1>
             <AgeDisplay child={child} />
+            {/* Contextual age headline */}
+            <p className="text-sm italic font-serif text-forest-600/80 mt-2 leading-snug">{ageContext}</p>
             {latestUpdate && (
               <p className="text-micro text-gray-400 mt-3 flex items-center gap-2 uppercase tracking-wider">
                 <span className="w-1.5 h-1.5 bg-forest-400 rounded-full flex-shrink-0" />
@@ -119,6 +264,36 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {/* Parent emotional check-in — once per day */}
+      {showCheckin && (
+        <Card className="p-4 sm:p-5 rounded-2xl border-cream-300">
+          {!checkinDone ? (
+            <>
+              <p className="text-caption font-semibold text-forest-700">
+                How are you feeling today{profile?.full_name ? `, ${parentName}` : ''}?
+              </p>
+              <p className="text-xs text-gray-400 mt-0.5 mb-4">You matter too. This takes 2 seconds.</p>
+              <div className="flex gap-2.5 justify-between">
+                {MOOD_OPTIONS.map((m) => (
+                  <button
+                    key={m.value}
+                    onClick={() => handleMoodSelect(m.value)}
+                    className="flex-1 flex flex-col items-center gap-1 py-2.5 rounded-xl border-2 border-cream-200 hover:border-forest-300 hover:bg-forest-50/50 transition-all duration-200 active:scale-95"
+                  >
+                    <span className="text-2xl">{m.emoji}</span>
+                    <span className="text-micro text-gray-500">{m.label}</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-1 animate-fade-in">
+              <p className="font-serif text-sm text-forest-700 italic">{checkinConfirm}</p>
+            </div>
+          )}
+        </Card>
+      )}
+
       {/* Dr. Bloom AI Insight */}
       {latestUpdate?.ai_insight && (
         <Card accent="green" className="p-5 sm:p-6 bg-forest-50/40">
@@ -148,6 +323,18 @@ export default function DashboardPage() {
         <ClipboardIcon className="w-5 h-5 mr-2" />
         {child.name ? t('dashboard.logThisWeek', { name: child.name }) : t('dashboard.logThisWeekGeneric')}
       </Button>
+
+      {/* Contextual nudge card */}
+      {nudge && (
+        <button
+          onClick={() => navigate(nudge.path)}
+          className="w-full text-left"
+        >
+          <div className="bg-cream-50 border-l-[3px] border-forest-700 rounded-r-xl px-4 py-3.5">
+            <p className="text-sm text-gray-700 leading-snug">{nudge.text}</p>
+          </div>
+        </button>
+      )}
 
       {/* Quick Links */}
       <div>
@@ -191,6 +378,9 @@ function PregnancyDashboard({ child, profile, navigate, quickLinks, t }) {
           <h1 className="text-h1 font-serif text-forest-700">Week {pregnancy.weeks}</h1>
           <p className="text-body text-gray-500 mt-1">
             {daysUntilDue > 0 ? t('dashboard.daysUntilDue', { days: daysUntilDue }) : t('dashboard.dueDatePassed')}
+          </p>
+          <p className="text-sm italic font-serif text-forest-600/80 mt-2">
+            These are the weeks you will never forget.
           </p>
 
           {/* Progress Bar */}
