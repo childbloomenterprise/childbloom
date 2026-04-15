@@ -85,6 +85,7 @@ export default function AskAiPage() {
         body: JSON.stringify({
           question: q,
           child_name: child?.name,
+          child_id: child?.id,
           age_in_days: child?.date_of_birth ? formatAgeInDays(child.date_of_birth) : null,
           gender: child?.gender,
           language: voiceLang,
@@ -268,6 +269,9 @@ export default function AskAiPage() {
             <SendIcon className="w-5 h-5" />
           </Button>
         </div>
+        <p className="text-center text-xs text-gray-400 mt-2">
+          Dr. Bloom is AI and can make mistakes. Always consult your pediatrician.
+        </p>
       </div>
     </div>
   );
