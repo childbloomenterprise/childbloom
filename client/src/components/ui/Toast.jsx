@@ -7,18 +7,18 @@ export default function ToastContainer() {
 
   return (
     <div className="fixed bottom-20 lg:bottom-6 right-4 z-50 space-y-2">
-      {toasts.map((toast) => (
-        <ToastItem key={toast.id} toast={toast} onDismiss={() => removeToast(toast.id)} />
-      ))}
+      {toasts.map((toast) =>
+        toast.type === 'drBloom' ? (
+          <DrBloomToast key={toast.id} toast={toast} onDismiss={() => removeToast(toast.id)} />
+        ) : (
+          <ToastItem key={toast.id} toast={toast} onDismiss={() => removeToast(toast.id)} />
+        )
+      )}
     </div>
   );
 }
 
 function ToastItem({ toast, onDismiss }) {
-  if (toast.type === 'drBloom') {
-    return <DrBloomToast toast={toast} onDismiss={onDismiss} />;
-  }
-
   useEffect(() => {
     const timer = setTimeout(onDismiss, toast.duration || 4000);
     return () => clearTimeout(timer);
