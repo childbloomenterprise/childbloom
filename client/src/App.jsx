@@ -1,5 +1,5 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
-import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { lazy, Suspense, useState } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import AuthLayout from './components/layout/AuthLayout';
 import AppLayout from './components/layout/AppLayout';
@@ -8,17 +8,12 @@ import Skeleton from './components/ui/Skeleton';
 import Toast from './components/ui/Toast';
 import InstallPrompt from './components/InstallPrompt';
 import SplashScreen from './components/ui/SplashScreen';
-import useAuthStore from './stores/authStore';
-
 // ── Auth pages: eager (critical first-load paths) ──
 import AuthPage from './features/auth/AuthPage';
 import AuthCallback from './features/auth/AuthCallback';
 import OnboardingPage from './features/onboarding/OnboardingPage';
 import LoginPage from './features/auth/LoginPage';
 import SignupPage from './features/auth/SignupPage';
-
-// ── Landing page: lazy-loaded ──
-const LandingPage = lazy(() => import('./features/landing/LandingPage'));
 
 // ── App pages: lazy-loaded (only fetched when needed) ──
 const DashboardPage     = lazy(() => import('./features/dashboard/DashboardPage'));
@@ -45,21 +40,6 @@ function PageFallback() {
   );
 }
 
-// Shows landing page for guests; redirects logged-in users to /dashboard
-function AuthGate({ children }) {
-  const { session, isLoading } = useAuthStore();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!isLoading && session) {
-      navigate('/dashboard', { replace: true });
-    }
-  }, [session, isLoading, navigate]);
-
-  if (isLoading) return <PageFallback />;
-  if (session) return null;
-  return children;
-}
 
 export default function App() {
   useAuth();
@@ -70,8 +50,8 @@ export default function App() {
       {!splashDone && <SplashScreen onDone={() => setSplashDone(true)} />}
       <Suspense fallback={<PageFallback />}>
         <Routes>
-          {/* ── Landing page (public, guests only) ─────── */}
-          <Route path="/" element={<AuthGate><LandingPage /></AuthGate>} />
+          {/* ── Root → dashboard (demo for guests, real for logged-in) ── */}
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
           {/* ── New combined auth page ─────────────────── */}
           <Route path="/auth" element={<AuthPage />} />
@@ -84,10 +64,14 @@ export default function App() {
             <Route path="/signup" element={<Navigate to="/auth" replace />} />
           </Route>
 
+          {/* ── Dashboard — visible without login (demo mode) ── */}
+          <Route element={<AppLayout />}>
+            <Route path="/dashboard" element={<DashboardPage />} />
+          </Route>
+
           {/* ── Protected app routes ───────────────────── */}
           <Route element={<ProtectedRoute />}>
             <Route element={<AppLayout />}>
-              <Route path="/dashboard"                    element={<DashboardPage />} />
               <Route path="/child/:id/weekly-update"      element={<WeeklyUpdatePage />} />
               <Route path="/child/:id/updates"            element={<UpdateHistoryPage />} />
               <Route path="/child/:id/growth"             element={<GrowthPage />} />
@@ -104,7 +88,7 @@ export default function App() {
           <Route path="/privacy" element={<PrivacyPage />} />
 
           {/* ── Fallback ───────────────────────────────── */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </Suspense>
       <Toast />

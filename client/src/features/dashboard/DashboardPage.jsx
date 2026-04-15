@@ -100,10 +100,20 @@ function getNudgeCard(child, latestUpdate, latestGrowth, healthRecords) {
   return null;
 }
 
+const DEMO_CHILD = {
+  id: 'demo',
+  name: 'Baby',
+  date_of_birth: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+  gender: 'male',
+  is_pregnant: false,
+};
+
 export default function DashboardPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const child = useSelectedChild();
+  const session = useAuthStore((s) => s.session);
+  const realChild = useSelectedChild();
+  const child = session ? realChild : DEMO_CHILD;
   const profile = useAuthStore((s) => s.profile);
   const user = useAuthStore((s) => s.user);
   const queryClient = useQueryClient();
@@ -113,8 +123,15 @@ export default function DashboardPage() {
   const [showCheckin, setShowCheckin] = useState(lastCheckin !== todayStr);
   const [checkinDone, setCheckinDone] = useState(false);
   const [checkinConfirm, setCheckinConfirm] = useState('');
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
-  const { data: latestUpdate, isLoading: updateLoading } = useQuery({
+  // Require login before any navigation action
+  const go = (path) => {
+    if (!session) { setShowAuthModal(true); return; }
+    navigate(path);
+  };
+
+  const { data: latestUpdate } = useQuery({
     queryKey: ['latest-update', child?.id],
     queryFn: async () => {
       const { data } = await supabase
@@ -126,7 +143,7 @@ export default function DashboardPage() {
         .single();
       return data;
     },
-    enabled: !!child?.id,
+    enabled: !!child?.id && !!session,
   });
 
   const { data: latestGrowth } = useQuery({
@@ -141,7 +158,7 @@ export default function DashboardPage() {
         .single();
       return data;
     },
-    enabled: !!child?.id,
+    enabled: !!child?.id && !!session,
   });
 
   const { data: healthRecords } = useQuery({
@@ -155,13 +172,12 @@ export default function DashboardPage() {
         .not('next_due_date', 'is', null);
       return data || [];
     },
-    enabled: !!child?.id,
+    enabled: !!child?.id && !!session,
   });
 
   const checkinMutation = useMutation({
     mutationFn: async (mood) => {
       if (!user || !child) return;
-      // Store in weekly_updates if one exists for today, otherwise just localStorage
       const { data: todayUpdate } = await supabase
         .from('weekly_updates')
         .select('id')
@@ -176,6 +192,7 @@ export default function DashboardPage() {
   });
 
   const handleMoodSelect = async (mood) => {
+    if (!session) { setShowAuthModal(true); return; }
     localStorage.setItem(CHECKIN_KEY, todayStr);
     checkinMutation.mutate(mood);
     const confirmMap = {
@@ -189,7 +206,7 @@ export default function DashboardPage() {
     setTimeout(() => setShowCheckin(false), 2200);
   };
 
-  if (!child) {
+  if (session && !child) {
     return (
       <EmptyState
         title={t('dashboard.noChildren')}
@@ -305,7 +322,7 @@ export default function DashboardPage() {
           </p>
           <p className="text-body text-gray-600 leading-relaxed">{latestUpdate.ai_insight}</p>
           <button
-            onClick={() => navigate('/ask')}
+            onClick={() => go('/ask')}
             className="mt-3 text-micro text-forest-600 font-semibold hover:text-forest-700 flex items-center gap-1"
           >
             Ask Dr. Bloom anything
@@ -316,7 +333,7 @@ export default function DashboardPage() {
 
       {/* Primary CTA */}
       <Button
-        onClick={() => navigate(`/child/${child.id}/weekly-update`)}
+        onClick={() => go(`/child/${child.id}/weekly-update`)}
         className="w-full"
         size="lg"
       >
@@ -327,7 +344,7 @@ export default function DashboardPage() {
       {/* Contextual nudge card */}
       {nudge && (
         <button
-          onClick={() => navigate(nudge.path)}
+          onClick={() => go(nudge.path)}
           className="w-full text-left"
         >
           <div className="bg-cream-50 border-l-[3px] border-forest-700 rounded-r-xl px-4 py-3.5">
@@ -347,7 +364,7 @@ export default function DashboardPage() {
               key={link.to}
               hover
               className="p-3.5 sm:p-4 group"
-              onClick={() => navigate(link.to)}
+              onClick={() => go(link.to)}
             >
               <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center mb-2.5 ${link.bg} group-hover:scale-105 transition-transform duration-250`}>
                 <link.icon className={`w-5 h-5 ${link.iconColor}`} />
@@ -357,6 +374,37 @@ export default function DashboardPage() {
           ))}
         </div>
       </div>
+
+      {/* Auth gate modal for guests */}
+      {showAuthModal && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowAuthModal(false)}
+          />
+          <div className="relative bg-white rounded-t-3xl sm:rounded-3xl p-7 sm:p-8 w-full sm:max-w-sm shadow-2xl animate-fade-in-up">
+            {/* Dr. Bloom icon */}
+            <div className="w-14 h-14 bg-forest-700 rounded-2xl flex items-center justify-center mx-auto mb-5">
+              <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <h2 className="font-serif text-2xl text-forest-700 text-center mb-2">Join ChildBloom</h2>
+            <p className="text-sm text-gray-500 text-center leading-relaxed mb-7">
+              Track your baby's growth, milestones, and get personalised guidance from Dr. Bloom — free.
+            </p>
+            <Button className="w-full mb-3" size="lg" onClick={() => navigate('/auth')}>
+              Create free account
+            </Button>
+            <button
+              className="w-full text-sm text-center text-gray-400 hover:text-forest-700 transition-colors py-1"
+              onClick={() => navigate('/auth')}
+            >
+              Already have an account? <span className="font-semibold text-forest-600">Sign in</span>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
