@@ -377,12 +377,12 @@ export default function DashboardPage() {
 
       {/* Auth gate modal for guests */}
       {showAuthModal && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-5">
           <div
             className="absolute inset-0 bg-black/50 backdrop-blur-sm"
             onClick={() => setShowAuthModal(false)}
           />
-          <div className="relative bg-white rounded-t-3xl sm:rounded-3xl p-7 sm:p-8 w-full sm:max-w-sm shadow-2xl animate-fade-in-up">
+          <div className="relative bg-white rounded-3xl p-7 w-full max-w-sm shadow-2xl animate-fade-in-up">
             {/* Dr. Bloom icon */}
             <div className="w-14 h-14 bg-forest-700 rounded-2xl flex items-center justify-center mx-auto mb-5">
               <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
