@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import { useChildById } from '../../hooks/useChild';
 import useAuthStore from '../../stores/authStore';
+import useUiStore from '../../stores/uiStore';
 import api from '../../lib/api';
 import { formatAgeInDays } from '../../lib/formatters';
 import Card from '../../components/ui/Card';
@@ -23,9 +24,10 @@ export default function FoodTrackerPage() {
   const { id: childId } = useParams();
   const { data: child } = useChildById(childId);
   const user = useAuthStore((s) => s.user);
+  const navigate = useNavigate();
+  const addToast = useUiStore((s) => s.addToast);
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
-  const [reactionAdvisory, setReactionAdvisory] = useState(null);
   const [formData, setFormData] = useState({
     log_date: new Date().toISOString().split('T')[0],
     meal_type: 'solid',
@@ -71,17 +73,26 @@ export default function FoodTrackerPage() {
       setShowForm(false);
       setFormData({ log_date: new Date().toISOString().split('T')[0], meal_type: 'solid', food_name: '', quantity: '', notes: '', reaction: '' });
 
-      // If a reaction was noted, ask Dr. Bloom
+      // If a reaction was noted, ask Dr. Bloom and surface as toast
       if (saved.reaction?.trim() && child) {
         try {
+          const ageMonths = child.date_of_birth ? Math.floor(formatAgeInDays(child.date_of_birth) / 30) : null;
           const response = await api.post('/api/ai/ask', {
-            question: `${child.name} had a reaction after eating ${saved.food_name}: "${saved.reaction}". In 1-2 warm sentences, what should I watch for or do?`,
+            question: `${child.name} (${ageMonths ? `${ageMonths} months old` : 'infant'}) had this reaction after eating ${saved.food_name}: "${saved.reaction}". In 35 words or fewer: one calm reassurance, one age-appropriate Indian alternative food to try, and one brief sentence on when to see a doctor.`,
             child_name: child.name,
             age_in_days: child.date_of_birth ? formatAgeInDays(child.date_of_birth) : null,
             gender: child.gender,
             language: localStorage.getItem('childbloom_voice_lang') || 'en',
           });
-          setReactionAdvisory({ food: saved.food_name, reaction: saved.reaction, advice: response.answer });
+          if (response.answer) {
+            addToast({
+              type: 'drBloom',
+              message: response.answer,
+              duration: 12000,
+              onLink: () => navigate('/ask'),
+              linkLabel: 'Ask Dr. Bloom more →',
+            });
+          }
         } catch {
           // Silently skip
         }
@@ -134,24 +145,6 @@ export default function FoodTrackerPage() {
           <span className="sm:hidden">{t('common.add')}</span>
         </Button>
       </div>
-
-      {/* Dr. Bloom reaction advisory */}
-      {reactionAdvisory && (
-        <Card accent="green" className="p-4 bg-forest-50/50">
-          <div className="flex gap-3">
-            <div className="w-8 h-8 bg-forest-700 rounded-xl flex items-center justify-center flex-shrink-0">
-              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-            </div>
-            <div className="flex-1">
-              <p className="text-micro font-bold text-forest-600 uppercase tracking-wider mb-1">Dr. Bloom on that reaction</p>
-              <p className="text-sm text-gray-700 leading-relaxed">{reactionAdvisory.advice}</p>
-            </div>
-            <button onClick={() => setReactionAdvisory(null)} className="text-gray-300 hover:text-gray-500 text-lg leading-none self-start">×</button>
-          </div>
-        </Card>
-      )}
 
       {Object.keys(grouped).length === 0 ? (
         <EmptyState

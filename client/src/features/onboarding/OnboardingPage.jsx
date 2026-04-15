@@ -6,7 +6,7 @@ import useAuthStore from '../../stores/authStore';
 import { LogoMark } from '../../components/ui/LogoMark';
 
 // ── Constants ─────────────────────────────────────────────────────
-const TOTAL_STEPS = 8;
+const TOTAL_SCREENS = 3;
 
 const MONTHS = [
   'January','February','March','April','May','June',
@@ -34,23 +34,21 @@ function DrBloomAvatar() {
 function Question({ text }) {
   return (
     <h2 style={{ fontFamily: 'Fraunces, Georgia, serif', fontSize: '22px', color: 'white',
-                 lineHeight: 1.3, fontWeight: 600, marginBottom: '28px' }}>
+                 lineHeight: 1.3, fontWeight: 600, marginBottom: '24px' }}>
       {text}
     </h2>
   );
 }
 
-// Dark frosted glass card
-function DarkCard({ children, selected, onClick, style = {} }) {
+function DarkCard({ children, selected, onClick }) {
   return (
     <button
       onClick={onClick}
       className="w-full text-left rounded-2xl flex items-center gap-4 transition-all duration-200 active:scale-[0.97]"
       style={{
-        padding: '18px 20px',
+        padding: '16px 18px',
         background: selected ? 'rgba(29,158,117,0.15)' : 'rgba(255,255,255,0.06)',
         border: selected ? '2px solid #1D9E75' : '1px solid rgba(255,255,255,0.10)',
-        ...style,
       }}
     >
       {children}
@@ -66,8 +64,7 @@ function DarkCard({ children, selected, onClick, style = {} }) {
   );
 }
 
-// Dark select
-function DarkSelect({ value, onChange, children, style = {} }) {
+function DarkSelect({ value, onChange, children }) {
   return (
     <select
       value={value}
@@ -83,7 +80,6 @@ function DarkSelect({ value, onChange, children, style = {} }) {
         outline: 'none',
         appearance: 'none',
         WebkitAppearance: 'none',
-        ...style,
       }}
     >
       {children}
@@ -91,12 +87,36 @@ function DarkSelect({ value, onChange, children, style = {} }) {
   );
 }
 
-// ── Utility: calculate age display ────────────────────────────────
+function DarkInput({ value, onChange, placeholder, type = 'text', ...rest }) {
+  return (
+    <input
+      type={type}
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      placeholder={placeholder}
+      autoCapitalize="words"
+      style={{
+        width: '100%',
+        padding: '16px',
+        borderRadius: '12px',
+        border: '1px solid rgba(255,255,255,0.12)',
+        background: 'rgba(255,255,255,0.07)',
+        color: 'white',
+        fontSize: '22px',
+        fontWeight: 600,
+        outline: 'none',
+        textAlign: 'center',
+        colorScheme: 'dark',
+      }}
+      {...rest}
+    />
+  );
+}
+
 function calcAge(dob) {
   if (!dob) return null;
-  const diff = Date.now() - new Date(dob).getTime();
-  const days  = Math.floor(diff / 86400000);
-  const weeks = Math.floor(days / 7);
+  const days   = Math.floor((Date.now() - new Date(dob).getTime()) / 86400000);
+  const weeks  = Math.floor(days / 7);
   const months = Math.floor(days / 30);
   if (days < 1)    return 'Today!';
   if (days < 21)   return `${days} days old`;
@@ -120,75 +140,69 @@ function calcPregnancyWeek(month, year) {
 
 // ── Main component ────────────────────────────────────────────────
 export default function OnboardingPage() {
-  const navigate = useNavigate();
-  const user = useAuthStore(s => s.user);
+  const navigate  = useNavigate();
+  const user      = useAuthStore(s => s.user);
 
-  const [step, setStep]           = useState(0);
-  const [direction, setDirection] = useState('forward');
-  const [stepKey, setStepKey]     = useState(0);
+  const [screen, setScreen] = useState(0);
+  const [screenKey, setScreenKey] = useState(0);
 
   const [formData, setFormData] = useState({
-    isPregnant:  null,   // true | false
+    isPregnant:  null,
     dueMonth:    '',
     dueYear:     '',
     dateOfBirth: '',
     babyName:    '',
-    gender:      '',     // 'male' | 'female' | 'other'
     parentName:  '',
     language:    'en',
   });
 
-  // Step 8 (index 7) state
+  // Welcome screen state
   const [welcomeMessage, setWelcomeMessage] = useState('');
   const [welcomeDone, setWelcomeDone]       = useState(false);
   const [saveError, setSaveError]           = useState('');
 
-  // Pre-fill parent name from Google metadata
+  // Pre-fill parent name from auth metadata
   useEffect(() => {
     if (user?.user_metadata?.full_name && !formData.parentName) {
       setFormData(d => ({ ...d, parentName: user.user_metadata.full_name }));
     }
   }, [user]);
 
-  // Trigger save + welcome when entering step 7
+  // Trigger save when screen 2 (welcome) appears
   useEffect(() => {
-    if (step === 7) handleStep8();
-  }, [step]);
+    if (screen === 2) handleSaveAndWelcome();
+  }, [screen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const update = (field, value) => setFormData(d => ({ ...d, [field]: value }));
 
-  // ── Navigation ────────────────────────────────────
+  // ── Validation per screen ─────────────────────────
   const canProceed = () => {
-    switch (step) {
-      case 0: return true;
-      case 1: return formData.isPregnant !== null;
-      case 2: return formData.isPregnant
-        ? (formData.dueMonth && formData.dueYear)
-        : !!formData.dateOfBirth;
-      case 3: return formData.babyName.trim().length >= 2;
-      case 4: return !!formData.gender;
-      case 5: return formData.parentName.trim().length >= 2;
-      case 6: return true; // language has default
-      default: return false;
+    if (screen === 0) {
+      if (formData.isPregnant === null) return false;
+      if (!formData.babyName.trim() || formData.babyName.trim().length < 2) return false;
+      if (formData.isPregnant) return !!(formData.dueMonth && formData.dueYear);
+      return !!formData.dateOfBirth;
     }
+    if (screen === 1) {
+      return formData.parentName.trim().length >= 2;
+    }
+    return false;
   };
 
   const goNext = useCallback(() => {
-    if (!canProceed() || step >= 7) return;
-    setDirection('forward');
-    setStep(s => s + 1);
-    setStepKey(k => k + 1);
-  }, [step, formData]);
+    if (!canProceed() || screen >= 2) return;
+    setScreen(s => s + 1);
+    setScreenKey(k => k + 1);
+  }, [screen, formData]);
 
   const goBack = useCallback(() => {
-    if (step === 0) return;
-    setDirection('back');
-    setStep(s => s - 1);
-    setStepKey(k => k + 1);
-  }, [step]);
+    if (screen === 0) return;
+    setScreen(s => s - 1);
+    setScreenKey(k => k + 1);
+  }, [screen]);
 
-  // ── Step 8: save + Claude welcome ────────────────
-  const handleStep8 = async () => {
+  // ── Save profile + child, then stream welcome ─────
+  const handleSaveAndWelcome = async () => {
     setSaveError('');
     setWelcomeMessage('');
     setWelcomeDone(false);
@@ -197,14 +211,12 @@ export default function OnboardingPage() {
     const userId = session?.user?.id;
     if (!userId) { setSaveError('Session expired. Please sign in again.'); return; }
 
-    // Build due date string
     let dueDate = null;
     if (formData.isPregnant && formData.dueMonth && formData.dueYear) {
       const mi = String(MONTHS.indexOf(formData.dueMonth) + 1).padStart(2, '0');
       dueDate = `${formData.dueYear}-${mi}-15`;
     }
 
-    // Save profile + child simultaneously
     try {
       const [profileRes, childRes] = await Promise.all([
         supabase.from('profiles').update({
@@ -214,23 +226,21 @@ export default function OnboardingPage() {
         }).eq('id', userId),
 
         supabase.from('children').insert({
-          user_id:      userId,
-          name:         formData.babyName || 'Baby',
-          gender:       formData.gender || null,
+          user_id:       userId,
+          name:          formData.babyName || 'Baby',
           date_of_birth: formData.isPregnant ? null : (formData.dateOfBirth || null),
-          due_date:     dueDate,
-          is_pregnant:  formData.isPregnant || false,
+          due_date:      dueDate,
+          is_pregnant:   formData.isPregnant || false,
         }),
       ]);
 
       if (profileRes.error) throw profileRes.error;
       if (childRes.error)   throw childRes.error;
 
-      // Persist language in localStorage (both keys used across the app)
       localStorage.setItem('childbloom_voice_lang', formData.language);
       localStorage.setItem('childbloom-lang', formData.language);
+      i18n.changeLanguage(formData.language);
 
-      // Update store so ProtectedRoute doesn't bounce back to /onboarding
       useAuthStore.getState().setProfile({
         ...useAuthStore.getState().profile,
         full_name:           formData.parentName,
@@ -238,32 +248,38 @@ export default function OnboardingPage() {
       });
       localStorage.setItem('cb_onboarded', 'true');
     } catch (err) {
-      console.error('Onboarding save error:', err);
       const msg = err?.message || err?.details || JSON.stringify(err) || 'Unknown error';
       setSaveError(`Save failed: ${msg}`);
       return;
     }
 
-    // Generate personalised welcome message (streaming)
+    // Stream personalised welcome from Dr. Bloom
     try {
-      await generateWelcome(session.access_token);
+      await streamWelcome(session.access_token);
     } catch {
-      // Fallback welcome
-      setWelcomeMessage(`Welcome to ChildBloom, ${formData.parentName}! I'm Dr. Bloom, and I'm delighted to join you on ${formData.babyName || 'your little one'}'s journey. Let's grow together, week by week.\n\n— Dr. Bloom`);
+      const childInfo = formData.isPregnant
+        ? `on the way`
+        : calcAge(formData.dateOfBirth) || 'here with you';
+      setWelcomeMessage(
+        `Welcome to ChildBloom, ${formData.parentName}. ${formData.babyName} is lucky to have you.\n\nI am here whenever you need me.`
+      );
       setWelcomeDone(true);
     }
   };
 
-  const generateWelcome = async (token) => {
-    const langName = LANGUAGES.find(l => l.code === formData.language)?.label || 'English';
+  const streamWelcome = async (token) => {
+    const langName  = LANGUAGES.find(l => l.code === formData.language)?.label || 'English';
     const childInfo = formData.isPregnant
       ? `expecting, due ${formData.dueMonth} ${formData.dueYear}`
-      : `born ${formData.dateOfBirth}${formData.gender ? ', ' + formData.gender : ''}`;
+      : `born ${formData.dateOfBirth}`;
+    const ageDesc = formData.isPregnant
+      ? `expecting, due ${formData.dueMonth} ${formData.dueYear}`
+      : calcAge(formData.dateOfBirth) || 'a newborn';
 
-    const question = `Write a warm, personal 3-sentence welcome message in ${langName} for a new ChildBloom parent.
-Parent: ${formData.parentName}
-Child: ${formData.babyName || 'Baby'}, ${childInfo}
-Be warm and specific to their stage. End with one practical tip for this week or pregnancy stage. Sign off exactly as "— Dr. Bloom"`;
+    const question = `Write a warm 2-sentence welcome message from Dr. Bloom to ${formData.parentName} whose child ${formData.babyName || 'Baby'} is ${ageDesc}.
+Address the parent by name. Reference the child by name.
+Tone: warm paediatrician meeting a family for the first time.
+Language: ${langName}. Never clinical. Do NOT sign off.`;
 
     const response = await fetch(`${API_BASE}/api/ai/ask`, {
       method: 'POST',
@@ -274,19 +290,16 @@ Be warm and specific to their stage. End with one practical tip for this week or
       body: JSON.stringify({
         question,
         child_name: formData.babyName || 'Baby',
-        gender: formData.gender,
       }),
     });
 
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
     const contentType = response.headers.get('content-type') || '';
-
     if (contentType.includes('text/event-stream')) {
-      const reader = response.body.getReader();
+      const reader  = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
-
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -310,280 +323,189 @@ Be warm and specific to their stage. End with one practical tip for this week or
     setWelcomeDone(true);
   };
 
-  // ── Rendered step content ─────────────────────────
-  const currentYear  = new Date().getFullYear();
-  const dueYears     = [currentYear, currentYear + 1];
-  const ageDisplay   = calcAge(formData.dateOfBirth);
-  const weekDisplay  = calcPregnancyWeek(formData.dueMonth, formData.dueYear);
+  // ── Screen renderers ──────────────────────────────
+  const currentYear = new Date().getFullYear();
+  const dueYears    = [currentYear, currentYear + 1];
+  const ageDisplay  = calcAge(formData.dateOfBirth);
+  const weekDisplay = calcPregnancyWeek(formData.dueMonth, formData.dueYear);
 
-  const renderStep = () => {
-    switch (step) {
-      // ── Step 1: Welcome ──────────────────────────
+  const renderScreen = () => {
+    switch (screen) {
+
+      // ── Screen 1: Child details ──────────────────
       case 0:
         return (
-          <div className="flex flex-col items-center justify-center text-center py-8">
-            <div className="animate-bloom-breathe mb-8">
-              <LogoMark size={80} />
-            </div>
-            <h2 className="animate-fade-in-up" style={{ fontFamily: 'Fraunces, Georgia, serif', fontSize: '26px', color: 'white', fontWeight: 700, marginBottom: '12px', animationDelay: '600ms' }}>
-              Hello! I'm Dr. Bloom.
-            </h2>
-            <p className="animate-fade-in-up" style={{ color: 'rgba(255,255,255,0.55)', fontSize: '16px', lineHeight: 1.6, maxWidth: '280px', animationDelay: '1000ms' }}>
-              I'll be your family's child development companion — from pregnancy to age 7.
-            </p>
-          </div>
-        );
-
-      // ── Step 2: Pregnant or born? ────────────────
-      case 1:
-        return (
-          <div>
+          <div className="space-y-5">
             <DrBloomAvatar />
-            <Question text="First, tell me about your little one:" />
-            <div className="space-y-3">
+            <Question text="Tell us about your child" />
+
+            {/* Pregnant / born toggle */}
+            <div className="space-y-2.5">
               <DarkCard selected={formData.isPregnant === true} onClick={() => update('isPregnant', true)}>
-                <span style={{ fontSize: '28px' }}>🤰</span>
+                <span style={{ fontSize: '26px' }}>🤰</span>
                 <div>
                   <div style={{ color: 'white', fontWeight: 600, fontSize: '15px' }}>I'm currently pregnant</div>
-                  <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: '13px', marginTop: '2px' }}>My baby is on the way</div>
+                  <div style={{ color: 'rgba(255,255,255,0.40)', fontSize: '13px', marginTop: '2px' }}>My baby is on the way</div>
                 </div>
               </DarkCard>
               <DarkCard selected={formData.isPregnant === false} onClick={() => update('isPregnant', false)}>
-                <span style={{ fontSize: '28px' }}>👶</span>
+                <span style={{ fontSize: '26px' }}>👶</span>
                 <div>
                   <div style={{ color: 'white', fontWeight: 600, fontSize: '15px' }}>My baby has been born</div>
-                  <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: '13px', marginTop: '2px' }}>We're already home</div>
+                  <div style={{ color: 'rgba(255,255,255,0.40)', fontSize: '13px', marginTop: '2px' }}>We're already home</div>
                 </div>
               </DarkCard>
             </div>
-          </div>
-        );
 
-      // ── Step 3A: Due date ────────────────────────
-      // ── Step 3B: Date of birth ───────────────────
-      case 2:
-        return formData.isPregnant ? (
-          <div>
-            <DrBloomAvatar />
-            <Question text="Congratulations! When is your baby due?" />
-            <div className="flex gap-3">
-              <DarkSelect value={formData.dueMonth} onChange={v => update('dueMonth', v)}>
-                <option value="" style={{ background: '#1A1A1A' }}>Month</option>
-                {MONTHS.map(m => (
-                  <option key={m} value={m} style={{ background: '#1A1A1A' }}>{m}</option>
-                ))}
-              </DarkSelect>
-              <DarkSelect value={formData.dueYear} onChange={v => update('dueYear', v)}>
-                <option value="" style={{ background: '#1A1A1A' }}>Year</option>
-                {dueYears.map(y => (
-                  <option key={y} value={y} style={{ background: '#1A1A1A' }}>{y}</option>
-                ))}
-              </DarkSelect>
-            </div>
-            {weekDisplay && (
-              <p className="mt-4 animate-fade-in" style={{ color: '#3DD68C', fontSize: '15px', fontWeight: 600 }}>
-                You're in week {weekDisplay} of pregnancy ✨
-              </p>
-            )}
-          </div>
-        ) : (
-          <div>
-            <DrBloomAvatar />
-            <Question text="Wonderful! When was your baby born?" />
-            <input
-              type="date"
-              value={formData.dateOfBirth}
-              max={new Date().toISOString().split('T')[0]}
-              min={new Date(Date.now() - 7 * 365 * 86400000).toISOString().split('T')[0]}
-              onChange={e => update('dateOfBirth', e.target.value)}
-              style={{
-                width: '100%',
-                padding: '16px',
-                borderRadius: '12px',
-                border: '1px solid rgba(255,255,255,0.12)',
-                background: 'rgba(255,255,255,0.07)',
-                color: 'white',
-                fontSize: '16px',
-                outline: 'none',
-                colorScheme: 'dark',
-              }}
-            />
-            {ageDisplay && (
-              <p className="mt-4 animate-fade-in" style={{ color: '#3DD68C', fontSize: '15px', fontWeight: 600 }}>
-                Your baby is {ageDisplay} 🌱
-              </p>
-            )}
-          </div>
-        );
-
-      // ── Step 4: Baby name ────────────────────────
-      case 3:
-        return (
-          <div>
-            <DrBloomAvatar />
-            <Question text="What is your baby's name?" />
-            <input
-              type="text"
-              value={formData.babyName}
-              onChange={e => update('babyName', e.target.value)}
-              placeholder="Baby's name"
-              autoFocus
-              autoCapitalize="words"
-              style={{
-                width: '100%',
-                padding: '16px',
-                borderRadius: '12px',
-                border: '1px solid rgba(255,255,255,0.12)',
-                background: 'rgba(255,255,255,0.07)',
-                color: 'white',
-                fontSize: '28px',
-                fontWeight: 600,
-                outline: 'none',
-                textAlign: 'center',
-              }}
-            />
-            <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '13px', textAlign: 'center', marginTop: '12px' }}>
-              This is how I'll always address your child ❤️
-            </p>
-          </div>
-        );
-
-      // ── Step 5: Gender ───────────────────────────
-      case 4: {
-        const babyName = formData.babyName || 'your baby';
-        const genders = [
-          { value: 'male',   label: 'Boy' },
-          { value: 'female', label: 'Girl' },
-          { value: 'other',  label: 'Prefer not to say' },
-        ];
-        return (
-          <div>
-            <DrBloomAvatar />
-            <Question text={`What is ${babyName}'s gender?`} />
-            <div className="flex gap-3 flex-wrap">
-              {genders.map(({ value, label }) => (
-                <button
-                  key={value}
-                  onClick={() => update('gender', value)}
-                  className="flex-1 rounded-xl font-semibold transition-all duration-200 active:scale-[0.96]"
-                  style={{
-                    minWidth: '80px',
-                    padding: '14px 12px',
-                    fontSize: '14px',
-                    background: formData.gender === value ? '#1D9E75' : 'rgba(255,255,255,0.07)',
-                    border: formData.gender === value ? '2px solid #1D9E75' : '1px solid rgba(255,255,255,0.12)',
-                    color: formData.gender === value ? 'white' : 'rgba(255,255,255,0.65)',
-                  }}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-        );
-      }
-
-      // ── Step 6: Parent name ──────────────────────
-      case 5:
-        return (
-          <div>
-            <DrBloomAvatar />
-            <Question text="And what should I call you?" />
-            <input
-              type="text"
-              value={formData.parentName}
-              onChange={e => update('parentName', e.target.value)}
-              placeholder="Your name"
-              autoFocus
-              autoCapitalize="words"
-              style={{
-                width: '100%',
-                padding: '16px',
-                borderRadius: '12px',
-                border: '1px solid rgba(255,255,255,0.12)',
-                background: 'rgba(255,255,255,0.07)',
-                color: 'white',
-                fontSize: '28px',
-                fontWeight: 600,
-                outline: 'none',
-                textAlign: 'center',
-              }}
-            />
-            <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '13px', textAlign: 'center', marginTop: '12px' }}>
-              So I know who I'm talking to
-            </p>
-          </div>
-        );
-
-      // ── Step 7: Language ─────────────────────────
-      case 6: {
-        const displayLangs = LANGUAGES.slice(0, 6); // all 6
-        return (
-          <div>
-            <DrBloomAvatar />
-            <Question text="Which language do you prefer?" />
-            <div className="grid grid-cols-2 gap-3">
-              {displayLangs.map(({ code, nativeLabel, label }) => (
-                <button
-                  key={code}
-                  onClick={() => {
-                    update('language', code);
-                    i18n.changeLanguage(code);
-                    localStorage.setItem('childbloom-lang', code);
-                  }}
-                  className="rounded-xl flex flex-col items-center justify-center transition-all duration-200 active:scale-[0.96]"
-                  style={{
-                    padding: '20px 16px',
-                    background: formData.language === code ? 'rgba(29,158,117,0.18)' : 'rgba(255,255,255,0.06)',
-                    border: formData.language === code ? '2px solid #1D9E75' : '1px solid rgba(255,255,255,0.10)',
-                  }}
-                >
-                  <span style={{ fontSize: '18px', fontWeight: 600, color: 'white', marginBottom: '4px' }}>
-                    {nativeLabel}
-                  </span>
-                  <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.40)' }}>{label}</span>
-                  {formData.language === code && (
-                    <div className="mt-2 w-5 h-5 rounded-full flex items-center justify-center"
-                         style={{ background: '#1D9E75' }}>
-                      <svg width="10" height="10" fill="none" stroke="white" strokeWidth="2.5" viewBox="0 0 24 24">
-                        <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    </div>
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-        );
-      }
-
-      // ── Step 8: Personalized welcome ─────────────
-      case 7:
-        return (
-          <div>
-            <DrBloomAvatar />
-            {!welcomeMessage && !saveError && (
-              <div className="flex flex-col items-center py-12 gap-5">
-                <div className="animate-bloom-breathe">
-                  <LogoMark size={56} />
-                </div>
-                <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: '15px' }}>
-                  Getting everything ready for {formData.babyName || 'your little one'}…
-                </p>
-                <div className="flex gap-1.5">
-                  <div className="w-2 h-2 rounded-full thinking-dot" style={{ background: '#1D9E75' }} />
-                  <div className="w-2 h-2 rounded-full thinking-dot" style={{ background: '#1D9E75' }} />
-                  <div className="w-2 h-2 rounded-full thinking-dot" style={{ background: '#1D9E75' }} />
-                </div>
+            {/* Baby name */}
+            {formData.isPregnant !== null && (
+              <div className="animate-fade-in-up space-y-2">
+                <label style={{ color: 'rgba(255,255,255,0.50)', fontSize: '13px', fontWeight: 500 }}>
+                  {formData.isPregnant ? "What do you call your baby?" : "What is your baby's name?"}
+                </label>
+                <DarkInput
+                  value={formData.babyName}
+                  onChange={v => update('babyName', v)}
+                  placeholder="Baby's name"
+                  autoFocus
+                />
               </div>
             )}
 
+            {/* Date */}
+            {formData.isPregnant === true && (
+              <div className="animate-fade-in-up space-y-2">
+                <label style={{ color: 'rgba(255,255,255,0.50)', fontSize: '13px', fontWeight: 500 }}>
+                  When is your baby due?
+                </label>
+                <div className="flex gap-3">
+                  <DarkSelect value={formData.dueMonth} onChange={v => update('dueMonth', v)}>
+                    <option value="" style={{ background: '#1A1A1A' }}>Month</option>
+                    {MONTHS.map(m => <option key={m} value={m} style={{ background: '#1A1A1A' }}>{m}</option>)}
+                  </DarkSelect>
+                  <DarkSelect value={formData.dueYear} onChange={v => update('dueYear', v)}>
+                    <option value="" style={{ background: '#1A1A1A' }}>Year</option>
+                    {dueYears.map(y => <option key={y} value={y} style={{ background: '#1A1A1A' }}>{y}</option>)}
+                  </DarkSelect>
+                </div>
+                {weekDisplay && (
+                  <p className="animate-fade-in" style={{ color: '#3DD68C', fontSize: '14px', fontWeight: 600 }}>
+                    You're in week {weekDisplay} ✨
+                  </p>
+                )}
+              </div>
+            )}
+
+            {formData.isPregnant === false && (
+              <div className="animate-fade-in-up space-y-2">
+                <label style={{ color: 'rgba(255,255,255,0.50)', fontSize: '13px', fontWeight: 500 }}>
+                  Date of birth
+                </label>
+                <input
+                  type="date"
+                  value={formData.dateOfBirth}
+                  max={new Date().toISOString().split('T')[0]}
+                  min={new Date(Date.now() - 7 * 365 * 86400000).toISOString().split('T')[0]}
+                  onChange={e => update('dateOfBirth', e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '14px',
+                    borderRadius: '12px',
+                    border: '1px solid rgba(255,255,255,0.12)',
+                    background: 'rgba(255,255,255,0.07)',
+                    color: 'white',
+                    fontSize: '16px',
+                    outline: 'none',
+                    colorScheme: 'dark',
+                  }}
+                />
+                {ageDisplay && (
+                  <p className="animate-fade-in" style={{ color: '#3DD68C', fontSize: '14px', fontWeight: 600 }}>
+                    {formData.babyName ? `${formData.babyName} is` : 'Your baby is'} {ageDisplay} 🌱
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        );
+
+      // ── Screen 2: About you ──────────────────────
+      case 1:
+        return (
+          <div className="space-y-6">
+            <DrBloomAvatar />
+            <Question text="About you" />
+
+            {/* Parent name */}
+            <div className="space-y-2">
+              <label style={{ color: 'rgba(255,255,255,0.50)', fontSize: '13px', fontWeight: 500 }}>
+                What should Dr. Bloom call you?
+              </label>
+              <DarkInput
+                value={formData.parentName}
+                onChange={v => update('parentName', v)}
+                placeholder="Your name"
+                autoFocus
+              />
+            </div>
+
+            {/* Language selector */}
+            <div className="space-y-3">
+              <label style={{ color: 'rgba(255,255,255,0.50)', fontSize: '13px', fontWeight: 500 }}>
+                Preferred language
+              </label>
+              <div className="grid grid-cols-2 gap-2.5">
+                {LANGUAGES.slice(0, 6).map(({ code, nativeLabel, label }) => (
+                  <button
+                    key={code}
+                    onClick={() => {
+                      update('language', code);
+                      i18n.changeLanguage(code);
+                      localStorage.setItem('childbloom-lang', code);
+                    }}
+                    className="rounded-xl flex flex-col items-center justify-center transition-all duration-200 active:scale-[0.96]"
+                    style={{
+                      padding: '16px 12px',
+                      background: formData.language === code ? 'rgba(29,158,117,0.18)' : 'rgba(255,255,255,0.06)',
+                      border: formData.language === code ? '2px solid #1D9E75' : '1px solid rgba(255,255,255,0.10)',
+                    }}
+                  >
+                    <span style={{ fontSize: '17px', fontWeight: 600, color: 'white', marginBottom: '3px' }}>
+                      {nativeLabel}
+                    </span>
+                    <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.40)' }}>{label}</span>
+                    {formData.language === code && (
+                      <div className="mt-1.5 w-4 h-4 rounded-full flex items-center justify-center"
+                           style={{ background: '#1D9E75' }}>
+                        <svg width="8" height="8" fill="none" stroke="white" strokeWidth="2.5" viewBox="0 0 24 24">
+                          <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+
+      // ── Screen 3: Welcome moment ─────────────────
+      case 2:
+        return (
+          <div className="flex flex-col items-center text-center py-4">
+            {/* Dr. Bloom avatar — large, centred */}
+            <div className="w-20 h-20 rounded-2xl flex items-center justify-center mb-6"
+                 style={{ background: 'rgba(29,158,117,0.18)', border: '1px solid rgba(29,158,117,0.30)' }}>
+              <LogoMark size={44} />
+            </div>
+
             {saveError && (
-              <div className="rounded-xl p-4 mb-5" style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', color: '#FCA5A5' }}>
+              <div className="w-full rounded-xl p-4 mb-5 text-left"
+                   style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', color: '#FCA5A5' }}>
                 <p className="text-sm mb-3">{saveError}</p>
                 <button
-                  onClick={handleStep8}
-                  className="w-full rounded-xl font-semibold flex items-center justify-center transition-all duration-200 active:scale-[0.98]"
+                  onClick={handleSaveAndWelcome}
+                  className="w-full rounded-xl font-semibold flex items-center justify-center transition-all active:scale-[0.98]"
                   style={{ height: '44px', background: 'rgba(239,68,68,0.20)', border: '1px solid rgba(239,68,68,0.35)', color: '#FCA5A5', fontSize: '14px' }}
                 >
                   Try again
@@ -591,14 +513,31 @@ Be warm and specific to their stage. End with one practical tip for this week or
               </div>
             )}
 
+            {!welcomeMessage && !saveError && (
+              <div className="flex flex-col items-center gap-4 py-6">
+                <div className="animate-bloom-breathe">
+                  <LogoMark size={40} />
+                </div>
+                <p style={{ color: 'rgba(255,255,255,0.50)', fontSize: '15px' }}>
+                  Getting everything ready for {formData.babyName || 'your little one'}…
+                </p>
+                <div className="flex gap-1.5">
+                  {[0,1,2].map(i => (
+                    <div key={i} className="w-2 h-2 rounded-full thinking-dot" style={{ background: '#1D9E75' }} />
+                  ))}
+                </div>
+              </div>
+            )}
+
             {welcomeMessage && (
-              <div className="animate-fade-in">
-                <div className="rounded-2xl p-5 mb-6"
+              <div className="animate-fade-in w-full">
+                {/* Message */}
+                <div className="rounded-2xl p-6 mb-8 text-left"
                      style={{ background: 'rgba(29,158,117,0.10)', border: '1px solid rgba(29,158,117,0.20)' }}>
-                  <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '16px', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
+                  <p style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'rgba(255,255,255,0.90)', fontSize: '17px', lineHeight: 1.75, whiteSpace: 'pre-wrap' }}>
                     {welcomeMessage}
                     {!welcomeDone && (
-                      <span className="inline-block w-0.5 h-4 ml-0.5 typewriter-cursor align-middle"
+                      <span className="inline-block w-0.5 h-5 ml-0.5 typewriter-cursor align-middle"
                             style={{ background: '#3DD68C' }} />
                     )}
                   </p>
@@ -608,10 +547,10 @@ Be warm and specific to their stage. End with one practical tip for this week or
                   <button
                     onClick={() => navigate('/dashboard', { replace: true })}
                     className="w-full rounded-2xl font-semibold text-white flex items-center justify-center gap-3 transition-all duration-200 active:scale-[0.98] animate-scale-in"
-                    style={{ height: '60px', background: '#1D9E75', fontSize: '16px',
+                    style={{ height: '58px', background: '#1D9E75', fontSize: '16px',
                              boxShadow: '0 4px 24px rgba(29,158,117,0.45)' }}
                   >
-                    Let's go to your dashboard
+                    Enter ChildBloom
                     <svg width="20" height="20" fill="none" stroke="white" strokeWidth="2.5" viewBox="0 0 24 24">
                       <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
@@ -627,17 +566,14 @@ Be warm and specific to their stage. End with one practical tip for this week or
     }
   };
 
-  const enterClass = direction === 'forward' ? 'animate-step-forward' : 'animate-step-back';
-
   return (
     <div className="min-h-screen flex flex-col relative" style={{ background: '#0A0A0A' }}>
 
-      {/* ── Top bar ───────────────────────────────── */}
-      <div className="flex items-center justify-between px-5 pt-safe-top"
+      {/* Top bar */}
+      <div className="flex items-center justify-between px-5"
            style={{ height: '60px', paddingTop: 'max(env(safe-area-inset-top, 0px), 16px)' }}>
-
         {/* Back arrow */}
-        {step > 0 && step < 7 ? (
+        {screen > 0 && screen < 2 ? (
           <button onClick={goBack} className="flex items-center justify-center w-9 h-9 transition-opacity active:opacity-60">
             <svg width="22" height="22" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="2" viewBox="0 0 24 24">
               <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round"/>
@@ -649,64 +585,49 @@ Be warm and specific to their stage. End with one practical tip for this week or
 
         {/* Progress dots */}
         <div className="flex items-center gap-2">
-          {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
+          {Array.from({ length: TOTAL_SCREENS }).map((_, i) => (
             <div key={i} className="rounded-full transition-all duration-300"
                  style={{
-                   width:  i === step ? 12 : 8,
-                   height: i === step ? 12 : 8,
-                   background: i < step  ? '#1D9E75' :
-                               i === step ? '#1D9E75' :
-                               'rgba(255,255,255,0.18)',
+                   width:  i === screen ? 12 : 8,
+                   height: i === screen ? 12 : 8,
+                   background: i <= screen ? '#1D9E75' : 'rgba(255,255,255,0.18)',
                  }} />
           ))}
         </div>
 
-        {/* Step counter */}
         <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '13px', minWidth: '36px', textAlign: 'right' }}>
-          {step + 1} / {TOTAL_STEPS}
+          {screen + 1} / {TOTAL_SCREENS}
         </span>
       </div>
 
-      {/* ── Step content ──────────────────────────── */}
-      <div key={stepKey}
-           className={`flex-1 px-5 pt-4 pb-28 overflow-y-auto ${enterClass}`}>
-        {renderStep()}
+      {/* Screen content */}
+      <div key={screenKey} className="flex-1 px-5 pt-4 pb-32 overflow-y-auto animate-fade-in-up">
+        {renderScreen()}
       </div>
 
-      {/* ── Navigation arrow button ───────────────── */}
-      {step < 7 && canProceed() && (
-        <button
-          onClick={goNext}
-          className="fixed z-50 rounded-full flex items-center justify-center animate-scale-in animate-arrow-pulse"
-          style={{
-            bottom: 'max(env(safe-area-inset-bottom, 0px) + 24px, 32px)',
-            right: '24px',
-            width: '56px',
-            height: '56px',
-            background: '#1D9E75',
-            boxShadow: '0 4px 20px rgba(29,158,117,0.40)',
-          }}
-        >
-          <svg width="24" height="24" fill="none" stroke="white" strokeWidth="2.5" viewBox="0 0 24 24">
-            <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
-      )}
-
-      {/* Step 0 hint text near arrow */}
-      {step === 0 && (
-        <div className="fixed z-40 flex items-center gap-2 animate-fade-in"
-             style={{
-               bottom: 'max(env(safe-area-inset-bottom, 0px) + 26px, 34px)',
-               right: '88px',
-               color: 'rgba(255,255,255,0.45)',
-               fontSize: '14px',
-               fontWeight: 500,
-             }}>
-          Let's begin
-          <svg width="16" height="16" fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth="2" viewBox="0 0 24 24">
-            <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
+      {/* Continue button — screens 0 and 1 only */}
+      {screen < 2 && (
+        <div className="fixed bottom-0 left-0 right-0 px-5 pb-safe"
+             style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px) + 24px, 32px)' }}>
+          <button
+            onClick={goNext}
+            disabled={!canProceed()}
+            className="w-full rounded-2xl font-semibold text-white flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.98]"
+            style={{
+              height: '56px',
+              fontSize: '16px',
+              background: canProceed() ? '#1D9E75' : 'rgba(255,255,255,0.08)',
+              color: canProceed() ? 'white' : 'rgba(255,255,255,0.25)',
+              boxShadow: canProceed() ? '0 4px 20px rgba(29,158,117,0.35)' : 'none',
+              cursor: canProceed() ? 'pointer' : 'not-allowed',
+              transition: 'all 0.25s',
+            }}
+          >
+            Continue
+            <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+              <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
         </div>
       )}
     </div>

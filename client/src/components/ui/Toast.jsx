@@ -15,8 +15,12 @@ export default function ToastContainer() {
 }
 
 function ToastItem({ toast, onDismiss }) {
+  if (toast.type === 'drBloom') {
+    return <DrBloomToast toast={toast} onDismiss={onDismiss} />;
+  }
+
   useEffect(() => {
-    const timer = setTimeout(onDismiss, 4000);
+    const timer = setTimeout(onDismiss, toast.duration || 4000);
     return () => clearTimeout(timer);
   }, []);
 
@@ -45,6 +49,39 @@ function ToastItem({ toast, onDismiss }) {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
         </svg>
       </button>
+    </div>
+  );
+}
+
+function DrBloomToast({ toast, onDismiss }) {
+  useEffect(() => {
+    const timer = setTimeout(onDismiss, toast.duration || 12000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  return (
+    <div className="bg-cream-50 border-l-[3px] border-forest-700 rounded-r-xl shadow-lifted px-4 py-3.5 min-w-[300px] max-w-sm animate-toast-in">
+      <div className="flex items-start gap-2.5">
+        <div className="w-6 h-6 bg-forest-700 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+          <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-micro font-bold text-forest-600 uppercase tracking-wider mb-1.5">Dr. Bloom</p>
+          <p className="font-serif text-sm text-gray-700 leading-relaxed italic">{toast.message}</p>
+          {toast.onLink && (
+            <button
+              type="button"
+              onClick={() => { onDismiss(); toast.onLink(); }}
+              className="text-xs text-forest-600 hover:text-forest-800 underline mt-2 inline-block"
+            >
+              {toast.linkLabel || 'Chat with Dr. Bloom →'}
+            </button>
+          )}
+        </div>
+        <button onClick={onDismiss} className="text-gray-300 hover:text-gray-500 text-lg leading-none flex-shrink-0 ml-1">×</button>
+      </div>
     </div>
   );
 }
