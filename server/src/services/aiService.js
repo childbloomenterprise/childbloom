@@ -1,46 +1,21 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { config } from '../config/env.js';
-import { buildWeeklyInsightPrompt } from '../prompts/weeklyInsight.js';
-import { buildAskAiPrompt } from '../prompts/askAi.js';
+import { buildWeeklyInsightPrompt, DR_BLOOM_SYSTEM_PROMPT, WEEKLY_INSIGHT_ADDENDUM } from '../prompts/weeklyInsight.js';
 
-const anthropic = new Anthropic({
-  apiKey: config.anthropic.apiKey,
-});
+const anthropic = new Anthropic({ apiKey: config.anthropic.apiKey });
 
 export async function generateWeeklyInsight(data) {
   const prompt = buildWeeklyInsightPrompt(data);
 
   const message = await anthropic.messages.create({
     model: config.anthropic.model,
-    max_tokens: 512,
-    messages: [
-      { role: 'user', content: prompt },
-    ],
+    max_tokens: 600,
+    system: DR_BLOOM_SYSTEM_PROMPT + WEEKLY_INSIGHT_ADDENDUM,
+    messages: [{ role: 'user', content: prompt }],
   });
 
-  const text = message.content
-    .filter((block) => block.type === 'text')
-    .map((block) => block.text)
+  return message.content
+    .filter(b => b.type === 'text')
+    .map(b => b.text)
     .join('\n');
-
-  return text;
-}
-
-export async function generateAskAiResponse(data) {
-  const prompt = buildAskAiPrompt(data);
-
-  const message = await anthropic.messages.create({
-    model: config.anthropic.model,
-    max_tokens: 512,
-    messages: [
-      { role: 'user', content: prompt },
-    ],
-  });
-
-  const text = message.content
-    .filter((block) => block.type === 'text')
-    .map((block) => block.text)
-    .join('\n');
-
-  return text;
 }

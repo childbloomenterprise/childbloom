@@ -1,75 +1,17 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
-import { DR_BLOOM_SYSTEM_PROMPT } from '../lib/drBloomPrompt.js';
+import {
+  isEmergency,
+  getEmergencyResponse,
+  detectIntent,
+  buildChildProfileFolder,
+  buildDrBloomSystemPrompt,
+  isMedicalTopic,
+  getSuggestedQuestions,
+  getAgePrecision,
+} from '../lib/drBloomPrompt.js';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-
-async function authenticate(req) {
-  const auth = req.headers.authorization;
-  if (!auth?.startsWith('Bearer ')) return null;
-  const { data: { user }, error } = await supabase.auth.getUser(auth.split(' ')[1]);
-  if (error || !user) return null;
-  return user;
-}
-
-// Fetch this child's recent records to give Dr. Bloom real context
-async function fetchChildRecords(userId, childId) {
-  // Verify child belongs to this user
-  const { data: child } = await supabase
-    .from('children')
-    .select('*')
-    .eq('id', childId)
-    .eq('user_id', userId)
-    .single();
-
-  if (!child) return null;
-
-  const [growthRes, foodRes, healthRes, weeklyRes] = await Promise.all([
-    supabase.from('growth_records').select('*').eq('child_id', childId).order('record_date', { ascending: false }).limit(1),
-    supabase.from('food_logs').select('*').eq('child_id', childId).order('log_date', { ascending: false }).limit(7),
-    supabase.from('health_records').select('*').eq('child_id', childId).order('record_date', { ascending: false }).limit(3),
-    supabase.from('weekly_updates').select('*').eq('child_id', childId).order('created_at', { ascending: false }).limit(1),
-  ]);
-
-  const latestGrowth = growthRes.data?.[0];
-  const recentFoods  = foodRes.data  || [];
-  const recentHealth = healthRes.data || [];
-  const latestWeekly = weeklyRes.data?.[0];
-
-  const lines = [];
-
-  if (latestGrowth) {
-    lines.push(`Latest measurements (${latestGrowth.record_date}): weight ${latestGrowth.weight_kg ?? 'unknown'}kg, height ${latestGrowth.height_cm ?? 'unknown'}cm${latestGrowth.head_circumference_cm ? `, head circumference ${latestGrowth.head_circumference_cm}cm` : ''}.`);
-  }
-
-  if (recentFoods.length > 0) {
-    const foodList = recentFoods.map(f => `${f.food_name} (${f.meal_type})`).join(', ');
-    lines.push(`Recently eaten: ${foodList}.`);
-    const reactions = recentFoods.filter(f => f.reaction).map(f => `${f.food_name}: ${f.reaction}`);
-    if (reactions.length > 0) lines.push(`Food reactions noted: ${reactions.join('; ')}.`);
-  }
-
-  if (recentHealth.length > 0) {
-    const healthList = recentHealth.map(h => `${h.record_type} — ${h.title} (${h.record_date})`).join('; ');
-    lines.push(`Recent health records: ${healthList}.`);
-  }
-
-  if (latestWeekly) {
-    const w = latestWeekly;
-    const parts = [];
-    if (w.weight_kg)      parts.push(`weight ${w.weight_kg}kg`);
-    if (w.mood)           parts.push(`mood: ${w.mood}`);
-    if (w.sleep_hours)    parts.push(`sleep: ${w.sleep_hours}hrs (${w.sleep_quality || 'unknown quality'})`);
-    if (w.motor_milestone) parts.push(`motor milestone: ${w.motor_milestone}`);
-    if (w.new_skills)     parts.push(`new skills: ${w.new_skills}`);
-    if (w.feeding_notes)  parts.push(`feeding: ${w.feeding_notes}`);
-    if (w.concerns)       parts.push(`parent's concern: ${w.concerns}`);
-    if (parts.length > 0) lines.push(`Most recent weekly check-in: ${parts.join(', ')}.`);
-  }
-
-  return lines.length > 0 ? lines.join('\n') : null;
-}
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -79,88 +21,172 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: { message: 'Method not allowed' } });
 
-  const user = await authenticate(req);
-  if (!user) return res.status(401).json({ error: { message: 'Unauthorized' } });
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return res.status(401).json({ error: { message: 'Unauthorized' } });
+  }
+
+  const userToken = authHeader.slice(7);
+
+  // User-scoped Supabase — RLS enforced automatically
+  const supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_ANON_KEY,
+    { global: { headers: { Authorization: `Bearer ${userToken}` } } }
+  );
+
+  const { message, childId, language = 'en', conversationHistory = [] } = req.body;
+
+  if (!message || !childId) {
+    return res.status(400).json({ error: { message: 'message and childId are required' } });
+  }
+
+  // ── Emergency check — runs before anything else, bypasses AI ──
+  if (isEmergency(message)) {
+    const { data: child } = await supabase
+      .from('children')
+      .select('name')
+      .eq('id', childId)
+      .single();
+
+    return res.status(200).json({
+      type: 'emergency',
+      content: getEmergencyResponse(child?.name || 'your child', language),
+      showDisclaimerCard: true,
+      isEmergency: true,
+    });
+  }
+
+  // ── Fetch all child data in one parallel round-trip ──
+  // children: try with new columns first, fall back to base columns if migration 002 not run yet
+  const childPromise = supabase
+    .from('children')
+    .select('id, name, date_of_birth, due_date, is_pregnant, gender, birth_weight_grams, is_premature, gestational_age_at_birth, blood_group, known_allergies')
+    .eq('id', childId)
+    .single()
+    .then(res => {
+      if (res.error?.message?.includes('column')) {
+        return supabase
+          .from('children')
+          .select('id, name, date_of_birth, due_date, is_pregnant, gender')
+          .eq('id', childId)
+          .single();
+      }
+      return res;
+    });
+
+  const [
+    { data: child },
+    { data: growthRecords },
+    { data: foodLogs },
+    { data: healthRecords },
+    { data: weeklyUpdates },
+  ] = await Promise.all([
+    childPromise,
+
+    supabase
+      .from('growth_records')
+      .select('record_date, weight_kg, height_cm, head_circumference_cm')
+      .eq('child_id', childId)
+      .order('record_date', { ascending: false })
+      .limit(5),
+
+    supabase
+      .from('food_logs')
+      .select('log_date, meal_type, food_name, reaction')
+      .eq('child_id', childId)
+      .order('log_date', { ascending: false })
+      .limit(7),
+
+    supabase
+      .from('health_records')
+      .select('record_date, record_type, title, notes')
+      .eq('child_id', childId)
+      .order('record_date', { ascending: false })
+      .limit(3),
+
+    supabase
+      .from('weekly_updates')
+      .select('week_date, mood, sleep_hours, sleep_quality, motor_milestone, new_skills, feeding_notes, concerns')
+      .eq('child_id', childId)
+      .order('created_at', { ascending: false })
+      .limit(1),
+  ]);
+
+  // vaccinations fetched separately — table may not exist if migration 002 hasn't run yet
+  let vaccinations = [];
+  try {
+    const { data: vacData } = await supabase
+      .from('vaccinations')
+      .select('vaccine_name, date_given, next_due')
+      .eq('child_id', childId)
+      .order('next_due', { ascending: true });
+    vaccinations = vacData || [];
+  } catch {
+    // table not yet created — safe to ignore, Dr. Bloom works without it
+  }
+
+  if (!child) {
+    return res.status(404).json({ error: { message: 'Child not found' } });
+  }
+
+  // ── Build context ──
+  const profileFolder = buildChildProfileFolder({
+    child,
+    growthRecords: growthRecords || [],
+    foodLogs: foodLogs || [],
+    healthRecords: healthRecords || [],
+    weeklyUpdate: weeklyUpdates?.[0] || null,
+    vaccinations: vaccinations || [],
+  });
+
+  const intent = detectIntent(message);
+  const ageInfo = getAgePrecision(child.date_of_birth, child.due_date, child.is_pregnant);
+  const showDisclaimerCard = isMedicalTopic(message);
+  const suggestedQuestions = getSuggestedQuestions(ageInfo.developmentalStage, child.name);
+  const systemPrompt = buildDrBloomSystemPrompt(profileFolder, intent, language);
+
+  // ── Stream via SSE ──
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+
+  // Send metadata first
+  res.write(`data: ${JSON.stringify({
+    type: 'metadata',
+    childName: child.name,
+    intent,
+    showDisclaimerCard,
+    suggestedQuestions,
+    ageDisplay: ageInfo.displayAge,
+    developmentalStage: ageInfo.developmentalStage,
+  })}\n\n`);
+
+  const messages = [
+    ...conversationHistory.slice(-10),
+    { role: 'user', content: message },
+  ];
 
   try {
-    const { question, child_name, child_id, age_in_days, gender, language = 'en', opening_message, parent_mood, last_concern } = req.body;
-    if (!opening_message && !question) return res.status(400).json({ error: { message: 'Question is required' } });
-
-    const langMap = { en: 'English', ml: 'Malayalam', ta: 'Tamil', hi: 'Hindi', kn: 'Kannada', te: 'Telugu' };
-    const langName = langMap[language] || 'English';
-
-    const ageMonths = age_in_days ? Math.floor(age_in_days / 30) : null;
-    const ageWeeks = age_in_days ? Math.floor(age_in_days / 7) : null;
-    const childContext = child_name
-      ? `The parent is asking about their child "${child_name}"${ageMonths != null ? ` who is ${ageMonths} months old` : ''}${gender ? ` (${gender})` : ''}.`
-      : 'The parent is asking a general child development question.';
-
-    // Fetch real records if we have a child_id
-    let recordsContext = '';
-    if (child_id) {
-      const records = await fetchChildRecords(user.id, child_id);
-      if (records) {
-        recordsContext = `\n\nThis child's actual recorded data:\n${records}`;
-      }
-    }
-
-    // Build prompt
-    let prompt;
-    if (opening_message) {
-      // Opening greeting — short, personal, inviting
-      const moodClause = parent_mood
-        ? `The parent said they are feeling ${parent_mood} today.`
-        : '';
-      const concernClause = last_concern
-        ? `Last time they mentioned: "${last_concern}".`
-        : '';
-      const timeHour = new Date().getHours();
-      const timeOfDay = timeHour < 12 ? 'morning' : timeHour < 17 ? 'afternoon' : 'evening';
-
-      prompt = `IMPORTANT: Respond ENTIRELY in ${langName}. Do not use any other language.
-
-${childContext}${recordsContext}
-
-${moodClause} ${concernClause}
-
-Write a warm 2-3 sentence greeting from Dr. Bloom. It is ${timeOfDay}.
-${parent_mood ? `Acknowledge the parent's mood (${parent_mood}) gently in one short clause.` : ''}
-${last_concern ? `Naturally reference their last concern in one clause: "Last time you mentioned..."` : ''}
-End with one open question inviting them to share what is on their mind today.
-Tone: trusted family doctor meeting the family for the first time today.
-Maximum 60 words. Do NOT start with "Hello" or "Hi".`;
-    } else {
-      prompt = `IMPORTANT: Respond ENTIRELY in ${langName}. Do not use any other language.\n\n${childContext}${recordsContext}\n\nParent's question: ${question}`;
-    }
-
-    // Stream via Server-Sent Events
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache, no-transform');
-    res.setHeader('Connection', 'keep-alive');
-    res.setHeader('X-Accel-Buffering', 'no');
-
     const stream = anthropic.messages.stream({
       model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6',
       max_tokens: 1024,
-      system: DR_BLOOM_SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: prompt }],
+      system: systemPrompt,
+      messages,
     });
 
     for await (const event of stream) {
       if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta') {
-        res.write(`data: ${JSON.stringify({ text: event.delta.text })}\n\n`);
+        res.write(`data: ${JSON.stringify({ type: 'text', content: event.delta.text })}\n\n`);
       }
     }
 
-    res.write('data: [DONE]\n\n');
+    res.write(`data: ${JSON.stringify({ type: 'done', suggestedQuestions })}\n\n`);
     res.end();
   } catch (err) {
-    console.error('AI stream error:', err);
-    if (!res.headersSent) {
-      res.status(500).json({ error: { message: 'Failed to generate response' } });
-    } else {
-      res.write(`data: ${JSON.stringify({ error: 'Stream interrupted' })}\n\n`);
-      res.end();
-    }
+    console.error('Dr. Bloom stream error:', err);
+    res.write(`data: ${JSON.stringify({ type: 'error', message: 'Dr. Bloom is unavailable right now. Please try again in a moment.' })}\n\n`);
+    res.end();
   }
 }
