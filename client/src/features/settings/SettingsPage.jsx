@@ -17,6 +17,7 @@ import { UserIcon, BabyIcon, PlusIcon, TrashIcon, LogoutIcon, SettingsIcon } fro
 import { formatAge, formatDate } from '../../lib/formatters';
 import { GENDERS } from '../../lib/constants';
 import { LogoWordmark } from '../../components/ui/LogoMark';
+import { RatingInteraction, ratingData } from '../../components/ui/emoji-rating';
 
 export default function SettingsPage() {
   const { t, i18n } = useTranslation();
@@ -30,6 +31,12 @@ export default function SettingsPage() {
 
   const [editingProfile, setEditingProfile] = useState(false);
   const [profileName, setProfileName] = useState(profile?.full_name || '');
+
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewMessage, setReviewMessage] = useState('');
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewSubmitted, setReviewSubmitted] = useState(false);
+  const [reviewError, setReviewError] = useState('');
   const [showAddChild, setShowAddChild] = useState(false);
   const [childForm, setChildForm] = useState({
     name: '',
@@ -79,6 +86,31 @@ export default function SettingsPage() {
 
   const changeLanguage = (code) => {
     i18n.changeLanguage(code);
+  };
+
+  const handleSubmitReview = async () => {
+    if (!reviewRating) return;
+    setReviewSubmitting(true);
+    setReviewError('');
+    try {
+      const res = await fetch('/api/send-review', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          rating: reviewRating,
+          ratingLabel: ratingData[reviewRating - 1]?.label,
+          message: reviewMessage.trim() || null,
+          userEmail: user?.email || null,
+          userName: profile?.full_name || null,
+        }),
+      });
+      if (!res.ok) throw new Error('failed');
+      setReviewSubmitted(true);
+    } catch {
+      setReviewError('Something went wrong. Please try again.');
+    } finally {
+      setReviewSubmitting(false);
+    }
   };
 
   return (
@@ -192,6 +224,63 @@ export default function SettingsPage() {
             <p className="text-caption text-gray-400 text-center py-4">{t('settings.noChildren')}</p>
           )}
         </div>
+      </Card>
+
+      {/* Rate Your Experience */}
+      <Card className="p-5 sm:p-6">
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-10 h-10 bg-forest-50 rounded-xl flex items-center justify-center">
+            <span className="text-xl">✨</span>
+          </div>
+          <div>
+            <h2 className="text-h3 font-serif text-forest-700">Rate Your Experience</h2>
+            <p className="text-micro text-gray-400">How are we doing?</p>
+          </div>
+        </div>
+
+        {reviewSubmitted ? (
+          <div className="flex flex-col items-center gap-3 py-4">
+            <span className="text-4xl">🌱</span>
+            <p className="text-caption font-semibold text-forest-700">Thank you for your feedback!</p>
+            <p className="text-micro text-gray-400 text-center">Your review helps us grow and improve ChildBloom.</p>
+          </div>
+        ) : (
+          <div className="space-y-5">
+            <div className="flex justify-center">
+              <RatingInteraction onChange={setReviewRating} />
+            </div>
+
+            {reviewRating > 0 && (
+              <div className="space-y-1.5">
+                <label className="block text-caption font-semibold text-forest-700">
+                  Tell us more <span className="text-gray-400 font-normal">(optional)</span>
+                </label>
+                <textarea
+                  value={reviewMessage}
+                  onChange={(e) => setReviewMessage(e.target.value)}
+                  placeholder="What could we do better? What do you love?"
+                  rows={3}
+                  maxLength={500}
+                  className="w-full px-4 py-3 rounded-xl border border-cream-300 bg-cream-50 text-caption text-forest-700 placeholder:text-gray-400 focus:outline-none focus:border-forest-400 resize-none transition-colors duration-200"
+                />
+                <p className="text-micro text-gray-400 text-right">{reviewMessage.length}/500</p>
+              </div>
+            )}
+
+            {reviewError && (
+              <p className="text-micro text-red-500 text-center">{reviewError}</p>
+            )}
+
+            <Button
+              onClick={handleSubmitReview}
+              disabled={!reviewRating || reviewSubmitting}
+              loading={reviewSubmitting}
+              className="w-full"
+            >
+              Send Review
+            </Button>
+          </div>
+        )}
       </Card>
 
       {/* About */}

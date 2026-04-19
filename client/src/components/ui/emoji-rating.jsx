@@ -2,11 +2,11 @@ import { useState } from 'react'
 import { cn } from '../../lib/utils'
 
 const ratingData = [
-  { emoji: "😔", label: "Terrible" },
-  { emoji: "😕", label: "Poor" },
-  { emoji: "😐", label: "Okay" },
-  { emoji: "🙂", label: "Good" },
-  { emoji: "😍", label: "Amazing" },
+  { emoji: "😔", label: "Terrible",  color: "from-red-400 to-red-500",       shadowColor: "shadow-red-500/30"     },
+  { emoji: "😕", label: "Poor",      color: "from-orange-400 to-orange-500", shadowColor: "shadow-orange-500/30"  },
+  { emoji: "😐", label: "Okay",      color: "from-yellow-400 to-yellow-500", shadowColor: "shadow-yellow-500/30"  },
+  { emoji: "🙂", label: "Good",      color: "from-lime-400 to-lime-500",     shadowColor: "shadow-lime-500/30"    },
+  { emoji: "😍", label: "Amazing",   color: "from-emerald-400 to-emerald-500", shadowColor: "shadow-emerald-500/30" },
 ]
 
 export function RatingInteraction({ onChange, className }) {
@@ -61,7 +61,6 @@ export function RatingInteraction({ onChange, className }) {
 
       {/* Label area */}
       <div className="relative h-7 w-32">
-        {/* Default "Rate us" text */}
         <div
           className={cn(
             "absolute inset-0 flex items-center justify-center transition-all duration-300 ease-out",
@@ -73,7 +72,6 @@ export function RatingInteraction({ onChange, className }) {
           </span>
         </div>
 
-        {/* Rating labels with blur transition */}
         {ratingData.map((item, i) => (
           <div
             key={i}
@@ -91,3 +89,5 @@ export function RatingInteraction({ onChange, className }) {
     </div>
   )
 }
+
+export { ratingData }
