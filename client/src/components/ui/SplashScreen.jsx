@@ -1,54 +1,11 @@
 import { useEffect, useState } from 'react';
 
-function BloomLogo() {
-  return (
-    <svg
-      viewBox="0 0 100 105"
-      xmlns="http://www.w3.org/2000/svg"
-      width="130"
-      height="137"
-      style={{ overflow: 'visible' }}
-      aria-hidden="true"
-    >
-      {/* Left leaf — blooms first */}
-      <path
-        className="splash-leaf splash-leaf-1"
-        d="M50 90 C46 80 18 76 8 57 C20 36 47 60 50 82Z"
-        fill="#285C2A"
-      />
-      {/* Right leaf — blooms second */}
-      <path
-        className="splash-leaf splash-leaf-2"
-        d="M50 90 C54 80 82 76 92 57 C80 36 53 60 50 82Z"
-        fill="#285C2A"
-      />
-      {/* Center/top leaf — blooms third */}
-      <path
-        className="splash-leaf splash-leaf-3"
-        d="M50 90 C33 77 28 40 50 8 C72 40 67 77 50 90Z"
-        fill="#285C2A"
-      />
-      {/* Child's hand — fades in last */}
-      <path
-        className="splash-hand"
-        d="M41 73 C37 73 35 70 35 66 L35 59 C35 56 37 54 40 54
-           C41 54 43 55 43 58 L43 51 C43 47 45 45 47.5 45
-           C50 45 51 47 51 51 L51 50 C51 46 53 44 55.5 44
-           C58 44 59 46 59 50 L59 52 C59 48 61 47 63 48
-           C65 49 65 51 65 54 L65 63 C66 62 67 63 67 65
-           C67 68 65 70 64 70 L64 73 C62 75 43 75 41 73Z"
-        fill="#EDE8DF"
-      />
-    </svg>
-  );
-}
-
 export default function SplashScreen({ onDone }) {
   const [fading, setFading] = useState(false);
 
   useEffect(() => {
-    const fadeTimer = setTimeout(() => setFading(true), 2000);
-    const doneTimer = setTimeout(() => onDone?.(), 2600);
+    const fadeTimer = setTimeout(() => setFading(true), 2800);
+    const doneTimer = setTimeout(() => onDone?.(), 3500);
     return () => {
       clearTimeout(fadeTimer);
       clearTimeout(doneTimer);
@@ -59,27 +16,73 @@ export default function SplashScreen({ onDone }) {
     <div
       className="fixed inset-0 z-[9999] flex flex-col items-center justify-center select-none"
       style={{
-        background: '#FAF9F6',
+        backgroundColor: '#f5f0e8',
         opacity: fading ? 0 : 1,
-        transition: 'opacity 0.6s ease-out',
+        transition: 'opacity 0.7s cubic-bezier(0.4,0,0.2,1)',
         pointerEvents: fading ? 'none' : 'auto',
       }}
     >
-      <BloomLogo />
+      <div className="flex flex-col items-center" style={{ gap: '28px' }}>
 
-      <div className="mt-5 splash-wordmark flex items-baseline gap-0">
-        <span
-          className="font-serif font-bold text-3xl"
-          style={{ color: '#2A1C15', letterSpacing: '-0.02em' }}
-        >
-          Child
-        </span>
-        <span
-          className="font-serif font-bold text-3xl"
-          style={{ color: '#285C2A', letterSpacing: '-0.02em' }}
-        >
-          Bloom
-        </span>
+        {/* Logo + glow ring */}
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="splash-glow" />
+
+          <svg
+            className="splash-logo"
+            viewBox="0 0 200 200"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            width="120"
+            height="120"
+            aria-hidden="true"
+          >
+            <g className="splash-leaf splash-leaf-left">
+              <path d="M100 160 C60 140 30 100 50 60 C65 30 95 40 100 80 Z" fill="#1f5e3a" />
+            </g>
+            <g className="splash-leaf splash-leaf-right">
+              <path d="M100 160 C140 140 170 100 150 60 C135 30 105 40 100 80 Z" fill="#1f5e3a" />
+            </g>
+            <g className="splash-leaf splash-leaf-center">
+              <path d="M100 165 C85 130 80 90 100 50 C120 90 115 130 100 165 Z" fill="#2a7a50" />
+            </g>
+          </svg>
+        </div>
+
+        {/* Wordmark */}
+        <div className="splash-wordmark flex flex-col items-center" style={{ gap: '4px' }}>
+          <span
+            style={{
+              fontFamily: 'Georgia, serif',
+              fontSize: '26px',
+              fontWeight: 700,
+              color: '#1f5e3a',
+              letterSpacing: '0.04em',
+            }}
+          >
+            ChildBloom
+          </span>
+          <span
+            style={{
+              fontFamily: 'Arial, sans-serif',
+              fontSize: '11px',
+              letterSpacing: '0.18em',
+              textTransform: 'uppercase',
+              color: '#6a9a7a',
+              fontWeight: 400,
+            }}
+          >
+            Your child's growth companion
+          </span>
+        </div>
+
+        {/* Dot loader */}
+        <div className="splash-dots flex" style={{ gap: '8px' }}>
+          <div className="splash-dot" />
+          <div className="splash-dot splash-dot-2" />
+          <div className="splash-dot splash-dot-3" />
+        </div>
+
       </div>
     </div>
   );
