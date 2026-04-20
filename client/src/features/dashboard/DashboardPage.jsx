@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import { useSelectedChild } from '../../hooks/useChild';
@@ -101,12 +101,62 @@ export default function DashboardPage() {
   const profile = useAuthStore((s) => s.profile);
   const user = useAuthStore((s) => s.user);
 
+  const queryClient = useQueryClient();
+  const fileInputRef = useRef(null);
   const todayStr = new Date().toISOString().split('T')[0];
   const lastCheckin = localStorage.getItem(CHECKIN_KEY);
   const [activeMood, setActiveMood] = useState(null);
   const [checkinDone, setCheckinDone] = useState(lastCheckin === todayStr);
   const [checkinConfirm, setCheckinConfirm] = useState('');
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState(null);
+
+  const handleAvatarClick = () => {
+    if (!session) { setShowAuthModal(true); return; }
+    fileInputRef.current?.click();
+  };
+
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !child || child.id === 'demo') return;
+
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) { alert('Image must be under 5 MB'); return; }
+
+    setAvatarUploading(true);
+    setAvatarPreview(URL.createObjectURL(file));
+
+    try {
+      const ext = file.name.split('.').pop().toLowerCase();
+      const path = `${user.id}/${child.id}/avatar.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('child-avatars')
+        .upload(path, file, { upsert: true, contentType: file.type });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('child-avatars')
+        .getPublicUrl(path);
+
+      const { error: dbError } = await supabase
+        .from('children')
+        .update({ avatar_url: `${publicUrl}?t=${Date.now()}` })
+        .eq('id', child.id);
+
+      if (dbError) throw dbError;
+
+      queryClient.invalidateQueries({ queryKey: ['children'] });
+    } catch (err) {
+      console.error('Avatar upload failed:', err);
+      setAvatarPreview(null);
+    } finally {
+      setAvatarUploading(false);
+      e.target.value = '';
+    }
+  };
 
   const go = (path) => {
     if (!session) { setShowAuthModal(true); return; }
@@ -208,15 +258,42 @@ export default function DashboardPage() {
         <div className="absolute right-16 -bottom-24 w-60 h-60 rounded-full pointer-events-none" style={{ background: 'rgba(255,255,255,0.03)' }} />
 
         {/* Avatar */}
-        <div
-          className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center flex-shrink-0 cursor-pointer transition-all duration-300 hover:scale-105 z-10"
-          style={{ background: 'rgba(255,255,255,0.14)', border: '2px solid rgba(255,255,255,0.28)' }}
-        >
-          <span className="font-serif font-bold text-4xl sm:text-5xl select-none" style={{ color: 'rgba(255,255,255,0.92)', lineHeight: 1 }}>
-            {initial}
-          </span>
+        <div className="relative flex-shrink-0 z-10 group" onClick={handleAvatarClick}>
           <div
-            className="absolute bottom-0.5 right-0.5 w-6 h-6 rounded-full flex items-center justify-center"
+            className="w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center cursor-pointer transition-all duration-300 overflow-hidden"
+            style={{ background: 'rgba(255,255,255,0.14)', border: '2px solid rgba(255,255,255,0.28)' }}
+          >
+            {avatarUploading ? (
+              <svg className="animate-spin" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.8)" strokeWidth="2" width="28" height="28">
+                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" strokeLinecap="round"/>
+              </svg>
+            ) : (avatarPreview || child.avatar_url) ? (
+              <img
+                src={avatarPreview || child.avatar_url}
+                alt={child.name}
+                className="w-full h-full object-cover rounded-full group-hover:opacity-80 transition-opacity duration-200"
+              />
+            ) : (
+              <span className="font-serif font-bold text-4xl sm:text-5xl select-none group-hover:opacity-70 transition-opacity" style={{ color: 'rgba(255,255,255,0.92)', lineHeight: 1 }}>
+                {initial}
+              </span>
+            )}
+          </div>
+
+          {/* Camera overlay on hover */}
+          {!avatarUploading && (
+            <div className="absolute inset-0 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 cursor-pointer"
+              style={{ background: 'rgba(0,0,0,0.35)' }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="22" height="22">
+                <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
+                <circle cx="12" cy="13" r="4"/>
+              </svg>
+            </div>
+          )}
+
+          {/* + badge */}
+          <div
+            className="absolute bottom-0.5 right-0.5 w-6 h-6 rounded-full flex items-center justify-center shadow-md"
             style={{ background: '#fff', border: '2px solid #1C5628' }}
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="#1C5628" strokeWidth="2.5" strokeLinecap="round" width="10" height="10">
@@ -224,6 +301,15 @@ export default function DashboardPage() {
             </svg>
           </div>
         </div>
+
+        {/* Hidden file input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/heic"
+          className="hidden"
+          onChange={handleAvatarChange}
+        />
 
         {/* Info */}
         <div className="flex-1 relative z-10">
