@@ -2,16 +2,25 @@ import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useSelectedChild } from '../../hooks/useChild';
+import useAuthStore from '../../stores/authStore';
 import { LayoutDashboard, TrendingUp, MessageCircle, MoreHorizontal, Plus, Clipboard, Apple, HeartPulse, CheckSquare, X } from 'lucide-react';
 
 export default function MobileNav() {
   const { t } = useTranslation();
   const child = useSelectedChild();
   const navigate = useNavigate();
+  const session = useAuthStore((s) => s.session);
   const [logDrawerOpen, setLogDrawerOpen] = useState(false);
   const [moreDrawerOpen, setMoreDrawerOpen] = useState(false);
+  const [showGuestPrompt, setShowGuestPrompt] = useState(false);
 
   const childId = child?.id;
+
+  const guardedNavigate = (path) => {
+    closeAll();
+    if (!session) { setShowGuestPrompt(true); return; }
+    navigate(path);
+  };
 
   const navItems = [
     { id: 'dashboard', to: '/dashboard',                                       icon: <LayoutDashboard size={20} />, label: t('nav.home') },
@@ -22,16 +31,17 @@ export default function MobileNav() {
   ];
 
   const logActions = [
-    { icon: <Clipboard size={18} />,  label: 'Weekly check-in', path: childId ? `/child/${childId}/weekly-update` : '/dashboard' },
-    { icon: <TrendingUp size={18} />, label: 'Log measurement',  path: childId ? `/child/${childId}/growth` : '/dashboard' },
-    { icon: <Apple size={18} />,      label: 'Log meal',          path: childId ? `/child/${childId}/food` : '/dashboard' },
-    { icon: <HeartPulse size={18} />, label: 'Health record',    path: childId ? `/child/${childId}/health` : '/dashboard' },
+    { icon: <Clipboard size={18} />,  label: 'Weekly check-in', path: `/child/${childId}/weekly-update` },
+    { icon: <TrendingUp size={18} />, label: 'Log measurement',  path: `/child/${childId}/growth` },
+    { icon: <Apple size={18} />,      label: 'Log meal',          path: `/child/${childId}/food` },
+    { icon: <HeartPulse size={18} />, label: 'Health record',    path: `/child/${childId}/health` },
   ];
 
   const moreActions = [
+    { label: 'Development Index',    path: `/child/${childId}/development` },
     { label: t('nav.guides'),        path: '/guides' },
-    { label: 'Health records',       path: childId ? `/child/${childId}/health` : '/dashboard' },
-    { label: 'Update history',       path: childId ? `/child/${childId}/updates` : '/dashboard' },
+    { label: 'Health records',       path: `/child/${childId}/health` },
+    { label: 'Update history',       path: `/child/${childId}/updates` },
     { label: t('nav.settings'),      path: '/settings' },
   ];
 
@@ -63,7 +73,7 @@ export default function MobileNav() {
             {logActions.map((action) => (
               <button
                 key={action.label}
-                onClick={() => { closeAll(); navigate(action.path); }}
+                onClick={() => guardedNavigate(action.path)}
                 className="flex items-center gap-3 p-3 rounded-xl bg-white border border-cream-200 hover:border-forest-300 hover:bg-forest-50/30 transition-all duration-200 text-left"
               >
                 <span className="text-forest-600">{action.icon}</span>
@@ -87,7 +97,7 @@ export default function MobileNav() {
             {moreActions.map((action) => (
               <button
                 key={action.label}
-                onClick={() => { closeAll(); navigate(action.path); }}
+                onClick={() => guardedNavigate(action.path)}
                 className="w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium text-forest-700 hover:bg-forest-50 transition-colors"
               >
                 {action.label}
@@ -155,32 +165,77 @@ export default function MobileNav() {
               );
             }
 
+            {/* Dashboard is public; all other nav items require auth */}
+            if (item.id === 'dashboard') {
+              return (
+                <NavLink key={item.id} to={item.to} onClick={closeAll} style={{ minWidth: '52px' }}>
+                  {({ isActive }) => (
+                    <div className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl transition-all duration-200">
+                      <span style={{ color: isActive ? '#2D6A4F' : 'rgba(61,43,35,0.55)', transform: isActive ? 'scale(1.1)' : 'scale(1)', transition: 'all 0.2s' }}>{item.icon}</span>
+                      <span className="text-[10px] font-medium" style={{ color: isActive ? '#2D6A4F' : 'rgba(61,43,35,0.45)' }}>{item.label}</span>
+                    </div>
+                  )}
+                </NavLink>
+              );
+            }
+
             return (
-              <NavLink key={item.id} to={item.to} onClick={closeAll} style={{ minWidth: '52px' }}>
-                {({ isActive }) => (
-                  <div className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl transition-all duration-200">
-                    <span
-                      style={{
-                        color: isActive ? '#2D6A4F' : 'rgba(61,43,35,0.55)',
-                        transform: isActive ? 'scale(1.1)' : 'scale(1)',
-                        transition: 'all 0.2s',
-                      }}
-                    >
-                      {item.icon}
-                    </span>
-                    <span
-                      className="text-[10px] font-medium"
-                      style={{ color: isActive ? '#2D6A4F' : 'rgba(61,43,35,0.45)' }}
-                    >
-                      {item.label}
-                    </span>
-                  </div>
-                )}
-              </NavLink>
+              <button
+                key={item.id}
+                onClick={() => guardedNavigate(item.to)}
+                style={{ minWidth: '52px' }}
+                className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl transition-all duration-200"
+              >
+                <span style={{ color: 'rgba(61,43,35,0.55)', transition: 'all 0.2s' }}>{item.icon}</span>
+                <span className="text-[10px] font-medium" style={{ color: 'rgba(61,43,35,0.45)' }}>{item.label}</span>
+              </button>
             );
           })}
         </div>
       </nav>
+
+      {/* Guest sign-in prompt */}
+      {showGuestPrompt && (
+        <div className="fixed inset-0 z-[60] flex items-end justify-center pb-28 px-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowGuestPrompt(false)} />
+          <div
+            className="relative w-full max-w-sm rounded-3xl p-6 shadow-2xl"
+            style={{ background: '#f7f4ef', border: '1px solid rgba(255,255,255,0.7)' }}
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: '#1C5628' }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="18" height="18">
+                  <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2"/>
+                  <path d="M12 8v4l3 3"/>
+                </svg>
+              </div>
+              <div>
+                <p className="font-serif font-semibold text-forest-700" style={{ fontSize: 16 }}>Sign in to continue</p>
+                <p className="text-xs text-gray-400">Track your baby's growth & milestones</p>
+              </div>
+              <button onClick={() => setShowGuestPrompt(false)} className="ml-auto text-gray-400 hover:text-gray-600 p-1">
+                <X size={16} />
+              </button>
+            </div>
+            <div className="flex gap-2 mt-4">
+              <button
+                onClick={() => { setShowGuestPrompt(false); navigate('/auth'); }}
+                className="flex-1 py-3 rounded-2xl text-sm font-semibold text-white transition-all duration-200"
+                style={{ background: '#1C5628' }}
+              >
+                Create free account
+              </button>
+              <button
+                onClick={() => { setShowGuestPrompt(false); navigate('/auth'); }}
+                className="flex-1 py-3 rounded-2xl text-sm font-medium transition-all duration-200"
+                style={{ background: 'rgba(28,86,40,0.08)', color: '#1C5628' }}
+              >
+                Sign in
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

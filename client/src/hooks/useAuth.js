@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import useAuthStore from '../stores/authStore';
+import useChildStore from '../stores/childStore';
 
 export function useAuth() {
   const { setSession, setProfile, clearSession, setLoading } = useAuthStore();
@@ -62,6 +63,8 @@ export function useAuth() {
     await supabase.auth.signOut();
     localStorage.removeItem('sb-access-token');
     clearSession();
+    useChildStore.getState().setChildren([]);
+    useChildStore.getState().setSelectedChildId(null);
   }
 
   async function updateProfile(updates) {
