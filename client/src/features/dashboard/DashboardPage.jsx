@@ -1,20 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import { useSelectedChild } from '../../hooks/useChild';
 import useAuthStore from '../../stores/authStore';
-import Card from '../../components/ui/Card';
-import Button from '../../components/ui/Button';
-import Badge from '../../components/ui/Badge';
-import { SkeletonCard } from '../../components/ui/Skeleton';
-import ChildSwitcher from '../../components/shared/ChildSwitcher';
-import AgeDisplay from '../../components/shared/AgeDisplay';
-import EmptyState from '../../components/shared/EmptyState';
-import { formatAge, formatWeight, formatHeight, formatDate, formatPregnancyWeek, formatAgeInDays } from '../../lib/formatters';
-import { ClipboardIcon, GrowthIcon, FoodIcon, BookIcon, ChatIcon, HealthIcon, ChevronRightIcon, BabyIcon } from '../../assets/icons';
+import { formatWeight, formatHeight, formatDate, formatPregnancyWeek } from '../../lib/formatters';
 import { differenceInDays } from 'date-fns';
+import { BabyIcon } from '../../assets/icons';
+import EmptyState from '../../components/shared/EmptyState';
 
 const CHECKIN_KEY = 'childbloom_parent_checkin_date';
 
@@ -24,6 +18,29 @@ const MOOD_OPTIONS = [
   { emoji: '😰', label: 'Anxious', value: 'anxious' },
   { emoji: '💪', label: 'Strong',  value: 'strong' },
 ];
+
+function getStage(ageInDays) {
+  if (ageInDays <= 30)   return '🌱 Newborn Stage';
+  if (ageInDays <= 90)   return '🌿 Early Infant';
+  if (ageInDays <= 180)  return '🌸 Infant';
+  if (ageInDays <= 365)  return '🌻 Older Infant';
+  if (ageInDays <= 730)  return '🌳 Toddler';
+  return '🌲 Growing Child';
+}
+
+function getMilestonePill(ageInDays) {
+  if (ageInDays <= 7)   return 'Week 1 · Adjusting to the world';
+  if (ageInDays <= 14)  return 'Week 2 · Regaining birth weight';
+  if (ageInDays <= 21)  return 'Week 3 · Hearing fully developed';
+  if (ageInDays <= 30)  return 'Week 4 · First social smiles soon';
+  if (ageInDays <= 60)  return 'Month 2 · Cooing & tracking faces';
+  if (ageInDays <= 90)  return 'Month 3 · Head control developing';
+  if (ageInDays <= 120) return 'Month 4 · Reaching for objects';
+  if (ageInDays <= 180) return 'Month 6 · Sitting with support';
+  if (ageInDays <= 270) return 'Month 9 · Crawling & exploring';
+  if (ageInDays <= 365) return 'Month 12 · First steps approaching';
+  return `${Math.floor(ageInDays / 30)} months old`;
+}
 
 function getAgeContext(ageInDays, childName) {
   const name = childName || 'your little one';
@@ -36,11 +53,10 @@ function getAgeContext(ageInDays, childName) {
   return 'You have been showing up every single day. That is everything.';
 }
 
-function getNudgeCard(child, latestUpdate, latestGrowth, healthRecords) {
+function getNudge(child, latestUpdate, latestGrowth, healthRecords) {
   const name = child.name;
   const ageInDays = child.date_of_birth ? differenceInDays(new Date(), new Date(child.date_of_birth)) : 0;
 
-  // Priority 1 — upcoming vaccine
   if (healthRecords?.length) {
     const upcoming = healthRecords.find(r => {
       if (!r.next_due_date || r.record_type !== 'vaccination') return false;
@@ -48,54 +64,22 @@ function getNudgeCard(child, latestUpdate, latestGrowth, healthRecords) {
       return daysUntil >= 0 && daysUntil <= 7;
     });
     if (upcoming) {
-      const daysUntil = differenceInDays(new Date(upcoming.next_due_date), new Date());
-      return {
-        text: `💉 ${name}'s ${upcoming.title} is ${daysUntil === 0 ? 'today' : `in ${daysUntil} day${daysUntil !== 1 ? 's' : ''}`}. Tap to see what to expect.`,
-        path: `/child/${child.id}/health`,
-      };
+      const d = differenceInDays(new Date(upcoming.next_due_date), new Date());
+      return { text: `💉 ${name}'s ${upcoming.title} is ${d === 0 ? 'today' : `in ${d} day${d !== 1 ? 's' : ''}`}.`, path: `/child/${child.id}/health` };
     }
   }
 
-  // Priority 2 — no growth logged in 14+ days
   if (latestGrowth) {
     const daysSince = differenceInDays(new Date(), new Date(latestGrowth.record_date));
-    if (daysSince >= 14) {
-      return {
-        text: `📏 ${name} hasn't been measured in ${daysSince} days. Even one measurement tells a story.`,
-        path: `/child/${child.id}/growth`,
-      };
-    }
+    if (daysSince >= 14) return { text: `📏 ${name} hasn't been measured in ${daysSince} days.`, path: `/child/${child.id}/growth` };
   } else if (ageInDays > 14) {
-    return {
-      text: `📏 ${name} hasn't been measured yet. Even one measurement tells a story.`,
-      path: `/child/${child.id}/growth`,
-    };
+    return { text: `📏 Log ${name}'s first measurement — even one tells a story.`, path: `/child/${child.id}/growth` };
   }
 
-  // Priority 3 — no food log today
-  const todayStr = new Date().toISOString().split('T')[0];
-  // we only nudge if child is 6+ months (solids age)
-  if (ageInDays > 180) {
-    return {
-      text: `🥗 What did ${name} eat today? One log creates a pattern over time.`,
-      path: `/child/${child.id}/food`,
-    };
-  }
+  if (!latestUpdate) return { text: `📋 ${name}'s first check-in is waiting. Dr. Bloom will have something personal to say.`, path: `/child/${child.id}/weekly-update` };
 
-  // Priority 4 — weekly update not done this week
-  if (!latestUpdate) {
-    return {
-      text: `📋 ${name}'s first check-in is waiting. It takes 3 minutes and Dr. Bloom will have something personal to say afterwards.`,
-      path: `/child/${child.id}/weekly-update`,
-    };
-  }
   const daysSinceUpdate = differenceInDays(new Date(), new Date(latestUpdate.created_at));
-  if (daysSinceUpdate >= 7) {
-    return {
-      text: `📋 This week's check-in is waiting. It takes 3 minutes and Dr. Bloom will have something to say about ${name} afterwards.`,
-      path: `/child/${child.id}/weekly-update`,
-    };
-  }
+  if (daysSinceUpdate >= 7) return { text: `📋 This week's check-in for ${name} is ready.`, path: `/child/${child.id}/weekly-update` };
 
   return null;
 }
@@ -103,7 +87,7 @@ function getNudgeCard(child, latestUpdate, latestGrowth, healthRecords) {
 const DEMO_CHILD = {
   id: 'demo',
   name: 'Baby',
-  date_of_birth: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+  date_of_birth: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
   gender: 'male',
   is_pregnant: false,
 };
@@ -116,16 +100,14 @@ export default function DashboardPage() {
   const child = session ? realChild : DEMO_CHILD;
   const profile = useAuthStore((s) => s.profile);
   const user = useAuthStore((s) => s.user);
-  const queryClient = useQueryClient();
 
   const todayStr = new Date().toISOString().split('T')[0];
   const lastCheckin = localStorage.getItem(CHECKIN_KEY);
-  const [showCheckin, setShowCheckin] = useState(lastCheckin !== todayStr);
-  const [checkinDone, setCheckinDone] = useState(false);
+  const [activeMood, setActiveMood] = useState(null);
+  const [checkinDone, setCheckinDone] = useState(lastCheckin === todayStr);
   const [checkinConfirm, setCheckinConfirm] = useState('');
   const [showAuthModal, setShowAuthModal] = useState(false);
 
-  // Require login before any navigation action
   const go = (path) => {
     if (!session) { setShowAuthModal(true); return; }
     navigate(path);
@@ -134,13 +116,7 @@ export default function DashboardPage() {
   const { data: latestUpdate } = useQuery({
     queryKey: ['latest-update', child?.id],
     queryFn: async () => {
-      const { data } = await supabase
-        .from('weekly_updates')
-        .select('*')
-        .eq('child_id', child.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+      const { data } = await supabase.from('weekly_updates').select('*').eq('child_id', child.id).order('created_at', { ascending: false }).limit(1).single();
       return data;
     },
     enabled: !!child?.id && !!session,
@@ -149,13 +125,7 @@ export default function DashboardPage() {
   const { data: latestGrowth } = useQuery({
     queryKey: ['latest-growth', child?.id],
     queryFn: async () => {
-      const { data } = await supabase
-        .from('growth_records')
-        .select('*')
-        .eq('child_id', child.id)
-        .order('record_date', { ascending: false })
-        .limit(1)
-        .single();
+      const { data } = await supabase.from('growth_records').select('*').eq('child_id', child.id).order('record_date', { ascending: false }).limit(1).single();
       return data;
     },
     enabled: !!child?.id && !!session,
@@ -164,12 +134,7 @@ export default function DashboardPage() {
   const { data: healthRecords } = useQuery({
     queryKey: ['health-records-nudge', child?.id],
     queryFn: async () => {
-      const { data } = await supabase
-        .from('health_records')
-        .select('id, title, record_type, next_due_date')
-        .eq('child_id', child.id)
-        .eq('record_type', 'vaccination')
-        .not('next_due_date', 'is', null);
+      const { data } = await supabase.from('health_records').select('id, title, record_type, next_due_date').eq('child_id', child.id).eq('record_type', 'vaccination').not('next_due_date', 'is', null);
       return data || [];
     },
     enabled: !!child?.id && !!session,
@@ -178,32 +143,20 @@ export default function DashboardPage() {
   const checkinMutation = useMutation({
     mutationFn: async (mood) => {
       if (!user || !child) return;
-      const { data: todayUpdate } = await supabase
-        .from('weekly_updates')
-        .select('id')
-        .eq('child_id', child.id)
-        .eq('week_date', todayStr)
-        .single();
-
-      if (todayUpdate) {
-        await supabase.from('weekly_updates').update({ parent_mood: mood }).eq('id', todayUpdate.id);
-      }
+      const { data: todayUpdate } = await supabase.from('weekly_updates').select('id').eq('child_id', child.id).eq('week_date', todayStr).single();
+      if (todayUpdate) await supabase.from('weekly_updates').update({ parent_mood: mood }).eq('id', todayUpdate.id);
     },
   });
 
-  const handleMoodSelect = async (mood) => {
+  const handleMoodSelect = (mood) => {
     if (!session) { setShowAuthModal(true); return; }
+    setActiveMood(mood);
     localStorage.setItem(CHECKIN_KEY, todayStr);
     checkinMutation.mutate(mood);
-    const confirmMap = {
-      tired: 'Rest when you can. Dr. Bloom knows.',
-      good: 'That energy comes through. Dr. Bloom knows.',
-      anxious: 'One thing at a time. Dr. Bloom knows.',
-      strong: 'That strength shows. Dr. Bloom knows.',
-    };
-    setCheckinConfirm(confirmMap[mood] || 'Thank you for checking in. Dr. Bloom knows.');
+    const msgs = { tired: 'Rest when you can. Dr. Bloom knows.', good: 'That energy comes through. Dr. Bloom knows.', anxious: 'One thing at a time. Dr. Bloom knows.', strong: 'That strength shows. Dr. Bloom knows.' };
+    setCheckinConfirm(msgs[mood] || 'Thank you.');
     setCheckinDone(true);
-    setTimeout(() => setShowCheckin(false), 2200);
+    setTimeout(() => {}, 2200);
   };
 
   if (session && !child) {
@@ -218,172 +171,354 @@ export default function DashboardPage() {
     );
   }
 
-  const quickLinks = [
-    { label: t('nav.weeklyUpdate'), icon: ClipboardIcon, to: `/child/${child.id}/weekly-update`, bg: 'bg-forest-50', iconColor: 'text-forest-600' },
-    { label: t('dashboard.growthChart'), icon: GrowthIcon, to: `/child/${child.id}/growth`, bg: 'bg-blue-50', iconColor: 'text-blue-600' },
-    { label: t('nav.foodTracker'), icon: FoodIcon, to: `/child/${child.id}/food`, bg: 'bg-amber-50', iconColor: 'text-amber-600' },
-    { label: t('dashboard.healthRecords'), icon: HealthIcon, to: `/child/${child.id}/health`, bg: 'bg-rose-50', iconColor: 'text-rose-600' },
-    { label: t('nav.guides'), icon: BookIcon, to: '/guides', bg: 'bg-violet-50', iconColor: 'text-violet-600' },
-    { label: t('nav.askAi'), icon: ChatIcon, to: '/ask', bg: 'bg-terracotta-50', iconColor: 'text-terracotta-400' },
-  ];
-
-  if (child.is_pregnant) {
-    return <PregnancyDashboard child={child} profile={profile} navigate={navigate} quickLinks={quickLinks} t={t} />;
-  }
-
   const ageInDays = child.date_of_birth ? differenceInDays(new Date(), new Date(child.date_of_birth)) : 0;
   const ageContext = getAgeContext(ageInDays, child.name);
-  const nudge = getNudgeCard(child, latestUpdate, latestGrowth, healthRecords);
+  const stage = getStage(ageInDays);
+  const milestonePill = getMilestonePill(ageInDays);
+  const nudge = getNudge(child, latestUpdate, latestGrowth, healthRecords);
   const parentName = profile?.full_name?.split(' ')[0] || 'you';
+  const initial = child.name?.charAt(0)?.toUpperCase() || '?';
+
+  const ageLabel = ageInDays === 0
+    ? 'Newborn'
+    : ageInDays < 30
+    ? `${ageInDays} days old`
+    : ageInDays < 365
+    ? `${Math.floor(ageInDays / 30)} months old`
+    : `${Math.floor(ageInDays / 365)}y ${Math.floor((ageInDays % 365) / 30)}m old`;
+
+  const dobLabel = child.date_of_birth
+    ? `Born ${new Date(child.date_of_birth).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`
+    : '';
+
+  if (child.is_pregnant) {
+    return <PregnancyDashboard child={child} navigate={navigate} go={go} t={t} />;
+  }
 
   return (
-    <div className="space-y-6 stagger-children">
-      <ChildSwitcher />
+    <div className="space-y-5 animate-fade-in">
 
-      {/* Hero Card */}
-      <Card className="p-5 sm:p-7 overflow-hidden relative">
-        <div className="absolute top-0 right-0 w-28 h-28 bg-forest-50/50 rounded-full blur-2xl -translate-y-8 translate-x-8" />
-        <div className="relative flex items-start justify-between gap-4">
-          <div className="min-w-0 flex-1">
-            <h1 className="text-h1 font-serif text-forest-700 truncate">{child.name}</h1>
-            <AgeDisplay child={child} />
-            {/* Contextual age headline */}
-            <p className="text-sm italic font-serif text-forest-600/80 mt-2 leading-snug">{ageContext}</p>
-            {latestUpdate && (
-              <p className="text-micro text-gray-400 mt-3 flex items-center gap-2 uppercase tracking-wider">
-                <span className="w-1.5 h-1.5 bg-forest-400 rounded-full flex-shrink-0" />
-                {t('dashboard.lastUpdate', { date: formatDate(latestUpdate.created_at) })}
-              </p>
+      {/* ── HERO CARD ─────────────────────────────────────── */}
+      <div
+        className="rounded-[28px] p-7 sm:p-9 flex flex-col sm:flex-row items-start sm:items-center gap-6 relative overflow-hidden"
+        style={{ background: '#1C5628', boxShadow: '0 8px 40px rgba(28,86,40,0.35)' }}
+      >
+        {/* decorative orbs */}
+        <div className="absolute -top-20 -right-20 w-80 h-80 rounded-full pointer-events-none" style={{ background: 'rgba(255,255,255,0.04)' }} />
+        <div className="absolute right-16 -bottom-24 w-60 h-60 rounded-full pointer-events-none" style={{ background: 'rgba(255,255,255,0.03)' }} />
+
+        {/* Avatar */}
+        <div
+          className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center flex-shrink-0 cursor-pointer transition-all duration-300 hover:scale-105 z-10"
+          style={{ background: 'rgba(255,255,255,0.14)', border: '2px solid rgba(255,255,255,0.28)' }}
+        >
+          <span className="font-serif font-bold text-4xl sm:text-5xl select-none" style={{ color: 'rgba(255,255,255,0.92)', lineHeight: 1 }}>
+            {initial}
+          </span>
+          <div
+            className="absolute bottom-0.5 right-0.5 w-6 h-6 rounded-full flex items-center justify-center"
+            style={{ background: '#fff', border: '2px solid #1C5628' }}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="#1C5628" strokeWidth="2.5" strokeLinecap="round" width="10" height="10">
+              <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Info */}
+        <div className="flex-1 relative z-10">
+          <div
+            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold mb-3 tracking-wider uppercase"
+            style={{ background: 'rgba(255,255,255,0.13)', border: '1px solid rgba(255,255,255,0.18)', color: 'rgba(255,255,255,0.8)' }}
+          >
+            {stage}
+          </div>
+          <h1 className="font-serif font-bold text-white leading-none mb-2" style={{ fontSize: 'clamp(36px,8vw,56px)', letterSpacing: '-2px' }}>
+            {child.name}
+          </h1>
+          <p className="text-sm mb-2" style={{ color: 'rgba(255,255,255,0.6)' }}>{ageLabel}{dobLabel ? ` · ${dobLabel}` : ''}</p>
+          <p className="font-serif italic text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.55)', maxWidth: 340 }}>
+            {ageContext}
+          </p>
+          <button
+            className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium mt-4 transition-all duration-200"
+            style={{ background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.18)', color: 'rgba(255,255,255,0.82)' }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.18)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.10)'}
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse flex-shrink-0" />
+            {milestonePill}
+          </button>
+        </div>
+
+        {/* Stats */}
+        {(latestGrowth || latestUpdate) && (
+          <div className="hidden sm:flex items-center gap-6 flex-shrink-0 relative z-10">
+            {latestGrowth?.weight_kg && (
+              <>
+                <div className="text-center">
+                  <div className="font-serif font-bold text-white" style={{ fontSize: 30, letterSpacing: '-0.8px', lineHeight: 1 }}>
+                    {latestGrowth.weight_kg}<span className="font-sans font-normal text-xs ml-0.5" style={{ color: 'rgba(255,255,255,0.5)' }}>kg</span>
+                  </div>
+                  <div className="text-xs mt-1 uppercase tracking-wide" style={{ color: 'rgba(255,255,255,0.5)' }}>Weight</div>
+                </div>
+                <div className="w-px h-11" style={{ background: 'rgba(255,255,255,0.14)' }} />
+              </>
+            )}
+            {latestGrowth?.height_cm && (
+              <div className="text-center">
+                <div className="font-serif font-bold text-white" style={{ fontSize: 30, letterSpacing: '-0.8px', lineHeight: 1 }}>
+                  {latestGrowth.height_cm}<span className="font-sans font-normal text-xs ml-0.5" style={{ color: 'rgba(255,255,255,0.5)' }}>cm</span>
+                </div>
+                <div className="text-xs mt-1 uppercase tracking-wide" style={{ color: 'rgba(255,255,255,0.5)' }}>Height</div>
+              </div>
             )}
           </div>
-          <div className="w-14 h-14 sm:w-16 sm:h-16 bg-forest-50 rounded-2xl flex items-center justify-center flex-shrink-0">
-            <BabyIcon className="w-7 h-7 sm:w-8 sm:h-8 text-forest-600" />
-          </div>
-        </div>
-      </Card>
+        )}
+      </div>
 
-      {/* Quick Stats */}
-      {(latestGrowth || latestUpdate) && (
-        <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
-          {[
-            { label: t('dashboard.weight'), value: formatWeight(latestGrowth?.weight_kg || latestUpdate?.weight_kg), bg: 'bg-blue-50', accent: 'bg-blue-400' },
-            { label: t('dashboard.height'), value: formatHeight(latestGrowth?.height_cm || latestUpdate?.height_cm), bg: 'bg-violet-50', accent: 'bg-violet-400' },
-            { label: t('dashboard.mood'), value: latestUpdate?.mood?.replace('_', ' ') || '—', bg: 'bg-amber-50', accent: 'bg-amber-400' },
-          ].map((stat) => (
-            <Card key={stat.label} className={`p-3.5 sm:p-4 text-center ${stat.bg} border-transparent`}>
-              <p className="text-micro font-semibold uppercase tracking-wider text-gray-400 mb-1.5 flex items-center justify-center gap-1.5">
-                <span className={`w-1.5 h-1.5 ${stat.accent} rounded-full`} />
-                {stat.label}
-              </p>
-              <p className="text-h3 font-serif font-bold text-forest-700 capitalize truncate">{stat.value}</p>
-            </Card>
-          ))}
-        </div>
-      )}
+      {/* ── MOOD + SNAPSHOT ROW ───────────────────────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
-      {/* Parent emotional check-in — once per day */}
-      {showCheckin && (
-        <Card className="p-4 sm:p-5 rounded-2xl border-cream-300">
-          {!checkinDone ? (
-            <>
-              <p className="text-caption font-semibold text-forest-700">
-                How are you feeling today{profile?.full_name ? `, ${parentName}` : ''}?
-              </p>
-              <p className="text-xs text-gray-400 mt-0.5 mb-4">You matter too. This takes 2 seconds.</p>
-              <div className="flex gap-2.5 justify-between">
-                {MOOD_OPTIONS.map((m) => (
-                  <button
-                    key={m.value}
-                    onClick={() => handleMoodSelect(m.value)}
-                    className="flex-1 flex flex-col items-center gap-1 py-2.5 rounded-xl border-2 border-cream-200 hover:border-forest-300 hover:bg-forest-50/50 transition-all duration-200 active:scale-95"
-                  >
-                    <span className="text-2xl">{m.emoji}</span>
-                    <span className="text-micro text-gray-500">{m.label}</span>
-                  </button>
-                ))}
-              </div>
-            </>
-          ) : (
-            <div className="text-center py-1 animate-fade-in">
+        {/* Mood Card */}
+        <div className="bg-white rounded-[22px] border border-black/5 shadow-sm p-6">
+          <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-1">Parent Wellbeing</p>
+          <p className="font-serif text-lg font-semibold text-forest-700 mb-1">
+            How are you feeling{profile?.full_name ? `, ${parentName}` : ''}?
+          </p>
+          <p className="text-xs text-gray-400 mb-5">You matter too. This takes 2 seconds.</p>
+
+          {checkinDone ? (
+            <div className="py-2 text-center animate-fade-in">
               <p className="font-serif text-sm text-forest-700 italic">{checkinConfirm}</p>
             </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2.5">
+              {MOOD_OPTIONS.map((m) => (
+                <button
+                  key={m.value}
+                  onClick={() => handleMoodSelect(m.value)}
+                  className={`flex flex-col items-center gap-2 py-3.5 rounded-2xl transition-all duration-200 border-2 ${
+                    activeMood === m.value
+                      ? 'border-forest-500 bg-forest-50 shadow-sm'
+                      : 'border-cream-200 bg-cream-50 hover:border-forest-300 hover:bg-forest-50/50'
+                  }`}
+                >
+                  <span className="text-2xl leading-none">{m.emoji}</span>
+                  <span className={`text-xs font-medium ${activeMood === m.value ? 'text-forest-700 font-semibold' : 'text-gray-500'}`}>{m.label}</span>
+                </button>
+              ))}
+            </div>
           )}
-        </Card>
-      )}
+        </div>
 
-      {/* Dr. Bloom AI Insight */}
+        {/* Stats Snapshot Card */}
+        <div className="bg-white rounded-[22px] border border-black/5 shadow-sm p-6">
+          <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-1">Today's Summary</p>
+          <p className="font-serif text-lg font-semibold text-forest-700 mb-4">{child.name} at a Glance</p>
+
+          <div className="space-y-0">
+            {[
+              {
+                icon: '🍼',
+                name: 'Last Weight',
+                when: latestGrowth?.record_date ? `Logged ${formatDate(latestGrowth.record_date)}` : 'Not logged yet',
+                value: latestGrowth?.weight_kg ? formatWeight(latestGrowth.weight_kg) : '—',
+              },
+              {
+                icon: '📏',
+                name: 'Last Height',
+                when: latestGrowth?.record_date ? `Logged ${formatDate(latestGrowth.record_date)}` : 'Not logged yet',
+                value: latestGrowth?.height_cm ? formatHeight(latestGrowth.height_cm) : '—',
+              },
+              {
+                icon: '📋',
+                name: 'Last Check-in',
+                when: latestUpdate?.created_at ? `${differenceInDays(new Date(), new Date(latestUpdate.created_at))} days ago` : 'Not done yet',
+                value: latestUpdate ? '✓' : '—',
+              },
+            ].map((row, i, arr) => (
+              <div key={row.name} className={`flex items-center justify-between py-3.5 ${i < arr.length - 1 ? 'border-b border-cream-200' : ''}`}>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-forest-50 flex items-center justify-center text-lg flex-shrink-0">
+                    {row.icon}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-forest-700">{row.name}</p>
+                    <p className="text-xs text-gray-400">{row.when}</p>
+                  </div>
+                </div>
+                <span className="font-serif font-bold text-xl text-forest-600 leading-none">{row.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── FEATURE GRID ─────────────────────────────────── */}
+      <div>
+        <div className="flex items-baseline justify-between mb-4">
+          <h2 className="font-serif text-xl font-semibold text-forest-700" style={{ letterSpacing: '-0.4px' }}>
+            Everything for {child.name}
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5">
+          {[
+            {
+              icon: '📋',
+              name: 'Check-in',
+              desc: 'Daily health log & notes',
+              path: `/child/${child.id}/weekly-update`,
+              badge: 'Today',
+              badgeColor: 'bg-forest-50 text-forest-700',
+            },
+            {
+              icon: '📈',
+              name: 'Growth',
+              desc: 'Weight, height & head circ.',
+              path: `/child/${child.id}/growth`,
+            },
+            {
+              icon: '🍼',
+              name: 'Food & Feeding',
+              desc: 'Feeding tracker & schedule',
+              path: `/child/${child.id}/food`,
+            },
+            {
+              icon: '❤️',
+              name: 'Health',
+              desc: 'Vitals, vaccines & doctor visits',
+              path: `/child/${child.id}/health`,
+            },
+            {
+              icon: '📚',
+              name: 'Guides',
+              desc: 'Expert-backed parenting content',
+              path: '/guides',
+            },
+            {
+              icon: '🌸',
+              name: 'Dr. Bloom',
+              desc: 'Your AI pediatric assistant',
+              path: '/ask',
+              badge: 'AI',
+              badgeColor: 'bg-amber-50 text-amber-700',
+            },
+          ].map((feat) => (
+            <button
+              key={feat.path}
+              onClick={() => go(feat.path)}
+              className="group relative bg-white rounded-[22px] border border-black/5 shadow-sm p-5 text-left transition-all duration-250 hover:shadow-xl hover:-translate-y-1 hover:border-forest-200 overflow-hidden"
+            >
+              <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-forest-500 to-forest-400 opacity-0 group-hover:opacity-100 transition-opacity duration-250 rounded-t-[22px]" />
+              {feat.badge && (
+                <span className={`absolute top-3.5 right-3.5 text-[10px] font-bold px-2 py-0.5 rounded-full ${feat.badgeColor}`}>
+                  {feat.badge}
+                </span>
+              )}
+              <div className="w-11 h-11 rounded-2xl bg-forest-50 flex items-center justify-center text-2xl mb-3.5 transition-all duration-200 group-hover:bg-forest-100 group-hover:scale-110">
+                {feat.icon}
+              </div>
+              <p className="text-sm font-semibold text-forest-700 mb-1 leading-tight">{feat.name}</p>
+              <p className="text-xs text-gray-400 leading-snug">{feat.desc}</p>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ── CTA BUTTON ───────────────────────────────────── */}
+      <button
+        onClick={() => go(`/child/${child.id}/weekly-update`)}
+        className="w-full flex items-center justify-center gap-2.5 py-4 rounded-[14px] text-white text-sm font-semibold transition-all duration-250 hover:-translate-y-0.5 active:translate-y-0"
+        style={{ background: '#1C5628', boxShadow: '0 4px 18px rgba(28,86,40,0.35)' }}
+        onMouseEnter={e => e.currentTarget.style.boxShadow = '0 8px 28px rgba(28,86,40,0.45)'}
+        onMouseLeave={e => e.currentTarget.style.boxShadow = '0 4px 18px rgba(28,86,40,0.35)'}
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="17" height="17">
+          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>
+        </svg>
+        Log how {child.name} has been today
+      </button>
+
+      {/* ── AI INSIGHT ───────────────────────────────────── */}
       {latestUpdate?.ai_insight && (
-        <Card accent="green" className="p-5 sm:p-6 bg-forest-50/40">
-          <p className="text-micro font-bold uppercase tracking-wider text-forest-600/70 mb-2.5 flex items-center gap-2">
+        <div className="bg-forest-50/60 border border-forest-200/60 rounded-[22px] p-6">
+          <p className="text-xs font-bold uppercase tracking-widest text-forest-600/70 mb-3 flex items-center gap-2">
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
-            {t('dashboard.aiInsight', { name: child.name })}
+            Dr. Bloom on {child.name}
           </p>
-          <p className="text-body text-gray-600 leading-relaxed">{latestUpdate.ai_insight}</p>
-          <button
-            onClick={() => go('/ask')}
-            className="mt-3 text-micro text-forest-600 font-semibold hover:text-forest-700 flex items-center gap-1"
-          >
-            Ask Dr. Bloom anything
-            <ChevronRightIcon className="w-3.5 h-3.5" />
+          <p className="text-sm text-gray-600 leading-relaxed">{latestUpdate.ai_insight}</p>
+          <button onClick={() => go('/ask')} className="mt-3 text-xs text-forest-600 font-semibold hover:text-forest-700 flex items-center gap-1 transition-colors">
+            Ask Dr. Bloom anything →
           </button>
-        </Card>
+        </div>
       )}
 
-      {/* Primary CTA */}
-      <Button
-        onClick={() => go(`/child/${child.id}/weekly-update`)}
-        className="w-full"
-        size="lg"
-      >
-        <ClipboardIcon className="w-5 h-5 mr-2" />
-        {child.name ? t('dashboard.logThisWeek', { name: child.name }) : t('dashboard.logThisWeekGeneric')}
-      </Button>
-
-      {/* Contextual nudge card */}
+      {/* ── NUDGE ────────────────────────────────────────── */}
       {nudge && (
-        <button
-          onClick={() => go(nudge.path)}
-          className="w-full text-left"
-        >
-          <div className="bg-cream-50 border-l-[3px] border-forest-700 rounded-r-xl px-4 py-3.5">
+        <button onClick={() => go(nudge.path)} className="w-full text-left">
+          <div className="bg-cream-50 border-l-[3px] border-forest-700 rounded-r-xl px-4 py-3.5 hover:bg-cream-100 transition-colors">
             <p className="text-sm text-gray-700 leading-snug">{nudge.text}</p>
           </div>
         </button>
       )}
 
-      {/* Quick Links */}
-      <div>
-        <h2 className="text-h3 font-serif text-forest-700 mb-3">
-          {child.name ? t('dashboard.quickAccess', { name: child.name }) : t('dashboard.quickAccessGeneric')}
-        </h2>
-        <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
-          {quickLinks.map((link) => (
-            <Card
-              key={link.to}
-              hover
-              className="p-3.5 sm:p-4 group"
-              onClick={() => go(link.to)}
-            >
-              <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center mb-2.5 ${link.bg} group-hover:scale-105 transition-transform duration-250`}>
-                <link.icon className={`w-5 h-5 ${link.iconColor}`} />
-              </div>
-              <p className="text-caption font-semibold text-forest-700 group-hover:text-terracotta-400 transition-colors leading-tight">{link.label}</p>
-            </Card>
-          ))}
+      {/* ── ACTIVITY TIMELINE ────────────────────────────── */}
+      {(latestUpdate || latestGrowth) && (
+        <div>
+          <div className="flex items-baseline justify-between mb-4">
+            <h2 className="font-serif text-xl font-semibold text-forest-700" style={{ letterSpacing: '-0.4px' }}>Recent Activity</h2>
+          </div>
+          <div className="bg-white rounded-[22px] border border-black/5 shadow-sm p-6">
+            <div className="space-y-0">
+              {[
+                latestUpdate && {
+                  icon: '📋',
+                  title: 'Weekly check-in completed',
+                  detail: latestUpdate.mood ? `Parent mood: ${latestUpdate.mood.replace('_', ' ')}` : 'Check-in logged',
+                  time: formatDate(latestUpdate.created_at),
+                  live: differenceInDays(new Date(), new Date(latestUpdate.created_at)) === 0,
+                },
+                latestGrowth && {
+                  icon: '📏',
+                  title: 'Growth measurement logged',
+                  detail: [latestGrowth.weight_kg && `Weight: ${formatWeight(latestGrowth.weight_kg)}`, latestGrowth.height_cm && `Height: ${formatHeight(latestGrowth.height_cm)}`].filter(Boolean).join(' · '),
+                  time: formatDate(latestGrowth.record_date),
+                  live: false,
+                },
+              ].filter(Boolean).map((item, i, arr) => (
+                <div key={item.title} className={`flex gap-4 py-4 ${i < arr.length - 1 ? 'border-b border-cream-200' : ''}`}>
+                  <div className="w-10 h-10 rounded-xl bg-forest-50 flex items-center justify-center text-lg flex-shrink-0">
+                    {item.icon}
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-forest-700 mb-0.5">{item.title}</p>
+                    <p className="text-xs text-gray-400">{item.detail}</p>
+                    <div className="flex items-center gap-2 mt-1.5">
+                      {item.live && (
+                        <span className="inline-flex items-center gap-1 bg-forest-50 text-forest-600 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">
+                          <span className="w-1.5 h-1.5 rounded-full bg-forest-400 animate-pulse" />
+                          Today
+                        </span>
+                      )}
+                      <span className="text-xs text-gray-400">{item.time}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Auth gate modal for guests */}
+      {/* ── AUTH GATE MODAL ──────────────────────────────── */}
       {showAuthModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-5">
-          <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={() => setShowAuthModal(false)}
-          />
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowAuthModal(false)} />
           <div className="relative bg-white rounded-3xl p-7 w-full max-w-sm shadow-2xl animate-fade-in-up">
-            {/* Dr. Bloom icon */}
             <div className="w-14 h-14 bg-forest-700 rounded-2xl flex items-center justify-center mx-auto mb-5">
               <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -393,13 +528,14 @@ export default function DashboardPage() {
             <p className="text-sm text-gray-500 text-center leading-relaxed mb-7">
               Track your baby's growth, milestones, and get personalised guidance from Dr. Bloom — free.
             </p>
-            <Button className="w-full mb-3" size="lg" onClick={() => navigate('/auth')}>
-              Create free account
-            </Button>
             <button
-              className="w-full text-sm text-center text-gray-400 hover:text-forest-700 transition-colors py-1"
               onClick={() => navigate('/auth')}
+              className="w-full py-4 rounded-xl text-white text-sm font-semibold mb-3 transition-all hover:opacity-90"
+              style={{ background: '#1C5628' }}
             >
+              Create free account
+            </button>
+            <button className="w-full text-sm text-center text-gray-400 hover:text-forest-700 transition-colors py-1" onClick={() => navigate('/auth')}>
               Already have an account? <span className="font-semibold text-forest-600">Sign in</span>
             </button>
           </div>
@@ -409,66 +545,51 @@ export default function DashboardPage() {
   );
 }
 
-function PregnancyDashboard({ child, profile, navigate, quickLinks, t }) {
+function PregnancyDashboard({ child, navigate, go, t }) {
   const pregnancy = formatPregnancyWeek(child.due_date);
   const daysUntilDue = differenceInDays(new Date(child.due_date), new Date());
   const progress = Math.min((pregnancy.weeks / 40) * 100, 100);
 
   return (
-    <div className="space-y-6 stagger-children">
-      <ChildSwitcher />
-
-      {/* Pregnancy Hero */}
-      <Card className="p-5 sm:p-7 overflow-hidden relative">
-        <div className="absolute -top-10 -right-10 w-36 h-36 bg-forest-50/50 rounded-full blur-2xl" />
-        <div className="relative">
-          <Badge variant="primary" className="mb-3">{t('dashboard.trimester', { number: pregnancy.trimester })}</Badge>
-          <h1 className="text-h1 font-serif text-forest-700">Week {pregnancy.weeks}</h1>
-          <p className="text-body text-gray-500 mt-1">
-            {daysUntilDue > 0 ? t('dashboard.daysUntilDue', { days: daysUntilDue }) : t('dashboard.dueDatePassed')}
-          </p>
-          <p className="text-sm italic font-serif text-forest-600/80 mt-2">
-            These are the weeks you will never forget.
-          </p>
-
-          {/* Progress Bar */}
-          <div className="mt-5 bg-cream-100 rounded-xl p-4">
-            <div className="flex justify-between text-micro text-gray-500 mb-2.5 uppercase tracking-wider">
-              <span className="font-medium">{t('dashboard.progress')}</span>
-              <span className="font-bold text-forest-600">{Math.round(progress)}%</span>
-            </div>
-            <div className="h-2.5 bg-cream-200 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-forest-500 rounded-full transition-all duration-1000"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
+    <div className="space-y-5 animate-fade-in">
+      <div
+        className="rounded-[28px] p-7 sm:p-9 relative overflow-hidden"
+        style={{ background: '#1C5628', boxShadow: '0 8px 40px rgba(28,86,40,0.35)' }}
+      >
+        <div className="absolute -top-20 -right-20 w-80 h-80 rounded-full pointer-events-none" style={{ background: 'rgba(255,255,255,0.04)' }} />
+        <div
+          className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold mb-3 tracking-wider uppercase"
+          style={{ background: 'rgba(255,255,255,0.13)', border: '1px solid rgba(255,255,255,0.18)', color: 'rgba(255,255,255,0.8)' }}
+        >
+          🤰 {t('dashboard.trimester', { number: pregnancy.trimester })}
+        </div>
+        <h1 className="font-serif font-bold text-white mb-2" style={{ fontSize: 52, letterSpacing: '-2px', lineHeight: 0.95 }}>
+          Week {pregnancy.weeks}
+        </h1>
+        <p className="text-sm mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>
+          {daysUntilDue > 0 ? t('dashboard.daysUntilDue', { days: daysUntilDue }) : t('dashboard.dueDatePassed')}
+        </p>
+        <p className="font-serif italic text-sm" style={{ color: 'rgba(255,255,255,0.55)' }}>
+          These are the weeks you will never forget.
+        </p>
+        <div className="mt-5 rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.1)' }}>
+          <div className="flex justify-between text-xs mb-2" style={{ color: 'rgba(255,255,255,0.6)' }}>
+            <span className="font-medium uppercase tracking-wider">{t('dashboard.progress')}</span>
+            <span className="font-bold text-white">{Math.round(progress)}%</span>
+          </div>
+          <div className="h-2 rounded-full" style={{ background: 'rgba(255,255,255,0.15)' }}>
+            <div className="h-full rounded-full transition-all duration-1000" style={{ width: `${progress}%`, background: '#7FE89A' }} />
           </div>
         </div>
-      </Card>
-
-      <Button
-        onClick={() => navigate(`/child/${child.id}/weekly-update`)}
-        className="w-full"
-        size="lg"
-      >
-        <ClipboardIcon className="w-5 h-5 mr-2" />
-        {t('dashboard.weeklyCheckin')}
-      </Button>
-
-      <div>
-        <h2 className="text-h3 font-serif text-forest-700 mb-3">{t('dashboard.quickAccessGeneric')}</h2>
-        <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
-          {quickLinks.map((link) => (
-            <Card key={link.to} hover className="p-3.5 sm:p-4 group" onClick={() => navigate(link.to)}>
-              <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center mb-2.5 ${link.bg} group-hover:scale-105 transition-transform duration-250`}>
-                <link.icon className={`w-5 h-5 ${link.iconColor}`} />
-              </div>
-              <p className="text-caption font-semibold text-forest-700 group-hover:text-terracotta-400 transition-colors leading-tight">{link.label}</p>
-            </Card>
-          ))}
-        </div>
       </div>
+
+      <button
+        onClick={() => go(`/child/${child.id}/weekly-update`)}
+        className="w-full flex items-center justify-center gap-2.5 py-4 rounded-[14px] text-white text-sm font-semibold"
+        style={{ background: '#1C5628', boxShadow: '0 4px 18px rgba(28,86,40,0.35)' }}
+      >
+        {t('dashboard.weeklyCheckin')}
+      </button>
     </div>
   );
 }
