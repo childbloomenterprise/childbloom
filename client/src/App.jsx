@@ -12,14 +12,13 @@ import SplashScreen from './components/ui/SplashScreen';
 import AuthPage from './features/auth/AuthPage';
 import AuthCallback from './features/auth/AuthCallback';
 import OnboardingPage from './features/onboarding/OnboardingPage';
-import LoginPage from './features/auth/LoginPage';
-import SignupPage from './features/auth/SignupPage';
 
 // ── App pages: lazy-loaded (only fetched when needed) ──
 const DashboardPage     = lazy(() => import('./features/dashboard/DashboardPage'));
 const WeeklyUpdatePage  = lazy(() => import('./features/weekly-update/WeeklyUpdatePage'));
 const UpdateHistoryPage = lazy(() => import('./features/weekly-update/UpdateHistoryPage'));
 const GrowthPage        = lazy(() => import('./features/growth/GrowthPage'));
+const GrowthChartPage   = lazy(() => import('./features/growth/GrowthChartPage'));
 const FoodTrackerPage   = lazy(() => import('./features/food/FoodTrackerPage'));
 const HealthRecordsPage = lazy(() => import('./features/health/HealthRecordsPage'));
 const GuidesPage        = lazy(() => import('./features/guides/GuidesPage'));
@@ -75,6 +74,7 @@ export default function App() {
               <Route path="/child/:id/weekly-update"      element={<WeeklyUpdatePage />} />
               <Route path="/child/:id/updates"            element={<UpdateHistoryPage />} />
               <Route path="/child/:id/growth"             element={<GrowthPage />} />
+              <Route path="/child/:id/development"        element={<GrowthChartPage />} />
               <Route path="/child/:id/food"               element={<FoodTrackerPage />} />
               <Route path="/child/:id/health"             element={<HealthRecordsPage />} />
               <Route path="/guides"                       element={<GuidesPage />} />

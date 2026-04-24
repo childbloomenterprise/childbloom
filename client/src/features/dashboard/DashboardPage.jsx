@@ -1,14 +1,17 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import { useSelectedChild } from '../../hooks/useChild';
 import useAuthStore from '../../stores/authStore';
+import useUiStore from '../../stores/uiStore';
 import { formatWeight, formatHeight, formatDate, formatPregnancyWeek } from '../../lib/formatters';
 import { differenceInDays } from 'date-fns';
 import { BabyIcon } from '../../assets/icons';
 import EmptyState from '../../components/shared/EmptyState';
+import { pickNextVaccine } from './vaccineSchedule';
+import { composeTodayShareMessage, shareToFamily } from './shareHelpers';
 
 const CHECKIN_KEY = 'childbloom_parent_checkin_date';
 
@@ -102,6 +105,7 @@ export default function DashboardPage() {
   const user = useAuthStore((s) => s.user);
 
   const queryClient = useQueryClient();
+  const addToast = useUiStore((s) => s.addToast);
   const fileInputRef = useRef(null);
   const todayStr = new Date().toISOString().split('T')[0];
   const lastCheckin = localStorage.getItem(CHECKIN_KEY);
@@ -111,6 +115,7 @@ export default function DashboardPage() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState(null);
+  const [isSharing, setIsSharing] = useState(false);
 
   const handleAvatarClick = () => {
     if (!session) { setShowAuthModal(true); return; }
@@ -190,11 +195,54 @@ export default function DashboardPage() {
     enabled: !!child?.id && !!session,
   });
 
+  const { data: todaysFeeds } = useQuery({
+    queryKey: ['feeds-today', child?.id, todayStr],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('food_logs')
+        .select('id, food_name, meal_type, log_date')
+        .eq('child_id', child.id)
+        .eq('log_date', todayStr);
+      return data || [];
+    },
+    enabled: !!child?.id && !!session,
+  });
+
+  const { data: todaysMood } = useQuery({
+    queryKey: ['parent-mood-today', user?.id, todayStr],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('parent_moods')
+        .select('mood')
+        .eq('user_id', user.id)
+        .eq('mood_date', todayStr)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!user?.id && !!session,
+  });
+
   const checkinMutation = useMutation({
     mutationFn: async (mood) => {
-      if (!user || !child) return;
-      const { data: todayUpdate } = await supabase.from('weekly_updates').select('id').eq('child_id', child.id).eq('week_date', todayStr).single();
-      if (todayUpdate) await supabase.from('weekly_updates').update({ parent_mood: mood }).eq('id', todayUpdate.id);
+      if (!user) return;
+      const { error } = await supabase
+        .from('parent_moods')
+        .upsert(
+          {
+            user_id: user.id,
+            child_id: child?.id && child.id !== 'demo' ? child.id : null,
+            mood,
+            mood_date: todayStr,
+          },
+          { onConflict: 'user_id,mood_date' },
+        );
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['parent-mood-today', user?.id, todayStr] });
+    },
+    onError: () => {
+      addToast({ type: 'error', message: "Couldn't save your check-in. We'll try again later.", duration: 4000 });
     },
   });
 
@@ -206,7 +254,52 @@ export default function DashboardPage() {
     const msgs = { tired: 'Rest when you can. Dr. Bloom knows.', good: 'That energy comes through. Dr. Bloom knows.', anxious: 'One thing at a time. Dr. Bloom knows.', strong: 'That strength shows. Dr. Bloom knows.' };
     setCheckinConfirm(msgs[mood] || 'Thank you.');
     setCheckinDone(true);
-    setTimeout(() => {}, 2200);
+  };
+
+  useEffect(() => {
+    if (todaysMood?.mood && !checkinDone) {
+      const msgs = { tired: 'Rest when you can. Dr. Bloom knows.', good: 'That energy comes through. Dr. Bloom knows.', anxious: 'One thing at a time. Dr. Bloom knows.', strong: 'That strength shows. Dr. Bloom knows.' };
+      setActiveMood(todaysMood.mood);
+      setCheckinConfirm(msgs[todaysMood.mood] || 'Thank you.');
+      setCheckinDone(true);
+      localStorage.setItem(CHECKIN_KEY, todayStr);
+    }
+  }, [todaysMood, checkinDone, todayStr]);
+
+  const handleShareWithFamily = async () => {
+    if (!session) { setShowAuthModal(true); return; }
+    if (isSharing) return;
+    setIsSharing(true);
+    try {
+      const feedsToday = todaysFeeds?.length ?? 0;
+      const nextVaccineForShare = pickNextVaccine({
+        dateOfBirth: child?.date_of_birth,
+        healthRecords,
+      });
+      const text = composeTodayShareMessage({
+        child,
+        feedsToday,
+        latestGrowth,
+        nextVaccine: nextVaccineForShare,
+      });
+      const result = await shareToFamily(text);
+      if (result.ok) {
+        const msg =
+          result.method === 'native'       ? 'Shared with family' :
+          result.method === 'whatsapp-web' ? 'Opening WhatsApp…' :
+          result.method === 'clipboard'    ? 'Copied — paste into WhatsApp' :
+                                             'Shared';
+        addToast({ type: 'success', message: msg, duration: 3000 });
+      } else if (result.method !== 'cancelled') {
+        addToast({
+          type: 'error',
+          message: "Couldn't open WhatsApp. Try copying the update manually.",
+          duration: 4000,
+        });
+      }
+    } finally {
+      setIsSharing(false);
+    }
   };
 
   if (session && !child) {
@@ -228,6 +321,14 @@ export default function DashboardPage() {
   const nudge = getNudge(child, latestUpdate, latestGrowth, healthRecords);
   const parentName = profile?.full_name?.split(' ')[0] || 'you';
   const initial = child.name?.charAt(0)?.toUpperCase() || '?';
+
+  const feedsToday = todaysFeeds?.length ?? 0;
+  const nextVaccine = session ? pickNextVaccine({
+    dateOfBirth: child?.date_of_birth,
+    healthRecords,
+  }) : null;
+  const canShare = !!session && child?.id && child.id !== 'demo' && (latestGrowth || feedsToday > 0 || latestUpdate);
+  const showReassurance = !!latestGrowth?.weight_kg;
 
   const ageLabel = ageInDays === 0
     ? 'Newborn'
@@ -313,11 +414,24 @@ export default function DashboardPage() {
 
         {/* Info */}
         <div className="flex-1 relative z-10">
-          <div
-            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold mb-3 tracking-wider uppercase"
-            style={{ background: 'rgba(255,255,255,0.13)', border: '1px solid rgba(255,255,255,0.18)', color: 'rgba(255,255,255,0.8)' }}
-          >
-            {stage}
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            <div
+              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold tracking-wider uppercase"
+              style={{ background: 'rgba(255,255,255,0.13)', border: '1px solid rgba(255,255,255,0.18)', color: 'rgba(255,255,255,0.8)' }}
+            >
+              {stage}
+            </div>
+            {showReassurance && (
+              <div
+                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold"
+                style={{ background: 'rgba(127,232,154,0.18)', border: '1px solid rgba(127,232,154,0.35)', color: '#d5f5df' }}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="13" height="13">
+                  <path d="M5 12s3 2 5 5c3-6 6-9 10-11" />
+                </svg>
+                Growing well
+              </div>
+            )}
           </div>
           <h1 className="font-serif font-bold text-white leading-none mb-2" style={{ fontSize: 'clamp(36px,8vw,56px)', letterSpacing: '-2px' }}>
             {child.name}
@@ -362,6 +476,57 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* ── QUICK STATUS STRIP ───────────────────────────── */}
+      {session && child?.id && child.id !== 'demo' && (nextVaccine || feedsToday > 0 || todaysFeeds) && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <button
+            onClick={() => go(`/child/${child.id}/food`)}
+            className="bg-white rounded-[18px] border border-black/5 shadow-sm p-4 flex items-center gap-3.5 text-left hover:-translate-y-0.5 hover:shadow-md transition-all duration-200"
+          >
+            <div className="w-11 h-11 rounded-xl bg-forest-50 flex items-center justify-center flex-shrink-0">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#1C5628" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" width="22" height="22">
+                <path d="M9 4.5h6M9.2 6.8h5.6l-.6 3.4a3 3 0 0 1 1.3 2.5v4.6a2 2 0 0 1-2 2h-3.8a2 2 0 0 1-2-2v-4.6a3 3 0 0 1 1.3-2.5Z"/>
+                <path d="M11 14.5h2"/>
+              </svg>
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-forest-700 leading-tight">
+                {feedsToday === 0 ? 'No feeds logged today' : `${feedsToday} feed${feedsToday === 1 ? '' : 's'} today`}
+              </p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {feedsToday === 0 ? 'Tap to log a feed' : 'Tap to view or add more'}
+              </p>
+            </div>
+          </button>
+
+          {nextVaccine && (
+            <button
+              onClick={() => go(`/child/${child.id}/health`)}
+              className="bg-white rounded-[18px] border border-black/5 shadow-sm p-4 flex items-center gap-3.5 text-left hover:-translate-y-0.5 hover:shadow-md transition-all duration-200"
+            >
+              <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(194,143,107,0.14)' }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="#B17A5A" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" width="22" height="22">
+                  <path d="M12 3.5c2.5 2 5 2.4 8 2.4 0 6-2.5 11-8 14-5.5-3-8-8-8-14 3 0 5.5-.4 8-2.4Z"/>
+                  <path d="M9 12c1.6-.3 2.6-1.3 3-3M12 9c.4 1.6 1.4 2.6 3 3"/>
+                </svg>
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-forest-700 leading-tight">
+                  {nextVaccine.daysAway === 0
+                    ? `${nextVaccine.label} — today`
+                    : nextVaccine.daysAway <= 1
+                    ? `${nextVaccine.label} — tomorrow`
+                    : `Next vaccine in ${nextVaccine.daysAway} days`}
+                </p>
+                <p className="text-xs text-gray-400 mt-0.5 truncate">
+                  {nextVaccine.source === 'iap' ? nextVaccine.contents : nextVaccine.label}
+                </p>
+              </div>
+            </button>
+          )}
+        </div>
+      )}
 
       {/* ── MOOD + SNAPSHOT ROW ───────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -526,6 +691,23 @@ export default function DashboardPage() {
         </svg>
         Log how {child.name} has been today
       </button>
+
+      {/* ── SHARE WITH FAMILY ────────────────────────────── */}
+      {canShare && (
+        <button
+          onClick={handleShareWithFamily}
+          disabled={isSharing}
+          className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-[14px] text-white text-sm font-semibold transition-all duration-250 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60 disabled:cursor-not-allowed"
+          style={{ background: '#25D366', boxShadow: '0 4px 18px rgba(37,211,102,0.35)' }}
+          onMouseEnter={e => !isSharing && (e.currentTarget.style.boxShadow = '0 8px 28px rgba(37,211,102,0.45)')}
+          onMouseLeave={e => !isSharing && (e.currentTarget.style.boxShadow = '0 4px 18px rgba(37,211,102,0.35)')}
+        >
+          <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
+            <path d="M12 2.2a9.8 9.8 0 0 0-8.4 14.8L2 22l5.2-1.4A9.8 9.8 0 1 0 12 2.2Zm5.3 14a2.2 2.2 0 0 1-1.5 1c-.4.1-.9.2-3-.6-2.6-1-4.3-3.7-4.4-3.9-.1-.2-1-1.4-1-2.7 0-1.3.7-2 .9-2.2.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.2.1.4 0 .5 0 .1-.1.2-.2.4l-.3.3-.2.2c-.1.1-.2.3 0 .5.1.2.6.9 1.2 1.5.8.8 1.5 1 1.7 1.1.2.1.3.1.4 0l.6-.8c.2-.2.3-.2.5-.1l1.7.8c.2.1.3.1.4.2.1.2.1 1-.3 1.9Z"/>
+          </svg>
+          {isSharing ? 'Preparing…' : `Send ${child.name}'s update to family`}
+        </button>
+      )}
 
       {/* ── AI INSIGHT ───────────────────────────────────── */}
       {latestUpdate?.ai_insight && (
