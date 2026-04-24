@@ -33,11 +33,12 @@ export default function FoodTrackerPage() {
     meal_type: 'solid',
     food_name: '',
     quantity: '',
+    protein_g: '',
     notes: '',
     reaction: '',
   });
 
-  const { data: logs, isLoading } = useQuery({
+  const { data: logs, isLoading, isError } = useQuery({
     queryKey: ['food-logs', childId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -49,6 +50,9 @@ export default function FoodTrackerPage() {
       return data || [];
     },
   });
+
+  const setField = (field) => (e) =>
+    setFormData((prev) => ({ ...prev, [field]: e.target.value }));
 
   const addMutation = useMutation({
     mutationFn: async (record) => {
@@ -64,21 +68,35 @@ export default function FoodTrackerPage() {
       ]);
       return { previous };
     },
-    onError: (_err, newRecord, context) => {
+    onError: (_err, _vars, context) => {
       queryClient.setQueryData(['food-logs', childId], context?.previous);
+      addToast({
+        type: 'error',
+        message: 'Could not save the meal. Please try again.',
+        duration: 5000,
+      });
     },
     onSuccess: async (_data, record) => {
-      queryClient.invalidateQueries({ queryKey: ['food-logs'] });
-      const saved = { ...formData };
+      queryClient.invalidateQueries({ queryKey: ['food-logs', childId] });
       setShowForm(false);
-      setFormData({ log_date: new Date().toISOString().split('T')[0], meal_type: 'solid', food_name: '', quantity: '', notes: '', reaction: '' });
+      setFormData({
+        log_date: new Date().toISOString().split('T')[0],
+        meal_type: 'solid',
+        food_name: '',
+        quantity: '',
+        protein_g: '',
+        notes: '',
+        reaction: '',
+      });
 
-      // If a reaction was noted, ask Dr. Bloom and surface as toast
-      if (saved.reaction?.trim() && child) {
+      // If a reaction was noted, ask Dr. Bloom and surface as a toast
+      if (record.reaction?.trim() && child) {
         try {
-          const ageMonths = child.date_of_birth ? Math.floor(formatAgeInDays(child.date_of_birth) / 30) : null;
+          const ageMonths = child.date_of_birth
+            ? Math.floor(formatAgeInDays(child.date_of_birth) / 30)
+            : null;
           const response = await api.post('/api/ai/ask', {
-            question: `${child.name} (${ageMonths ? `${ageMonths} months old` : 'infant'}) had this reaction after eating ${saved.food_name}: "${saved.reaction}". In 35 words or fewer: one calm reassurance, one age-appropriate Indian alternative food to try, and one brief sentence on when to see a doctor.`,
+            question: `${child.name} (${ageMonths ? `${ageMonths} months old` : 'infant'}) had this reaction after eating ${record.food_name}: "${record.reaction}". In 35 words or fewer: one calm reassurance, one age-appropriate Indian alternative food to try, and one brief sentence on when to see a doctor.`,
             child_name: child.name,
             age_in_days: child.date_of_birth ? formatAgeInDays(child.date_of_birth) : null,
             gender: child.gender,
@@ -94,12 +112,9 @@ export default function FoodTrackerPage() {
             });
           }
         } catch {
-          // Silently skip
+          // Silently skip AI toast — not critical
         }
       }
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['food-logs', childId] });
     },
   });
 
@@ -108,10 +123,35 @@ export default function FoodTrackerPage() {
       const { error } = await supabase.from('food_logs').delete().eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['food-logs'] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['food-logs', childId] }),
+    onError: () => addToast({ type: 'error', message: 'Could not delete the meal.', duration: 4000 }),
   });
 
+  const handleSubmit = () => {
+    if (!user?.id || !childId) return;
+    addMutation.mutate({
+      child_id: childId,
+      user_id: user.id,
+      log_date: formData.log_date,
+      meal_type: formData.meal_type,
+      food_name: formData.food_name,
+      quantity: formData.quantity || null,
+      protein_g: formData.protein_g ? parseFloat(formData.protein_g) : null,
+      notes: formData.notes || null,
+      reaction: formData.reaction || null,
+    });
+  };
+
   if (isLoading) return <SkeletonList count={4} />;
+
+  if (isError) {
+    return (
+      <div className="text-center py-16 space-y-3">
+        <p className="text-base font-medium text-red-500">Couldn't load food logs</p>
+        <p className="text-sm text-gray-400">Check your connection and try refreshing.</p>
+      </div>
+    );
+  }
 
   const mealLabel = (type) => MEAL_TYPES.find((m) => m.value === type)?.label || type;
 
@@ -130,7 +170,6 @@ export default function FoodTrackerPage() {
   const pageTitle = child?.name ? t('food.title', { name: child.name }) : t('food.titleGeneric');
   const pageSubtitle = child?.name ? t('food.trackMeals', { name: child.name }) : t('food.trackMealsGeneric');
   const modalTitle = child?.name ? t('food.logMeal', { name: child.name }) : t('food.logMealGeneric');
-  const emptyDesc = child?.name ? t('food.startTracking', { name: child.name }) : t('food.startTrackingGeneric');
 
   return (
     <div className="space-y-6">
@@ -150,7 +189,9 @@ export default function FoodTrackerPage() {
         <EmptyState
           title={child?.name ? `What ${child.name} eats` : 'Food tracker'}
           description={(() => {
-            const months = child?.date_of_birth ? Math.floor((new Date() - new Date(child.date_of_birth)) / (30 * 24 * 60 * 60 * 1000)) : 0;
+            const months = child?.date_of_birth
+              ? Math.floor((new Date() - new Date(child.date_of_birth)) / (30 * 24 * 60 * 60 * 1000))
+              : 0;
             return months < 6
               ? `At ${months} month${months !== 1 ? 's' : ''} old, every feed is building the foundation. Even logging one feed today creates a pattern over time.`
               : `${child?.name || 'Their'} nutrition story starts with one meal logged today.`;
@@ -162,7 +203,9 @@ export default function FoodTrackerPage() {
       ) : (
         Object.entries(grouped).map(([date, items]) => (
           <div key={date} className="space-y-2.5">
-            <h3 className="text-micro font-semibold text-gray-400 uppercase tracking-wider">{formatDate(date)}</h3>
+            <h3 className="text-micro font-semibold text-gray-400 uppercase tracking-wider">
+              {formatDate(date)}
+            </h3>
             {items.map((log) => (
               <Card key={log.id} className="p-4">
                 <div className="flex items-start justify-between">
@@ -171,12 +214,15 @@ export default function FoodTrackerPage() {
                       <p className="text-caption font-semibold text-forest-700">{log.food_name}</p>
                       <Badge variant={mealBadgeVariant(log.meal_type)}>{mealLabel(log.meal_type)}</Badge>
                     </div>
-                    <div className="flex gap-3 text-micro text-gray-500">
+                    <div className="flex flex-wrap gap-3 text-micro text-gray-500">
                       {log.quantity && <span>{log.quantity}</span>}
+                      {log.protein_g != null && <span>{log.protein_g}g protein</span>}
                       {log.notes && <span>{log.notes}</span>}
                     </div>
                     {log.reaction && (
-                      <p className="text-micro text-red-500 mt-1">{t('food.reactionLabel')}: {log.reaction}</p>
+                      <p className="text-micro text-red-500 mt-1">
+                        {t('food.reactionLabel')}: {log.reaction}
+                      </p>
                     )}
                   </div>
                   <button
@@ -198,15 +244,19 @@ export default function FoodTrackerPage() {
             label={t('food.date')}
             type="date"
             value={formData.log_date}
-            onChange={(e) => setFormData({ ...formData, log_date: e.target.value })}
+            onChange={setField('log_date')}
           />
+
           <div className="space-y-1.5">
-            <label className="block text-caption font-semibold text-forest-700">{t('food.mealType')}</label>
+            <label className="block text-caption font-semibold tracking-tight" style={{ color: 'rgba(61,43,35,0.7)' }}>
+              {t('food.mealType')}
+            </label>
             <div className="grid grid-cols-2 gap-2">
               {MEAL_TYPES.map((type) => (
                 <button
                   key={type.value}
-                  onClick={() => setFormData({ ...formData, meal_type: type.value })}
+                  type="button"
+                  onClick={() => setFormData((prev) => ({ ...prev, meal_type: type.value }))}
                   className={`py-2.5 px-3 rounded-xl text-caption font-medium border-2 transition-all duration-200 ${
                     formData.meal_type === type.value
                       ? 'border-forest-500 bg-forest-50 text-forest-700'
@@ -218,43 +268,50 @@ export default function FoodTrackerPage() {
               ))}
             </div>
           </div>
+
           <Input
             label={t('food.foodName')}
             placeholder={child?.name ? `What did you give ${child.name}?` : t('food.foodPlaceholder')}
             value={formData.food_name}
-            onChange={(e) => setFormData({ ...formData, food_name: e.target.value })}
+            onChange={setField('food_name')}
           />
-          <Input
-            label={t('food.quantity')}
-            placeholder={t('food.quantityPlaceholder')}
-            value={formData.quantity}
-            onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-          />
+
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label={t('food.quantity')}
+              placeholder={t('food.quantityPlaceholder')}
+              value={formData.quantity}
+              onChange={setField('quantity')}
+            />
+            <Input
+              label="Protein (g)"
+              type="number"
+              min="0"
+              step="0.1"
+              placeholder="e.g. 3.5"
+              value={formData.protein_g}
+              onChange={setField('protein_g')}
+            />
+          </div>
+
           <Input
             label={t('food.notes')}
             placeholder={t('food.notesPlaceholder')}
             value={formData.notes}
-            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+            onChange={setField('notes')}
           />
+
           <Input
             label={t('food.reaction')}
             placeholder={t('food.reactionPlaceholder')}
             value={formData.reaction}
-            onChange={(e) => setFormData({ ...formData, reaction: e.target.value })}
+            onChange={setField('reaction')}
           />
+
           <Button
-            onClick={() => addMutation.mutate({
-              child_id: childId,
-              user_id: user.id,
-              log_date: formData.log_date,
-              meal_type: formData.meal_type,
-              food_name: formData.food_name,
-              quantity: formData.quantity || null,
-              notes: formData.notes || null,
-              reaction: formData.reaction || null,
-            })}
+            onClick={handleSubmit}
             loading={addMutation.isPending}
-            disabled={!formData.food_name.trim()}
+            disabled={!formData.food_name.trim() || addMutation.isPending}
             className="w-full"
           >
             {addMutation.isPending ? 'Saving...' : t('food.saveMeal')}
