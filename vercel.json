@@ -13,10 +13,6 @@
       "schedule": "30 12 * * *"
     }
   ],
-  "functions": {
-    "api/agent/cron.js": { "maxDuration": 60 },
-    "api/agent/brief.js": { "maxDuration": 60 }
-  },
   "headers": [
     {
       "source": "/.well-known/assetlinks.json",
@@ -41,7 +37,6 @@
     }
   ],
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
