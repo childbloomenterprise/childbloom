@@ -16,11 +16,29 @@ function cn(...inputs) { return twMerge(clsx(inputs)) }
 export default function MotionButton({ label, variant = 'primary', classes, onClick }) {
   const circleColor = variant === 'secondary' ? 'bg-terracotta-400' : 'bg-forest-600'
 
+  function handleClick(e) {
+    const btn = e.currentTarget;
+    const rect = btn.getBoundingClientRect();
+    const d = Math.max(rect.width, rect.height) * 2.5;
+    const el = document.createElement('span');
+    el.className = 'ripple-wave';
+    Object.assign(el.style, {
+      width: d + 'px', height: d + 'px',
+      left: (e.clientX - rect.left - d / 2) + 'px',
+      top:  (e.clientY - rect.top  - d / 2) + 'px',
+      background: variant === 'secondary' ? 'rgba(193,100,65,0.25)' : 'rgba(21,87,64,0.25)',
+    });
+    btn.appendChild(el);
+    el.addEventListener('animationend', () => el.remove(), { once: true });
+    onClick?.(e);
+  }
+
   return (
     <button
-      onClick={onClick}
+      onClick={handleClick}
       className={cn(
         'group relative h-auto w-52 cursor-pointer rounded-full p-1 outline-none border-none bg-white shadow-card',
+        'overflow-hidden active:scale-[0.97] transition-transform duration-150',
         classes
       )}
     >

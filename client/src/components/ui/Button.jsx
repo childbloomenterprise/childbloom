@@ -1,12 +1,42 @@
+import { useCallback } from 'react';
+
 // 10% color (#8FBAC8) — buttons, CTA, active states
-export default function Button({ children, variant = 'primary', size = 'md', disabled, loading, className = '', ...props }) {
-  const base = `
-    inline-flex items-center justify-center font-semibold tracking-tight
-    rounded-xl transition-all duration-250 ease-out
-    focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
-    disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none
-    relative overflow-hidden select-none border
-  `;
+export default function Button({ children, variant = 'primary', size = 'md', disabled, loading, className = '', onClick, ...props }) {
+
+  const fireRipple = useCallback((e) => {
+    if (disabled || loading) return;
+    const btn = e.currentTarget;
+    const rect = btn.getBoundingClientRect();
+    const d = Math.max(rect.width, rect.height) * 2.5;
+    const x = e.clientX - rect.left - d / 2;
+    const y = e.clientY - rect.top  - d / 2;
+    const rippleColors = {
+      primary:   'rgba(255,255,255,0.3)',
+      secondary: 'rgba(255,255,255,0.45)',
+      ghost:     'rgba(143,186,200,0.3)',
+      danger:    'rgba(220,53,69,0.2)',
+    };
+    const el = document.createElement('span');
+    el.className = 'ripple-wave';
+    Object.assign(el.style, {
+      width: d + 'px', height: d + 'px',
+      left: x + 'px', top: y + 'px',
+      background: rippleColors[variant] ?? 'rgba(255,255,255,0.3)',
+    });
+    btn.appendChild(el);
+    el.addEventListener('animationend', () => el.remove(), { once: true });
+    onClick?.(e);
+  }, [disabled, loading, variant, onClick]);
+
+  const base = [
+    'inline-flex items-center justify-center font-semibold tracking-tight',
+    'rounded-xl transition-all duration-200 ease-out',
+    'focus:outline-none',
+    'disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none',
+    'relative overflow-hidden select-none border',
+    'hover:-translate-y-[3px] hover:scale-[1.01]',
+    'active:translate-y-0 active:scale-[0.96]',
+  ].join(' ');
 
   const sizes = {
     sm:   'px-4 py-2 text-caption gap-1.5',
@@ -15,7 +45,6 @@ export default function Button({ children, variant = 'primary', size = 'md', dis
     icon: 'p-2.5',
   };
 
-  // Inline styles per variant so colors are explicit and exact
   const variantStyle = {
     primary: {
       background: '#8FBAC8',
@@ -44,17 +73,18 @@ export default function Button({ children, variant = 'primary', size = 'md', dis
   };
 
   const hoverStyle = {
-    primary:   { background: '#7AAEC0', boxShadow: '0 4px 20px rgba(143,186,200,0.45)' },
-    secondary: { background: 'rgba(232,196,184,0.65)', boxShadow: '0 4px 12px rgba(61,43,35,0.09)' },
-    ghost:     { background: 'rgba(232,196,184,0.4)', borderColor: 'rgba(232,196,184,0.6)' },
-    danger:    { background: 'rgba(220,53,69,0.2)' },
+    primary:   { background: '#7AAEC0', boxShadow: '0 8px 28px rgba(143,186,200,0.55)' },
+    secondary: { background: 'rgba(232,196,184,0.72)', boxShadow: '0 6px 18px rgba(61,43,35,0.1)' },
+    ghost:     { background: 'rgba(232,196,184,0.45)', borderColor: 'rgba(232,196,184,0.7)' },
+    danger:    { background: 'rgba(220,53,69,0.22)', boxShadow: '0 4px 14px rgba(220,53,69,0.18)' },
   };
 
   return (
     <button
-      className={`${base} ${sizes[size]} ${className} hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]`}
+      className={`${base} ${sizes[size] ?? sizes.md} ${className}`}
       style={variantStyle[variant]}
       disabled={disabled || loading}
+      onClick={fireRipple}
       onMouseEnter={(e) => {
         if (disabled || loading) return;
         Object.assign(e.currentTarget.style, hoverStyle[variant]);

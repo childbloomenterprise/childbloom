@@ -1,5 +1,6 @@
 import { lazy, Suspense, useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import useAuthStore from './stores/authStore';
 import { useAuth } from './hooks/useAuth';
 import AuthLayout from './components/layout/AuthLayout';
 import AppLayout from './components/layout/AppLayout';
@@ -42,6 +43,14 @@ function PageFallback() {
   );
 }
 
+// Logged-in users skip the landing page and go straight to dashboard
+function RootRedirect() {
+  const { session, isLoading } = useAuthStore();
+  if (isLoading) return null; // SplashScreen covers the wait
+  if (session)   return <Navigate to="/dashboard" replace />;
+  return <LandingPage />;
+}
+
 
 export default function App() {
   useAuth();
@@ -52,8 +61,8 @@ export default function App() {
       {!splashDone && <SplashScreen onDone={() => setSplashDone(true)} />}
       <Suspense fallback={<PageFallback />}>
         <Routes>
-          {/* ── Root → landing page ── */}
-          <Route path="/" element={<LandingPage />} />
+          {/* ── Root → dashboard if logged in, landing page if not ── */}
+          <Route path="/" element={<RootRedirect />} />
 
           {/* ── New combined auth page ─────────────────── */}
           <Route path="/auth" element={<AuthPage />} />

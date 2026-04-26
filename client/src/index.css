@@ -457,3 +457,63 @@ html { overscroll-behavior: none; }
 .stagger-6 { animation-delay: 400ms; }
 .stagger-7 { animation-delay: 470ms; }
 .stagger-8 { animation-delay: 540ms; }
+
+/* ── Universal Button Micro-animations ──────────────────── */
+
+/* Ripple wave — injected by Button.jsx & MotionButton on click */
+@keyframes btn-ripple {
+  0%   { transform: scale(0); opacity: 0.55; }
+  70%  { opacity: 0.2; }
+  100% { transform: scale(1); opacity: 0; }
+}
+.ripple-wave {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9;
+  animation: btn-ripple 0.55s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+/* Every non-disabled button: smooth transitions + tap feel */
+button:not([disabled]) {
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.18s ease,
+    background-color 0.18s ease,
+    opacity 0.15s ease;
+  cursor: pointer;
+}
+button:not([disabled]):active {
+  transform: scale(0.96) !important;
+  transition-duration: 80ms !important;
+  transition-timing-function: ease-out !important;
+}
+
+/* Animated focus ring — accessibility-safe glow */
+@keyframes focus-ring-expand {
+  from { box-shadow: 0 0 0 0   rgba(143, 186, 200, 0.7); }
+  to   { box-shadow: 0 0 0 4px rgba(143, 186, 200, 0.22); }
+}
+button:focus-visible {
+  outline: none;
+  animation: focus-ring-expand 0.2s ease forwards;
+}
+
+/* Icon button bounce — add .btn-icon to any small icon button */
+@keyframes icon-bounce {
+  0%, 100% { transform: translateY(0) scale(1); }
+  35%       { transform: translateY(-4px) scale(1.08); }
+  65%       { transform: translateY(-1px) scale(1.02); }
+}
+.btn-icon:hover:not([disabled]) { animation: icon-bounce 0.45s ease; }
+
+/* Animated slide-in tab indicator — add .tab-indicator to the active underline */
+@keyframes tab-slide-in {
+  from { transform: scaleX(0); opacity: 0; }
+  to   { transform: scaleX(1); opacity: 1; }
+}
+.tab-indicator { animation: tab-slide-in 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) both; transform-origin: left; }
+
+/* Pulsing glow on primary CTA — add .btn-glow */
+.btn-glow:not([disabled]):hover { animation: arrow-pulse 1.5s ease-in-out infinite; }
