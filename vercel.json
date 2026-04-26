@@ -14,9 +14,8 @@
     }
   ],
   "functions": {
-    "api/**/*.js": {
-      "maxDuration": 60
-    }
+    "api/agent/cron.js": { "maxDuration": 60 },
+    "api/agent/brief.js": { "maxDuration": 60 }
   },
   "headers": [
     {
