@@ -8,6 +8,7 @@ import { differenceInDays, format } from 'date-fns';
 import CBIcon from '../../components/cb/CBIcon';
 import CBLogoMark from '../../components/cb/CBLogoMark';
 import { T } from '../../components/cb/tokens';
+import MotionButton from '../../components/ui/motion-button';
 
 function getGreeting() {
   const h = new Date().getHours();
@@ -136,22 +137,23 @@ export default function DashboardPage() {
 
   if (!user) {
     return (
-      <div style={{ minHeight: '100dvh', background: T.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 24px', textAlign: 'center' }}>
-        <CBLogoMark size={48} color={T.forest700} />
-        <h1 style={{ fontFamily: "'Fraunces', serif", fontSize: 32, fontWeight: 600, color: T.ink900, marginTop: 20, letterSpacing: '-0.025em' }}>Welcome to ChildBloom</h1>
-        <p style={{ fontSize: 16, color: T.ink500, marginTop: 10, lineHeight: 1.5 }}>A calm, AI-first companion for Indian parents.</p>
-        <button onClick={() => navigate('/auth')}
-          style={{ marginTop: 28, padding: '14px 32px', borderRadius: 99, background: T.forest700, color: '#fff', border: 'none', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>
-          Get started — free
-        </button>
+      <div className="animate-fade-in" style={{ minHeight: '100dvh', background: T.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 24px', textAlign: 'center' }}>
+        <div className="animate-bounce-subtle">
+          <CBLogoMark size={48} color={T.forest700} />
+        </div>
+        <h1 className="animate-fade-in-up stagger-2" style={{ fontFamily: "'Fraunces', serif", fontSize: 32, fontWeight: 600, color: T.ink900, marginTop: 20, letterSpacing: '-0.025em' }}>Welcome to ChildBloom</h1>
+        <p className="animate-fade-in-up stagger-3" style={{ fontSize: 16, color: T.ink500, marginTop: 10, lineHeight: 1.5 }}>A calm, AI-first companion for Indian parents.</p>
+        <div className="animate-fade-in-up stagger-4 mt-7">
+          <MotionButton label="Get started — free" onClick={() => navigate('/auth')} />
+        </div>
       </div>
     );
   }
 
   return (
-    <div style={{ background: T.bg, minHeight: '100dvh', fontFamily: "-apple-system, 'Inter', system-ui, sans-serif" }}>
+    <div className="animate-fade-in" style={{ background: T.bg, minHeight: '100dvh', fontFamily: "-apple-system, 'Inter', system-ui, sans-serif" }}>
       {/* Greeting */}
-      <div style={{ padding: '56px 20px 0' }}>
+      <div className="animate-stagger-up stagger-1" style={{ padding: '56px 20px 0' }}>
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
           <div>
             <div style={{ fontSize: 13, fontWeight: 600, color: T.ink300, letterSpacing: '-0.01em', marginBottom: 2 }}>{today}</div>
@@ -173,8 +175,11 @@ export default function DashboardPage() {
       </div>
 
       {/* Dr. Bloom card */}
-      <div style={{ margin: '20px 16px 16px', borderRadius: 20, background: T.forest700, color: '#fff', padding: '18px 18px 20px', position: 'relative', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', right: -30, bottom: -30, opacity: 0.07 }}>
+      <div className="card-shimmer animate-stagger-up stagger-2 hover-lift" style={{ margin: '20px 16px 16px', borderRadius: 20, background: T.forest700, color: '#fff', padding: '18px 18px 20px', position: 'relative', overflow: 'hidden', transition: 'transform 0.25s ease, box-shadow 0.25s ease' }}>
+        {/* decorative drifting orbs */}
+        <div className="animate-drift" style={{ position: 'absolute', right: 20, top: -30, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', pointerEvents: 'none' }} />
+        <div className="animate-drift-slow" style={{ position: 'absolute', left: -20, bottom: -20, width: 80, height: 80, borderRadius: '50%', background: 'rgba(255,255,255,0.05)', pointerEvents: 'none' }} />
+        <div className="animate-float" style={{ position: 'absolute', right: -30, bottom: -30, opacity: 0.07 }}>
           <CBLogoMark size={140} color="#fff" />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, position: 'relative' }}>
@@ -194,19 +199,21 @@ export default function DashboardPage() {
 
       {/* Stats row */}
       {childId && (
-        <div style={{ padding: '0 16px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+        <div className="animate-stagger-up stagger-3" style={{ padding: '0 16px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
           {[
             { label: 'Feeds', value: `${feedsToday}/${feedsTarget}`, sub: lastFeedAgo || 'none today', color: T.forest600, icon: 'bottle' },
             { label: 'Sleep', value: sleepToday ? `${sleepToday}h` : '—', sub: 'Goal 14–17', color: T.blue, icon: 'moon' },
             { label: 'Check-in', value: latestUpdate ? '✓' : '—', sub: latestUpdate ? 'done today' : 'tap to log', color: T.orange, icon: 'clipboard' },
-          ].map(s => (
-            <div key={s.label} style={{ background: '#fff', borderRadius: 14, padding: '12px 12px', cursor: 'pointer' }}
+          ].map((s, idx) => (
+            <div key={s.label}
+              className={`hover-lift press-effect card-shimmer animate-stagger-up stagger-${idx + 3}`}
+              style={{ background: '#fff', borderRadius: 14, padding: '12px 12px', cursor: 'pointer', transition: 'transform 0.22s ease, box-shadow 0.22s ease' }}
               onClick={() => {
                 if (s.label === 'Feeds') navigate(`/child/${childId}/food`);
                 if (s.label === 'Check-in') navigate(`/child/${childId}/weekly-update`);
               }}>
               <div style={{ color: s.color, marginBottom: 6 }}><CBIcon name={s.icon} size={16} /></div>
-              <div style={{ fontFamily: "'Fraunces', serif", fontSize: 22, fontWeight: 600, color: T.ink900, letterSpacing: '-0.02em', lineHeight: 1 }}>{s.value}</div>
+              <div className="animate-count-in" style={{ fontFamily: "'Fraunces', serif", fontSize: 22, fontWeight: 600, color: T.ink900, letterSpacing: '-0.02em', lineHeight: 1 }}>{s.value}</div>
               <div style={{ fontSize: 10, fontWeight: 600, color: T.ink300, letterSpacing: '0.06em', textTransform: 'uppercase', marginTop: 6 }}>{s.label}</div>
               <div style={{ fontSize: 11, color: T.ink500, marginTop: 1 }}>{s.sub}</div>
             </div>
@@ -216,7 +223,7 @@ export default function DashboardPage() {
 
       {/* Today timeline */}
       {childId && (
-        <div style={{ margin: '20px 16px 0' }}>
+        <div className="animate-stagger-up stagger-4" style={{ margin: '20px 16px 0' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '0 4px 10px' }}>
             <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: 22, fontWeight: 600, color: T.ink900, letterSpacing: '-0.015em', margin: 0 }}>
               Today, with {child?.name}
@@ -224,15 +231,22 @@ export default function DashboardPage() {
           </div>
           <div style={{ background: '#fff', borderRadius: 16, overflow: 'hidden' }}>
             {[
-              { icon: 'bottle', color: T.forest600, title: 'Log a feed', sub: `${feedsToday} logged today`, state: feedsToday > 0 ? 'done' : 'now', path: `/child/${childId}/food` },
-              { icon: 'clipboard', color: T.terra, title: 'Daily check-in', sub: '2 min · Dr. Bloom listens', state: latestUpdate ? 'done' : 'now', path: `/child/${childId}/weekly-update` },
-              { icon: 'chart', color: T.blue, title: 'Growth tracking', sub: 'Weight, height, head', state: 'soon', path: `/child/${childId}/growth` },
-              { icon: 'shield', color: T.forest600, title: 'Vaccinations', sub: nextVaccine ? `Next: ${nextVaccine.vaccine_name}` : 'View IAP schedule', state: 'later', last: true, path: `/child/${childId}/vaccinations` },
+              { icon: 'bottle', color: T.forest600, title: 'Log a feed', sub: `${feedsToday} logged today`, state: feedsToday > 0 ? 'done' : 'now', path: `/child/${childId}/food`, live: feedsToday > 0 },
+              { icon: 'clipboard', color: T.terra, title: 'Daily check-in', sub: '2 min · Dr. Bloom listens', state: latestUpdate ? 'done' : 'now', path: `/child/${childId}/weekly-update`, live: false },
+              { icon: 'chart', color: T.blue, title: 'Growth tracking', sub: 'Weight, height, head', state: 'soon', path: `/child/${childId}/growth`, live: false },
+              { icon: 'shield', color: T.forest600, title: 'Vaccinations', sub: nextVaccine ? `Next: ${nextVaccine.vaccine_name}` : 'View IAP schedule', state: 'later', last: true, path: `/child/${childId}/vaccinations`, live: false },
             ].map((it, i) => (
               <div key={i} onClick={() => navigate(it.path)}
-                style={{ display: 'flex', gap: 12, padding: '12px 14px', borderBottom: it.last ? 'none' : `0.5px solid ${T.ink100}`, background: it.state === 'now' ? T.forest50 : 'transparent', cursor: 'pointer', alignItems: 'center' }}>
-                <div style={{ width: 28, height: 28, borderRadius: 8, background: it.color + '1f', color: it.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                className="press-effect"
+                style={{ display: 'flex', gap: 12, padding: '12px 14px', borderBottom: it.last ? 'none' : `0.5px solid ${T.ink100}`, background: it.state === 'now' ? T.forest50 : 'transparent', cursor: 'pointer', alignItems: 'center', transition: 'background 0.18s ease' }}>
+                <div style={{ width: 28, height: 28, borderRadius: 8, background: it.color + '1f', color: it.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, position: 'relative' }}>
                   <CBIcon name={it.icon} size={15} />
+                  {/* live pulse dot */}
+                  {it.live && (
+                    <span style={{ position: 'absolute', top: -3, right: -3, width: 8, height: 8, borderRadius: '50%', background: T.forest500, display: 'block' }}>
+                      <span className="animate-pulse-live" style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: T.forest500 }} />
+                    </span>
+                  )}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 14, fontWeight: 600, color: it.state === 'done' ? T.ink300 : T.ink900, textDecoration: it.state === 'done' ? 'line-through' : 'none', letterSpacing: '-0.01em' }}>{it.title}</div>
@@ -241,7 +255,7 @@ export default function DashboardPage() {
                 {it.state === 'done'
                   ? <CBIcon name="check" size={16} stroke={2.2} />
                   : it.state === 'now'
-                    ? <button style={{ padding: '5px 10px', borderRadius: 99, background: T.forest700, color: '#fff', border: 'none', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>Start</button>
+                    ? <button className="press-effect" style={{ padding: '5px 10px', borderRadius: 99, background: T.forest700, color: '#fff', border: 'none', fontSize: 11, fontWeight: 600, cursor: 'pointer', transition: 'transform 0.15s ease, opacity 0.15s ease' }}>Start</button>
                     : <CBIcon name="chevron-right" size={14} />
                 }
               </div>
@@ -253,7 +267,8 @@ export default function DashboardPage() {
       {/* Vaccine reminder */}
       {nextVaccine && nextVaccineDays !== null && nextVaccineDays <= 30 && (
         <div onClick={() => navigate(`/child/${childId}/vaccinations`)}
-          style={{ margin: '14px 16px 0', borderRadius: 16, padding: '14px 16px', background: 'rgba(255,149,0,0.08)', border: `0.5px solid rgba(255,149,0,0.2)`, cursor: 'pointer' }}>
+          className={`press-effect animate-stagger-up stagger-5${nextVaccineDays <= 7 ? ' animate-glow-ring' : ''}`}
+          style={{ margin: '14px 16px 0', borderRadius: 16, padding: '14px 16px', background: 'rgba(255,149,0,0.08)', border: `0.5px solid rgba(255,149,0,0.2)`, cursor: 'pointer', transition: 'transform 0.15s ease' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(255,149,0,0.18)', color: T.orange, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <CBIcon name="shield" size={17} />
@@ -270,7 +285,7 @@ export default function DashboardPage() {
       )}
 
       {/* Parent mood */}
-      <div style={{ margin: '14px 16px 0', background: '#fff', borderRadius: 16, padding: '14px 16px' }}>
+      <div className="animate-stagger-up stagger-6" style={{ margin: '14px 16px 0', background: '#fff', borderRadius: 16, padding: '14px 16px' }}>
         <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: T.ink300 }}>You today</div>
         <div style={{ fontFamily: "'Fraunces', serif", fontSize: 16, fontWeight: 600, color: T.forest700, marginTop: 2, marginBottom: 10 }}>Two seconds for yourself.</div>
         <div style={{ display: 'flex', gap: 6 }}>
@@ -278,7 +293,8 @@ export default function DashboardPage() {
             const active = mood === m.id;
             return (
               <button key={m.id} onClick={() => setMood(m.id)}
-                style={{ flex: 1, padding: '10px 4px', borderRadius: 10, border: `1.5px solid ${active ? T.forest500 : T.ink100}`, background: active ? T.forest50 : '#fafafa', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, color: active ? T.forest600 : T.ink500 }}>
+                className={`mood-btn press-effect${active ? ' animate-scale-in' : ''}`}
+                style={{ flex: 1, padding: '10px 4px', borderRadius: 10, border: `1.5px solid ${active ? T.forest500 : T.ink100}`, background: active ? T.forest50 : '#fafafa', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, color: active ? T.forest600 : T.ink500, transition: 'border-color 0.2s ease, background 0.2s ease, transform 0.15s ease' }}>
                 <CBIcon name={m.i} size={16} />
                 <span style={{ fontSize: 10, fontWeight: active ? 700 : 500 }}>{m.l}</span>
               </button>
@@ -289,12 +305,9 @@ export default function DashboardPage() {
 
       {/* No child state */}
       {!childId && user && (
-        <div style={{ margin: '24px 16px', textAlign: 'center' }}>
+        <div className="animate-fade-in-up" style={{ margin: '24px 16px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <p style={{ fontSize: 15, color: T.ink500, marginBottom: 16 }}>Add your child to get started</p>
-          <button onClick={() => navigate('/onboarding')}
-            style={{ padding: '12px 24px', borderRadius: 99, background: T.forest700, color: '#fff', border: 'none', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
-            Add child
-          </button>
+          <MotionButton label="Add child" onClick={() => navigate('/onboarding')} />
         </div>
       )}
 
