@@ -3,10 +3,20 @@
   "outputDirectory": "client/dist",
   "installCommand": "npm install",
   "framework": null,
+  "crons": [
+    {
+      "path": "/api/agent/cron",
+      "schedule": "30 2 * * *"
+    },
+    {
+      "path": "/api/agent/cron",
+      "schedule": "30 12 * * *"
+    }
+  ],
   "functions": {
     "api/**/*.js": {
       "memory": 256,
-      "maxDuration": 30
+      "maxDuration": 60
     }
   },
   "headers": [
