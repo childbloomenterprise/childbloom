@@ -91,16 +91,18 @@ export default async function handler(req, res) {
       .order('record_date', { ascending: false })
       .limit(5),
 
+    // Fix: correct column names — logged_date (not log_date), quantity+notes (no reaction)
     supabase
       .from('food_logs')
-      .select('log_date, meal_type, food_name, reaction')
+      .select('logged_date, meal_type, food_name, quantity, notes')
       .eq('child_id', childId)
-      .order('log_date', { ascending: false })
+      .order('logged_date', { ascending: false })
       .limit(7),
 
+    // Fix: description (not notes) for health_records
     supabase
       .from('health_records')
-      .select('record_date, record_type, title, notes')
+      .select('record_date, record_type, title, description')
       .eq('child_id', childId)
       .order('record_date', { ascending: false })
       .limit(3),
@@ -185,7 +187,8 @@ export default async function handler(req, res) {
     res.write(`data: ${JSON.stringify({ type: 'done', suggestedQuestions })}\n\n`);
     res.end();
   } catch (err) {
-    console.error('Dr. Bloom stream error:', err);
+    // Log full error details so Vercel logs show the root cause
+    console.error('Dr. Bloom stream error:', err?.status, err?.message, JSON.stringify(err?.error ?? {}));
     res.write(`data: ${JSON.stringify({ type: 'error', message: 'Dr. Bloom is unavailable right now. Please try again in a moment.' })}\n\n`);
     res.end();
   }
