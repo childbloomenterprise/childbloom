@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useSelectedChild } from '../../hooks/useChild';
 import useAuthStore from '../../stores/authStore';
-import { LayoutDashboard, TrendingUp, MessageCircle, MoreHorizontal, Plus, Clipboard, Apple, HeartPulse, CheckSquare, X } from 'lucide-react';
+import { LayoutDashboard, TrendingUp, MessageCircle, MoreHorizontal, Plus, Clipboard, Apple, HeartPulse, CheckSquare, X, ShieldAlert } from 'lucide-react';
 
 export default function MobileNav() {
   const { t } = useTranslation();
@@ -41,7 +41,9 @@ export default function MobileNav() {
     { label: 'Development Index',    path: `/child/${childId}/development` },
     { label: t('nav.guides'),        path: '/guides' },
     { label: 'Health records',       path: `/child/${childId}/health` },
+    { label: t('nav.vaccines'),      path: `/child/${childId}/vaccinations` },
     { label: 'Update history',       path: `/child/${childId}/updates` },
+    { label: t('emergency.nav'),     path: '/emergency', emergency: true },
     { label: t('nav.settings'),      path: '/settings' },
   ];
 
@@ -97,8 +99,11 @@ export default function MobileNav() {
             {moreActions.map((action) => (
               <button
                 key={action.label}
-                onClick={() => guardedNavigate(action.path)}
-                className="w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium text-forest-700 hover:bg-forest-50 transition-colors"
+                onClick={() => { closeAll(); navigate(action.path); }}
+                className="w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium transition-colors"
+                style={action.emergency
+                  ? { color: '#DC2626', background: 'rgba(220,38,38,0.06)' }
+                  : { color: '#2D4A39' }}
               >
                 {action.label}
               </button>

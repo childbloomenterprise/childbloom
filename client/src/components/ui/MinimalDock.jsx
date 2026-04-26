@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useSelectedChild } from '../../hooks/useChild';
 import { useAuth } from '../../hooks/useAuth';
-import { LayoutDashboard, TrendingUp, BarChart2, BookOpen, MessageCircle, Settings, ClipboardList, Utensils, HeartPulse, LogOut } from 'lucide-react';
+import { LayoutDashboard, TrendingUp, BarChart2, BookOpen, MessageCircle, Settings, ClipboardList, Utensils, HeartPulse, LogOut, Syringe } from 'lucide-react';
 import { LogoMark } from './LogoMark';
 
 // Dock item — exact interaction from prompt, colors from 60/30/10 palette
@@ -161,7 +161,8 @@ export default function MinimalDock() {
       { id: 'growth', to: `/child/${childId}/growth`,         icon: <TrendingUp size={20} />,     label: t('nav.growth') },
       { id: 'dev',    to: `/child/${childId}/development`,   icon: <BarChart2 size={20} />,      label: 'Development Index' },
       { id: 'food',   to: `/child/${childId}/food`,           icon: <Utensils size={20} />,       label: t('nav.foodTracker') },
-      { id: 'health', to: `/child/${childId}/health`,         icon: <HeartPulse size={20} />,     label: t('nav.health') },
+      { id: 'health',   to: `/child/${childId}/health`,         icon: <HeartPulse size={20} />,  label: t('nav.health') },
+      { id: 'vaccines', to: `/child/${childId}/vaccinations`, icon: <Syringe size={20} />,     label: t('nav.vaccines') },
     ] : []),
     { id: 'guides',   to: '/guides',                          icon: <BookOpen size={20} />,       label: t('nav.guides') },
     { id: 'ask',      to: '/ask',                             icon: <MessageCircle size={20} />,  label: t('nav.askAi') },

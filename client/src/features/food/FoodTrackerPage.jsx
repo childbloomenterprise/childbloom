@@ -1,323 +1,231 @@
 import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import { useChildById } from '../../hooks/useChild';
 import useAuthStore from '../../stores/authStore';
-import useUiStore from '../../stores/uiStore';
-import api from '../../lib/api';
-import { formatAgeInDays } from '../../lib/formatters';
-import Card from '../../components/ui/Card';
-import Button from '../../components/ui/Button';
-import Input from '../../components/ui/Input';
-import Modal from '../../components/ui/Modal';
-import Badge from '../../components/ui/Badge';
-import { SkeletonList } from '../../components/ui/Skeleton';
-import EmptyState from '../../components/shared/EmptyState';
-import { formatDate } from '../../lib/formatters';
-import { FoodIcon, PlusIcon, TrashIcon } from '../../assets/icons';
-import { MEAL_TYPES } from '../../lib/constants';
+import CBIcon from '../../components/cb/CBIcon';
+import CBLogoMark from '../../components/cb/CBLogoMark';
+import CBLargeTitle from '../../components/cb/CBLargeTitle';
+import { T } from '../../components/cb/tokens';
+import { format, differenceInMinutes, differenceInHours } from 'date-fns';
+
+function timeAgo(dateStr) {
+  const mins = differenceInMinutes(new Date(), new Date(dateStr));
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = differenceInHours(new Date(), new Date(dateStr));
+  return `${hrs}h ago`;
+}
+
+const FEED_TYPES = [
+  { id: 'breast', l: 'Breast', i: 'heart', c: '#1E7A55' },
+  { id: 'bottle', l: 'Bottle', i: 'bottle', c: '#0A84FF' },
+  { id: 'pump',   l: 'Pump',   i: 'leaf',   c: '#AF52DE' },
+  { id: 'solid',  l: 'Solid',  i: 'sun',    c: '#FF9500', soon: true },
+];
 
 export default function FoodTrackerPage() {
-  const { t } = useTranslation();
   const { id: childId } = useParams();
   const { data: child } = useChildById(childId);
   const user = useAuthStore((s) => s.user);
-  const navigate = useNavigate();
-  const addToast = useUiStore((s) => s.addToast);
   const queryClient = useQueryClient();
-  const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({
-    log_date: new Date().toISOString().split('T')[0],
-    meal_type: 'solid',
-    food_name: '',
-    quantity: '',
-    protein_g: '',
-    notes: '',
-    reaction: '',
-  });
+  const today = format(new Date(), 'yyyy-MM-dd');
 
-  const { data: logs, isLoading, isError } = useQuery({
+  const [showForm, setShowForm] = useState(false);
+  const [feedType, setFeedType] = useState('breast');
+  const [duration, setDuration] = useState('');
+  const [notes, setNotes] = useState('');
+
+  const { data: logs = [] } = useQuery({
     queryKey: ['food-logs', childId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('food_logs')
         .select('*')
         .eq('child_id', childId)
-        .order('log_date', { ascending: false });
+        .order('logged_at', { ascending: false });
       if (error) throw error;
       return data || [];
     },
+    enabled: !!childId,
   });
 
-  const setField = (field) => (e) =>
-    setFormData((prev) => ({ ...prev, [field]: e.target.value }));
+  const todayLogs = logs.filter(l => l.logged_date === today);
+  const lastFeed = todayLogs[0];
+  const feedsToday = todayLogs.length;
+  const feedsTarget = 8;
 
   const addMutation = useMutation({
-    mutationFn: async (record) => {
-      const { error } = await supabase.from('food_logs').insert(record);
+    mutationFn: async () => {
+      const { error } = await supabase.from('food_logs').insert({
+        child_id: childId,
+        user_id: user.id,
+        logged_date: today,
+        logged_at: new Date().toISOString(),
+        food_type: feedType,
+        quantity_ml: null,
+        duration_minutes: duration ? parseInt(duration) : null,
+        notes: notes || null,
+      });
       if (error) throw error;
     },
-    onMutate: async (newRecord) => {
-      await queryClient.cancelQueries({ queryKey: ['food-logs', childId] });
-      const previous = queryClient.getQueryData(['food-logs', childId]);
-      queryClient.setQueryData(['food-logs', childId], (old) => [
-        { ...newRecord, id: `temp-${Date.now()}`, optimistic: true },
-        ...(old || []),
-      ]);
-      return { previous };
-    },
-    onError: (_err, _vars, context) => {
-      queryClient.setQueryData(['food-logs', childId], context?.previous);
-      addToast({
-        type: 'error',
-        message: 'Could not save the meal. Please try again.',
-        duration: 5000,
-      });
-    },
-    onSuccess: async (_data, record) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['food-logs', childId] });
+      queryClient.invalidateQueries({ queryKey: ['food-logs-today', childId] });
       setShowForm(false);
-      setFormData({
-        log_date: new Date().toISOString().split('T')[0],
-        meal_type: 'solid',
-        food_name: '',
-        quantity: '',
-        protein_g: '',
-        notes: '',
-        reaction: '',
-      });
-
-      // If a reaction was noted, ask Dr. Bloom and surface as a toast
-      if (record.reaction?.trim() && child) {
-        try {
-          const ageMonths = child.date_of_birth
-            ? Math.floor(formatAgeInDays(child.date_of_birth) / 30)
-            : null;
-          const response = await api.post('/api/ai/ask', {
-            question: `${child.name} (${ageMonths ? `${ageMonths} months old` : 'infant'}) had this reaction after eating ${record.food_name}: "${record.reaction}". In 35 words or fewer: one calm reassurance, one age-appropriate Indian alternative food to try, and one brief sentence on when to see a doctor.`,
-            child_name: child.name,
-            age_in_days: child.date_of_birth ? formatAgeInDays(child.date_of_birth) : null,
-            gender: child.gender,
-            language: localStorage.getItem('childbloom_voice_lang') || 'en',
-          });
-          if (response.answer) {
-            addToast({
-              type: 'drBloom',
-              message: response.answer,
-              duration: 12000,
-              onLink: () => navigate('/ask'),
-              linkLabel: 'Ask Dr. Bloom more →',
-            });
-          }
-        } catch {
-          // Silently skip AI toast — not critical
-        }
-      }
+      setDuration('');
+      setNotes('');
     },
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: async (id) => {
-      const { error } = await supabase.from('food_logs').delete().eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['food-logs', childId] }),
-    onError: () => addToast({ type: 'error', message: 'Could not delete the meal.', duration: 4000 }),
-  });
-
-  const handleSubmit = () => {
-    if (!user?.id || !childId) return;
-    addMutation.mutate({
-      child_id: childId,
-      user_id: user.id,
-      log_date: formData.log_date,
-      meal_type: formData.meal_type,
-      food_name: formData.food_name,
-      quantity: formData.quantity || null,
-      protein_g: formData.protein_g ? parseFloat(formData.protein_g) : null,
-      notes: formData.notes || null,
-      reaction: formData.reaction || null,
-    });
-  };
-
-  if (isLoading) return <SkeletonList count={4} />;
-
-  if (isError) {
-    return (
-      <div className="text-center py-16 space-y-3">
-        <p className="text-base font-medium text-red-500">Couldn't load food logs</p>
-        <p className="text-sm text-gray-400">Check your connection and try refreshing.</p>
-      </div>
-    );
-  }
-
-  const mealLabel = (type) => MEAL_TYPES.find((m) => m.value === type)?.label || type;
-
-  const mealBadgeVariant = (type) => {
-    const map = { breast_milk: 'info', formula: 'primary', solid: 'success', snack: 'warning' };
-    return map[type] || 'default';
-  };
-
-  const grouped = (logs || []).reduce((acc, log) => {
-    const date = log.log_date;
-    if (!acc[date]) acc[date] = [];
-    acc[date].push(log);
-    return acc;
-  }, {});
-
-  const pageTitle = child?.name ? t('food.title', { name: child.name }) : t('food.titleGeneric');
-  const pageSubtitle = child?.name ? t('food.trackMeals', { name: child.name }) : t('food.trackMealsGeneric');
-  const modalTitle = child?.name ? t('food.logMeal', { name: child.name }) : t('food.logMealGeneric');
+  // Build 24h feed arc data for SVG ring
+  const feeds24 = todayLogs.slice(0, 8);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="text-h1 font-serif text-forest-700">{pageTitle}</h1>
-          <p className="text-body text-gray-500 mt-1 truncate">{pageSubtitle}</p>
-        </div>
-        <Button onClick={() => setShowForm(true)} size="sm" className="flex-shrink-0">
-          <PlusIcon className="w-4 h-4 sm:mr-1" />
-          <span className="hidden sm:inline">{t('food.addMeal')}</span>
-          <span className="sm:hidden">{t('common.add')}</span>
-        </Button>
+    <div style={{ background: T.bg, minHeight: '100dvh', fontFamily: "-apple-system, 'Inter', system-ui, sans-serif" }}>
+      <div style={{ paddingTop: 52 }}>
+        <CBLargeTitle eyebrow="FEEDING" title="Nourishment" />
       </div>
 
-      {Object.keys(grouped).length === 0 ? (
-        <EmptyState
-          title={child?.name ? `What ${child.name} eats` : 'Food tracker'}
-          description={(() => {
-            const months = child?.date_of_birth
-              ? Math.floor((new Date() - new Date(child.date_of_birth)) / (30 * 24 * 60 * 60 * 1000))
-              : 0;
-            return months < 6
-              ? `At ${months} month${months !== 1 ? 's' : ''} old, every feed is building the foundation. Even logging one feed today creates a pattern over time.`
-              : `${child?.name || 'Their'} nutrition story starts with one meal logged today.`;
-          })()}
-          actionLabel={child?.name ? `Log ${child.name}'s first meal` : 'Log first meal'}
-          onAction={() => setShowForm(true)}
-          icon={<FoodIcon className="w-8 h-8" />}
-        />
-      ) : (
-        Object.entries(grouped).map(([date, items]) => (
-          <div key={date} className="space-y-2.5">
-            <h3 className="text-micro font-semibold text-gray-400 uppercase tracking-wider">
-              {formatDate(date)}
-            </h3>
-            {items.map((log) => (
-              <Card key={log.id} className="p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <p className="text-caption font-semibold text-forest-700">{log.food_name}</p>
-                      <Badge variant={mealBadgeVariant(log.meal_type)}>{mealLabel(log.meal_type)}</Badge>
-                    </div>
-                    <div className="flex flex-wrap gap-3 text-micro text-gray-500">
-                      {log.quantity && <span>{log.quantity}</span>}
-                      {log.protein_g != null && <span>{log.protein_g}g protein</span>}
-                      {log.notes && <span>{log.notes}</span>}
-                    </div>
-                    {log.reaction && (
-                      <p className="text-micro text-red-500 mt-1">
-                        {t('food.reactionLabel')}: {log.reaction}
-                      </p>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => deleteMutation.mutate(log.id)}
-                    className="p-1.5 hover:bg-red-50 rounded-lg transition-colors"
-                  >
-                    <TrashIcon className="w-4 h-4 text-gray-400 hover:text-red-500" />
-                  </button>
-                </div>
-              </Card>
+      {/* Hero — feed ring + stats */}
+      <div style={{ margin: '0 16px 16px', background: '#fff', borderRadius: 20, padding: '20px 16px', display: 'flex', alignItems: 'center', gap: 14 }}>
+        {/* 24h ring */}
+        <div style={{ position: 'relative', width: 130, height: 130, flexShrink: 0 }}>
+          <svg width="130" height="130" viewBox="0 0 130 130">
+            {Array.from({ length: 24 }).map((_, h) => {
+              const a = (h / 24) * Math.PI * 2 - Math.PI / 2;
+              const r1 = 58, r2 = h % 6 === 0 ? 52 : 55;
+              return <line key={h} x1={65 + Math.cos(a) * r1} y1={65 + Math.sin(a) * r1} x2={65 + Math.cos(a) * r2} y2={65 + Math.sin(a) * r2} stroke={T.ink100} strokeWidth={h % 6 === 0 ? 1.2 : 0.6} />;
+            })}
+            <circle cx="65" cy="65" r="48" fill="none" stroke={T.forest50} strokeWidth="10" />
+            {feeds24.map((f, i) => {
+              const hr = new Date(f.logged_at).getHours() + new Date(f.logged_at).getMinutes() / 60;
+              const dur = (f.duration_minutes || 15) / 60;
+              const a0 = (hr / 24) * Math.PI * 2 - Math.PI / 2;
+              const a1 = ((hr + dur) / 24) * Math.PI * 2 - Math.PI / 2;
+              const x0 = 65 + Math.cos(a0) * 48, y0 = 65 + Math.sin(a0) * 48;
+              const x1 = 65 + Math.cos(a1) * 48, y1 = 65 + Math.sin(a1) * 48;
+              return <path key={i} d={`M${x0},${y0} A48,48 0 0,1 ${x1},${y1}`} fill="none" stroke={T.forest600} strokeWidth="10" strokeLinecap="round" />;
+            })}
+            <text x="65" y="14" textAnchor="middle" fontSize="9" fill={T.ink300} fontWeight="600">12a</text>
+            <text x="121" y="68" textAnchor="middle" fontSize="9" fill={T.ink300} fontWeight="600">6a</text>
+            <text x="65" y="123" textAnchor="middle" fontSize="9" fill={T.ink300} fontWeight="600">12p</text>
+            <text x="9" y="68" textAnchor="middle" fontSize="9" fill={T.ink300} fontWeight="600">6p</text>
+          </svg>
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ fontFamily: "'Fraunces', serif", fontSize: 30, fontWeight: 600, color: T.ink900, letterSpacing: '-0.025em', lineHeight: 1 }}>{feedsToday}</div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: T.ink300, letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 2 }}>of {feedsTarget} today</div>
+          </div>
+        </div>
+
+        {/* Stats */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {lastFeed ? (
+            <>
+              <div style={{ fontSize: 11, fontWeight: 700, color: T.ink300, letterSpacing: '0.14em', textTransform: 'uppercase' }}>Last feed</div>
+              <div style={{ fontFamily: "'Fraunces', serif", fontSize: 24, fontWeight: 600, color: T.ink900, marginTop: 4, letterSpacing: '-0.02em', lineHeight: 1.05 }}>
+                {timeAgo(lastFeed.logged_at)}
+              </div>
+              <div style={{ fontSize: 12, color: T.ink500, marginTop: 4 }}>
+                {lastFeed.food_type}{lastFeed.duration_minutes ? ` · ${lastFeed.duration_minutes} min` : ''}
+              </div>
+            </>
+          ) : (
+            <div style={{ fontSize: 14, color: T.ink300 }}>No feeds logged today</div>
+          )}
+          <button onClick={() => setShowForm(!showForm)}
+            style={{ marginTop: 12, padding: '10px 14px', borderRadius: 99, background: T.forest700, color: '#fff', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+            <CBIcon name="plus" size={14} stroke={2.4} /> Log feed
+          </button>
+        </div>
+      </div>
+
+      {/* Log form */}
+      {showForm && (
+        <div style={{ margin: '0 16px 16px', background: '#fff', borderRadius: 16, padding: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 12 }}>
+            {FEED_TYPES.map(t => (
+              <button key={t.id} onClick={() => !t.soon && setFeedType(t.id)}
+                style={{ padding: '12px 6px', borderRadius: 14, background: feedType === t.id ? T.forest50 : '#fafafa', border: `1.5px solid ${feedType === t.id ? T.forest500 : T.ink100}`, cursor: t.soon ? 'default' : 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, opacity: t.soon ? 0.5 : 1, position: 'relative' }}>
+                <CBIcon name={t.i} size={20} />
+                <div style={{ fontSize: 11, fontWeight: 600, color: T.ink900 }}>{t.l}</div>
+                {t.soon && <div style={{ position: 'absolute', top: 4, right: 4, padding: '2px 4px', borderRadius: 4, background: T.ink100, fontSize: 7, fontWeight: 700, color: T.ink500 }}>SOON</div>}
+              </button>
             ))}
           </div>
-        ))
+          <input type="number" placeholder="Duration (minutes)" value={duration} onChange={e => setDuration(e.target.value)}
+            style={{ width: '100%', padding: '10px', borderRadius: 10, border: `0.5px solid ${T.ink100}`, fontSize: 14, outline: 'none', marginBottom: 8, boxSizing: 'border-box' }} />
+          <input type="text" placeholder="Notes (optional)" value={notes} onChange={e => setNotes(e.target.value)}
+            style={{ width: '100%', padding: '10px', borderRadius: 10, border: `0.5px solid ${T.ink100}`, fontSize: 14, outline: 'none', marginBottom: 12, boxSizing: 'border-box' }} />
+          <button onClick={() => addMutation.mutate()} disabled={addMutation.isPending}
+            style={{ width: '100%', padding: '12px', borderRadius: 99, background: T.forest700, color: '#fff', border: 'none', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+            {addMutation.isPending ? 'Saving…' : 'Save feed'}
+          </button>
+        </div>
       )}
 
-      <Modal isOpen={showForm} onClose={() => setShowForm(false)} title={modalTitle}>
-        <div className="space-y-4">
-          <Input
-            label={t('food.date')}
-            type="date"
-            value={formData.log_date}
-            onChange={setField('log_date')}
-          />
+      {/* Feed type buttons */}
+      <div style={{ padding: '0 16px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+        {FEED_TYPES.map(t => (
+          <button key={t.id} onClick={() => { if (!t.soon) { setFeedType(t.id); setShowForm(true); } }}
+            style={{ padding: '12px 6px', borderRadius: 14, background: '#fff', border: 'none', cursor: t.soon ? 'default' : 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, position: 'relative', opacity: t.soon ? 0.5 : 1 }}>
+            <div style={{ color: t.c }}><CBIcon name={t.i} size={20} /></div>
+            <div style={{ fontSize: 11, fontWeight: 600, color: T.ink900 }}>{t.l}</div>
+            {t.soon && <div style={{ position: 'absolute', top: 4, right: 4, padding: '2px 5px', borderRadius: 4, background: T.ink100, fontSize: 8, fontWeight: 700, color: T.ink500 }}>SOON</div>}
+          </button>
+        ))}
+      </div>
 
-          <div className="space-y-1.5">
-            <label className="block text-caption font-semibold tracking-tight" style={{ color: 'rgba(61,43,35,0.7)' }}>
-              {t('food.mealType')}
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              {MEAL_TYPES.map((type) => (
-                <button
-                  key={type.value}
-                  type="button"
-                  onClick={() => setFormData((prev) => ({ ...prev, meal_type: type.value }))}
-                  className={`py-2.5 px-3 rounded-xl text-caption font-medium border-2 transition-all duration-200 ${
-                    formData.meal_type === type.value
-                      ? 'border-forest-500 bg-forest-50 text-forest-700'
-                      : 'border-cream-300 text-gray-600 hover:border-cream-300'
-                  }`}
-                >
-                  {type.label}
-                </button>
-              ))}
-            </div>
+      {/* Dr. Bloom insight */}
+      {feedsToday > 0 && (
+        <div style={{ margin: '18px 16px 0', padding: '14px 16px', background: T.forest50, borderRadius: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+            <CBLogoMark size={14} color={T.forest700} />
+            <span style={{ fontSize: 10, fontWeight: 700, color: T.forest700, letterSpacing: '0.14em', textTransform: 'uppercase' }}>Pattern today</span>
           </div>
-
-          <Input
-            label={t('food.foodName')}
-            placeholder={child?.name ? `What did you give ${child.name}?` : t('food.foodPlaceholder')}
-            value={formData.food_name}
-            onChange={setField('food_name')}
-          />
-
-          <div className="grid grid-cols-2 gap-3">
-            <Input
-              label={t('food.quantity')}
-              placeholder={t('food.quantityPlaceholder')}
-              value={formData.quantity}
-              onChange={setField('quantity')}
-            />
-            <Input
-              label="Protein (g)"
-              type="number"
-              min="0"
-              step="0.1"
-              placeholder="e.g. 3.5"
-              value={formData.protein_g}
-              onChange={setField('protein_g')}
-            />
-          </div>
-
-          <Input
-            label={t('food.notes')}
-            placeholder={t('food.notesPlaceholder')}
-            value={formData.notes}
-            onChange={setField('notes')}
-          />
-
-          <Input
-            label={t('food.reaction')}
-            placeholder={t('food.reactionPlaceholder')}
-            value={formData.reaction}
-            onChange={setField('reaction')}
-          />
-
-          <Button
-            onClick={handleSubmit}
-            loading={addMutation.isPending}
-            disabled={!formData.food_name.trim() || addMutation.isPending}
-            className="w-full"
-          >
-            {addMutation.isPending ? 'Saving...' : t('food.saveMeal')}
-          </Button>
+          <p style={{ fontFamily: "'Fraunces', serif", fontSize: 14.5, color: T.forest900, fontWeight: 500, lineHeight: 1.45, margin: 0 }}>
+            {feedsToday >= feedsTarget
+              ? `${child?.name} hit the daily feed target. Great job keeping up the rhythm.`
+              : `${feedsToday} feeds so far — ${feedsTarget - feedsToday} more to reach today's target. Cluster feeds in the evening are normal.`
+            }
+          </p>
         </div>
-      </Modal>
+      )}
+
+      {/* Today's feed list */}
+      <div style={{ margin: '18px 16px 0' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '0 4px 8px' }}>
+          <h3 style={{ fontFamily: "'Fraunces', serif", fontSize: 18, fontWeight: 600, color: T.ink900, letterSpacing: '-0.015em', margin: 0 }}>Today's feeds</h3>
+          <span style={{ fontSize: 11, color: T.ink300, fontWeight: 600 }}>{feedsToday} logged</span>
+        </div>
+        {todayLogs.length === 0 ? (
+          <div style={{ background: '#fff', borderRadius: 14, padding: '24px', textAlign: 'center', color: T.ink300, fontSize: 14 }}>
+            No feeds logged yet today.
+          </div>
+        ) : (
+          <div style={{ background: '#fff', borderRadius: 14, overflow: 'hidden' }}>
+            {todayLogs.map((f, i) => (
+              <div key={f.id} style={{ display: 'flex', alignItems: 'center', padding: '12px 14px', borderBottom: i < todayLogs.length - 1 ? `0.5px solid ${T.ink100}` : 'none', gap: 10 }}>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: T.forest50, color: T.forest600, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <CBIcon name="bottle" size={15} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: T.ink900 }}>
+                    {format(new Date(f.logged_at), 'h:mm a')}
+                    <span style={{ color: T.ink300, fontWeight: 500 }}> · {f.food_type}</span>
+                  </div>
+                  <div style={{ fontSize: 11, color: T.ink500, marginTop: 1 }}>
+                    {f.duration_minutes ? `${f.duration_minutes} min` : ''}{f.notes ? ` · ${f.notes}` : ''}
+                  </div>
+                </div>
+                {i === 0 && <div style={{ padding: '3px 8px', borderRadius: 99, background: T.forest100, color: T.forest700, fontSize: 10, fontWeight: 700 }}>{timeAgo(f.logged_at)}</div>}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div style={{ height: 24 }} />
     </div>
   );
 }

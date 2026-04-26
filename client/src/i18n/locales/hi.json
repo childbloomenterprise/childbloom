@@ -15,7 +15,8 @@
     "foodTracker": "आहार ट्रैकर",
     "health": "स्वास्थ्य",
     "settings": "सेटिंग्स",
-    "signOut": "लॉग आउट"
+    "signOut": "लॉग आउट",
+    "vaccines": "टीके"
   },
   "greeting": {
     "morning": "सुप्रभात",
@@ -198,11 +199,52 @@
     "howWasWeekGeneric": "यह हफ्ता कैसा रहा?",
     "measurements": "माप",
     "moodSleep": "मूड और नींद",
+    "sleep": "नींद",
     "development": "विकास",
     "feeding": "आहार",
     "concerns": "चिंताएं",
     "aiInsight": "AI अंतर्दृष्टि",
     "saveUpdate": "अपडेट सहेजें"
+  },
+  "sleep": {
+    "title": "नींद ट्रैकर",
+    "hoursSlept": "सोए घंटे",
+    "lastNight": "कल रात",
+    "save": "सहेजें",
+    "chartTitle": "नींद इतिहास",
+    "recommended": "अनुशंसित",
+    "hours": "घंटे"
+  },
+  "emergency": {
+    "nav": "आपातकाल",
+    "title": "आपातकालीन गाइड",
+    "callFirst": "जानलेवा स्थिति में तुरंत आपातकालीन सेवाएं (112) को कॉल करें",
+    "infantCpr": "शिशु CPR (1 वर्ष से कम)",
+    "childCpr": "बच्चे का CPR (1–8 वर्ष)",
+    "chokingInfant": "गला घुटना – शिशु",
+    "chokingChild": "गला घुटना – बच्चा",
+    "fever": "तेज़ बुखार",
+    "allergicReaction": "एलर्जिक प्रतिक्रिया",
+    "burns": "जलना",
+    "seizure": "दौरा",
+    "callEmergency": "112 पर कॉल करें",
+    "critical": "गंभीर",
+    "urgent": "अत्यावश्यक",
+    "manageable": "संभाल्य"
+  },
+  "vaccines": {
+    "title": "टीकाकरण ट्रैकर",
+    "progress": "{{total}} में से {{done}} टीके दिए गए",
+    "overdue": "देर हो चुकी",
+    "upcoming": "आने वाले",
+    "given": "दिया गया",
+    "dueSoon": "जल्द देय",
+    "markGiven": "दिया गया के रूप में चिह्नित करें",
+    "dateGiven": "दी गई तारीख",
+    "notes": "नोट्स (वैकल्पिक)",
+    "save": "सहेजें",
+    "noOverdue": "कोई लंबित टीका नहीं",
+    "noUpcoming": "अगले 8 हफ्तों में कुछ नहीं"
   },
   "common": {
     "continue": "जारी रखें",

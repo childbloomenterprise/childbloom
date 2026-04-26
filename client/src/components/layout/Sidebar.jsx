@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useSelectedChild } from '../../hooks/useChild';
 import useUiStore from '../../stores/uiStore';
 import ChildSwitcher from '../shared/ChildSwitcher';
-import { DashboardIcon, GrowthIcon, FoodIcon, BookIcon, ChatIcon, HealthIcon, SettingsIcon, ClipboardIcon, LogoutIcon } from '../../assets/icons';
+import { DashboardIcon, GrowthIcon, FoodIcon, BookIcon, ChatIcon, HealthIcon, SettingsIcon, ClipboardIcon, LogoutIcon, EmergencyIcon, VaccineIcon } from '../../assets/icons';
 import { useAuth } from '../../hooks/useAuth';
 
 export default function Sidebar() {
@@ -20,10 +20,12 @@ export default function Sidebar() {
       { to: `/child/${childId}/growth`,        icon: GrowthIcon,    label: t('nav.growth') },
       { to: `/child/${childId}/food`,          icon: FoodIcon,      label: t('nav.foodTracker') },
       { to: `/child/${childId}/health`,        icon: HealthIcon,    label: t('nav.health') },
+      { to: `/child/${childId}/vaccinations`, icon: VaccineIcon,   label: t('nav.vaccines') },
     ] : []),
-    { to: '/guides',   icon: BookIcon,     label: t('nav.guides') },
-    { to: '/ask',      icon: ChatIcon,     label: t('nav.askAi') },
-    { to: '/settings', icon: SettingsIcon, label: t('nav.settings') },
+    { to: '/guides',    icon: BookIcon,      label: t('nav.guides') },
+    { to: '/ask',       icon: ChatIcon,      label: t('nav.askAi') },
+    { to: '/emergency', icon: EmergencyIcon, label: t('emergency.nav'), emergency: true },
+    { to: '/settings',  icon: SettingsIcon,  label: t('nav.settings') },
   ];
 
   return (
@@ -79,28 +81,41 @@ export default function Sidebar() {
               onClick={() => setSidebarOpen(false)}
               className="relative block"
             >
-              {({ isActive }) => (
-                <div
-                  className={`group flex items-center gap-3 px-4 py-2.5 rounded-2xl text-caption font-semibold transition-all duration-200 relative ${isActive ? '' : 'hover:bg-white/60'}`}
-                  style={isActive ? {
-                    background: 'linear-gradient(135deg, rgba(251,113,133,0.12) 0%, rgba(244,63,94,0.08) 100%)',
-                    color: '#F43F5E',
-                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.8)',
-                  } : { color: '#8E8E93' }}
-                >
-                  {/* Active left pill */}
-                  {isActive && (
-                    <div
-                      className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r-full"
-                      style={{ background: 'linear-gradient(180deg, #FB7185, #F43F5E)' }}
-                    />
-                  )}
-                  <div className={`transition-colors ${isActive ? '' : 'group-hover:text-gray-600'}`}>
-                    <item.icon className="w-[18px] h-[18px]" />
+              {({ isActive }) => {
+                const isEmergency = item.emergency;
+                const activeStyle = isEmergency
+                  ? {
+                      background: 'linear-gradient(135deg, rgba(220,38,38,0.10) 0%, rgba(153,27,27,0.07) 100%)',
+                      color: '#DC2626',
+                      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.8)',
+                    }
+                  : {
+                      background: 'linear-gradient(135deg, rgba(251,113,133,0.12) 0%, rgba(244,63,94,0.08) 100%)',
+                      color: '#F43F5E',
+                      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.8)',
+                    };
+                const pillStyle = isEmergency
+                  ? { background: 'linear-gradient(180deg, #EF4444, #DC2626)' }
+                  : { background: 'linear-gradient(180deg, #FB7185, #F43F5E)' };
+                const inactiveColor = isEmergency ? 'rgba(220,38,38,0.55)' : '#8E8E93';
+                return (
+                  <div
+                    className={`group flex items-center gap-3 px-4 py-2.5 rounded-2xl text-caption font-semibold transition-all duration-200 relative ${isActive ? '' : 'hover:bg-white/60'}`}
+                    style={isActive ? activeStyle : { color: inactiveColor }}
+                  >
+                    {isActive && (
+                      <div
+                        className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r-full"
+                        style={pillStyle}
+                      />
+                    )}
+                    <div className={`transition-colors ${isActive ? '' : 'group-hover:text-gray-600'}`}>
+                      <item.icon className="w-[18px] h-[18px]" />
+                    </div>
+                    {item.label}
                   </div>
-                  {item.label}
-                </div>
-              )}
+                );
+              }}
             </NavLink>
           ))}
         </nav>

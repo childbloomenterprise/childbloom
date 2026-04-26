@@ -14,18 +14,21 @@ import AuthCallback from './features/auth/AuthCallback';
 import OnboardingPage from './features/onboarding/OnboardingPage';
 
 // ── App pages: lazy-loaded (only fetched when needed) ──
+const LandingPage       = lazy(() => import('./features/landing/LandingPage'));
 const DashboardPage     = lazy(() => import('./features/dashboard/DashboardPage'));
 const WeeklyUpdatePage  = lazy(() => import('./features/weekly-update/WeeklyUpdatePage'));
 const UpdateHistoryPage = lazy(() => import('./features/weekly-update/UpdateHistoryPage'));
 const GrowthPage        = lazy(() => import('./features/growth/GrowthPage'));
 const GrowthChartPage   = lazy(() => import('./features/growth/GrowthChartPage'));
 const FoodTrackerPage   = lazy(() => import('./features/food/FoodTrackerPage'));
-const HealthRecordsPage = lazy(() => import('./features/health/HealthRecordsPage'));
+const HealthRecordsPage  = lazy(() => import('./features/health/HealthRecordsPage'));
+const VaccinationPage    = lazy(() => import('./features/health/VaccinationPage'));
 const GuidesPage        = lazy(() => import('./features/guides/GuidesPage'));
 const GuideDetailPage   = lazy(() => import('./features/guides/GuideDetailPage'));
 const AskAiPage         = lazy(() => import('./features/ask/AskAiPage'));
 const SettingsPage      = lazy(() => import('./features/settings/SettingsPage'));
-const PrivacyPage       = lazy(() => import('./features/privacy/PrivacyPage'));
+const PrivacyPage          = lazy(() => import('./features/privacy/PrivacyPage'));
+const EmergencyGuidePage   = lazy(() => import('./features/emergency/EmergencyGuidePage'));
 
 function PageFallback() {
   return (
@@ -49,8 +52,8 @@ export default function App() {
       {!splashDone && <SplashScreen onDone={() => setSplashDone(true)} />}
       <Suspense fallback={<PageFallback />}>
         <Routes>
-          {/* ── Root → dashboard (demo for guests, real for logged-in) ── */}
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          {/* ── Root → landing page ── */}
+          <Route path="/" element={<LandingPage />} />
 
           {/* ── New combined auth page ─────────────────── */}
           <Route path="/auth" element={<AuthPage />} />
@@ -77,6 +80,7 @@ export default function App() {
               <Route path="/child/:id/development"        element={<GrowthChartPage />} />
               <Route path="/child/:id/food"               element={<FoodTrackerPage />} />
               <Route path="/child/:id/health"             element={<HealthRecordsPage />} />
+              <Route path="/child/:id/vaccinations"      element={<VaccinationPage />} />
               <Route path="/guides"                       element={<GuidesPage />} />
               <Route path="/guides/:stage"                element={<GuideDetailPage />} />
               <Route path="/ask"                          element={<AskAiPage />} />
@@ -86,6 +90,9 @@ export default function App() {
 
           {/* ── Public pages ───────────────────────────── */}
           <Route path="/privacy" element={<PrivacyPage />} />
+          <Route element={<AppLayout />}>
+            <Route path="/emergency" element={<EmergencyGuidePage />} />
+          </Route>
 
           {/* ── Fallback ───────────────────────────────── */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

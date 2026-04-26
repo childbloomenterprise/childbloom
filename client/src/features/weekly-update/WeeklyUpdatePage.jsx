@@ -1,207 +1,224 @@
 import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import { useChildById } from '../../hooks/useChild';
 import useAuthStore from '../../stores/authStore';
+import CBIcon from '../../components/cb/CBIcon';
+import { T } from '../../components/cb/tokens';
+import { format } from 'date-fns';
 
-import api from '../../lib/api';
-import { formatAgeInDays } from '../../lib/formatters';
-import Stepper from '../../components/ui/Stepper';
-import Card from '../../components/ui/Card';
-import Button from '../../components/ui/Button';
-import MeasurementsStep from './steps/MeasurementsStep';
-import MoodStep from './steps/MoodStep';
-import MilestonesStep from './steps/MilestonesStep';
-import FeedingStep from './steps/FeedingStep';
-import ConcernsStep from './steps/ConcernsStep';
-import AiInsightStep from './steps/AiInsightStep';
+const STEPS = [
+  { id: 'mood', label: 'mood' },
+  { id: 'sleep', label: 'sleep' },
+  { id: 'feeding', label: 'feeding' },
+  { id: 'milestones', label: 'milestones' },
+  { id: 'concerns', label: 'concerns' },
+];
+
+const MOODS = [
+  { id: 'fussy',   l: 'Fussy',   i: 'wave' },
+  { id: 'content', l: 'Content', i: 'sun' },
+  { id: 'sleepy',  l: 'Sleepy',  i: 'moon' },
+  { id: 'alert',   l: 'Alert',   i: 'sparkle' },
+  { id: 'crying',  l: 'Crying',  i: 'flame' },
+  { id: 'mixed',   l: 'Mixed',   i: 'leaf' },
+];
 
 export default function WeeklyUpdatePage() {
-  const { t } = useTranslation();
-  const { id: childId } = useParams();
   const navigate = useNavigate();
+  const { id: childId } = useParams();
   const { data: child } = useChildById(childId);
   const user = useAuthStore((s) => s.user);
-  const profile = useAuthStore((s) => s.profile);
   const queryClient = useQueryClient();
+
   const [step, setStep] = useState(0);
-  const [aiInsight, setAiInsight] = useState('');
-  const [voiceLang, setVoiceLang] = useState(
-    () => localStorage.getItem('childbloom_voice_lang') || 'en'
-  );
-  const [formData, setFormData] = useState({
-    height_cm: '',
-    weight_kg: '',
-    mood: '',
-    sleep_hours: 10,
-    sleep_quality: 'okay',
-    motor_milestone: '',
+  const [form, setForm] = useState({
+    mood: null,
+    sleep_hours: null,
+    feeding_notes: '',
     new_skills: '',
-    milestones_checked: [],
-    feeding_type: '',
-    breastfeed_times: '',
-    solid_foods: '',
-    food_reactions: '',
-    water_intake: '',
     concerns: '',
-    red_flags: [],
   });
 
-  const STEPS = [
-    t('weeklyUpdate.measurements'),
-    t('weeklyUpdate.moodSleep'),
-    t('weeklyUpdate.development'),
-    t('weeklyUpdate.feeding'),
-    t('weeklyUpdate.concerns'),
-    t('weeklyUpdate.aiInsight'),
-  ];
-
-  const updateField = (field, value) => setFormData((prev) => ({ ...prev, [field]: value }));
+  const total = STEPS.length;
+  const current = STEPS[step];
+  const progress = (step / total) * 100;
 
   const saveMutation = useMutation({
-    mutationFn: async (insight) => {
-      const updateData = {
+    mutationFn: async () => {
+      const payload = {
         child_id: childId,
         user_id: user.id,
-        week_date: new Date().toISOString().split('T')[0],
-        age_in_days: child ? formatAgeInDays(child.date_of_birth) : 0,
-        height_cm: formData.height_cm || null,
-        weight_kg: formData.weight_kg || null,
-        mood: formData.mood || null,
-        sleep_hours: formData.sleep_hours || null,
-        sleep_quality: formData.sleep_quality || null,
-        motor_milestone: [
-          formData.motor_milestone,
-          ...(formData.milestones_checked || []),
-        ].filter(Boolean).join('; '),
-        new_skills: formData.new_skills || null,
-        feeding_notes: [
-          formData.feeding_type && `Type: ${formData.feeding_type}`,
-          formData.breastfeed_times && `Breastfeed: ${formData.breastfeed_times}x/day`,
-          formData.solid_foods && `Solids: ${formData.solid_foods}`,
-          formData.food_reactions && `Reactions: ${formData.food_reactions}`,
-        ].filter(Boolean).join('. '),
-        concerns: formData.concerns || null,
-        ai_insight: insight || null,
+        week_date: format(new Date(), 'yyyy-MM-dd'),
+        mood: form.mood,
+        sleep_hours: form.sleep_hours,
+        feeding_notes: form.feeding_notes || null,
+        new_skills: form.new_skills || null,
+        concerns: form.concerns || null,
       };
-
-      const { error } = await supabase.from('weekly_updates').insert(updateData);
+      const { error } = await supabase.from('weekly_updates').insert(payload);
       if (error) throw error;
 
-      if (formData.height_cm || formData.weight_kg) {
-        await supabase.from('growth_records').insert({
+      if (form.sleep_hours) {
+        await supabase.from('sleep_logs').insert({
           child_id: childId,
           user_id: user.id,
-          record_date: new Date().toISOString().split('T')[0],
-          height_cm: formData.height_cm || null,
-          weight_kg: formData.weight_kg || null,
+          logged_date: format(new Date(), 'yyyy-MM-dd'),
+          hours_slept: form.sleep_hours,
         });
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['weekly-updates'] });
-      queryClient.invalidateQueries({ queryKey: ['latest-update'] });
-      queryClient.invalidateQueries({ queryKey: ['growth-records'] });
-    },
-  });
-
-  const insightMutation = useMutation({
-    mutationFn: async () => {
-      const response = await api.post('/api/ai/weekly-insight', {
-        child_name: child?.name,
-        parent_name: profile?.full_name?.split(' ')[0] || '',
-        age_in_days: child ? formatAgeInDays(child.date_of_birth) : 0,
-        height_cm: formData.height_cm,
-        weight_kg: formData.weight_kg,
-        mood: formData.mood,
-        sleep_hours: formData.sleep_hours,
-        sleep_quality: formData.sleep_quality,
-        motor_milestone: formData.motor_milestone,
-        new_skills: formData.new_skills,
-        feeding_notes: formData.solid_foods,
-        concerns: formData.concerns,
-        language: voiceLang,
-      });
-      return response.insight || 'Great job tracking your child\'s development this week! Keep up the amazing work.';
+      queryClient.invalidateQueries({ queryKey: ['sleep-logs'] });
+      navigate('/dashboard');
     },
   });
 
   const handleNext = () => {
-    if (step < STEPS.length - 1) {
-      setStep(step + 1);
-      if (step === 4) {
-        generateInsight();
-      }
-    }
+    if (step < total - 1) setStep(s => s + 1);
+    else saveMutation.mutate();
   };
 
-  const generateInsight = async () => {
-    try {
-      const insight = await insightMutation.mutateAsync();
-      setAiInsight(insight);
-    } catch {
-      setAiInsight('Your little one is growing beautifully. Every week brings new discoveries. Keep observing and nurturing their unique development journey!');
-    }
-  };
-
-  const handleSave = async () => {
-    await saveMutation.mutateAsync(aiInsight);
-    navigate(`/child/${childId}/updates`);
+  const handleBack = () => {
+    if (step > 0) setStep(s => s - 1);
+    else navigate('/dashboard');
   };
 
   return (
-    <div className="max-w-xl mx-auto space-y-5">
-      <div className="text-center">
-        <h1 className="text-h1 font-serif text-forest-700">{t('weeklyUpdate.title')}</h1>
-        <p className="text-body text-gray-500 mt-1">
-          {child?.name ? t('weeklyUpdate.howWasWeek', { name: child.name }) : t('weeklyUpdate.howWasWeekGeneric')}
-        </p>
+    <div style={{ position: 'relative', minHeight: '100dvh', background: T.bg, fontFamily: "-apple-system, 'Inter', system-ui, sans-serif" }}>
+
+      {/* Nav */}
+      <div style={{ padding: '52px 16px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <button onClick={handleBack}
+          style={{ padding: '6px 4px', border: 'none', background: 'transparent', color: T.forest700, fontSize: 15, fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2 }}>
+          <CBIcon name="chevron-left" size={18} /> Back
+        </button>
+        <div style={{ fontSize: 13, fontWeight: 600, color: T.ink500 }}>{step + 1} of {total}</div>
+        <button onClick={() => navigate('/dashboard')}
+          style={{ padding: '6px 4px', border: 'none', background: 'transparent', color: T.ink300, fontSize: 15, fontWeight: 500, cursor: 'pointer' }}>
+          Skip
+        </button>
       </div>
 
-      <Stepper steps={STEPS} currentStep={step} onStepClick={(i) => i <= step && setStep(i)} />
+      {/* Progress bar */}
+      <div style={{ padding: '0 16px 28px' }}>
+        <div style={{ height: 3, background: T.ink100, borderRadius: 99, overflow: 'hidden' }}>
+          <div style={{ width: `${progress}%`, height: '100%', background: T.forest600, borderRadius: 99, transition: 'width 300ms ease' }} />
+        </div>
+      </div>
 
-      <Card className="p-5 sm:p-6">
-        {step === 0 && <MeasurementsStep formData={formData} updateField={updateField} childName={child?.name} />}
-        {step === 1 && <MoodStep formData={formData} updateField={updateField} childName={child?.name} />}
-        {step === 2 && <MilestonesStep formData={formData} updateField={updateField} child={child} voiceLang={voiceLang} />}
-        {step === 3 && <FeedingStep formData={formData} updateField={updateField} child={child} voiceLang={voiceLang} />}
-        {step === 4 && <ConcernsStep formData={formData} updateField={updateField} childName={child?.name} voiceLang={voiceLang} />}
-        {step === 5 && (
-          <AiInsightStep
-            insight={aiInsight}
-            loading={insightMutation.isPending}
-            childName={child?.name}
-            parentName={profile?.full_name?.split(' ')[0]}
-            onRetry={generateInsight}
-            voiceLang={voiceLang}
-          />
-        )}
-      </Card>
+      {/* Body */}
+      <div style={{ padding: '4px 24px' }}>
+        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: T.ink300 }}>Daily check-in</div>
 
-      <div className="flex gap-3">
-        {step > 0 && (
-          <Button variant="secondary" onClick={() => setStep(step - 1)} className="flex-1" size="lg">
-            {t('common.back')}
-          </Button>
+        {current.id === 'mood' && (
+          <>
+            <h1 style={{ fontFamily: "'Fraunces', serif", fontSize: 30, fontWeight: 600, lineHeight: 1.1, letterSpacing: '-0.025em', color: T.ink900, marginTop: 6, marginBottom: 0 }}>
+              How was<br /><span style={{ color: T.forest600, fontStyle: 'italic' }}>{child?.name}</span> today?
+            </h1>
+            <p style={{ fontSize: 14, color: T.ink500, marginTop: 8, lineHeight: 1.5 }}>
+              Pick one — or hold the mic and just talk to me. I'll figure it out.
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 24 }}>
+              {MOODS.map(m => {
+                const active = form.mood === m.id;
+                return (
+                  <button key={m.id} onClick={() => setForm(f => ({ ...f, mood: m.id }))}
+                    style={{ padding: '18px 14px', borderRadius: 16, border: active ? `1.5px solid ${T.forest500}` : `0.5px solid ${T.ink100}`, background: active ? T.forest50 : '#fff', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 34, height: 34, borderRadius: '50%', background: active ? T.forest100 : '#fafafa', color: active ? T.forest700 : T.ink500, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <CBIcon name={m.i} size={17} />
+                    </div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: T.ink900 }}>{m.l}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </>
         )}
-        {step < STEPS.length - 1 ? (
-          <Button onClick={handleNext} className="flex-1" size="lg">
-            {t('common.continue')}
-          </Button>
-        ) : (
-          <Button
-            onClick={handleSave}
-            loading={saveMutation.isPending}
-            className="flex-1"
-            size="lg"
-          >
-            {child?.name ? t('weeklyUpdate.saveUpdate', { name: child.name }) : 'Save the week'}
-          </Button>
+
+        {current.id === 'sleep' && (
+          <>
+            <h1 style={{ fontFamily: "'Fraunces', serif", fontSize: 30, fontWeight: 600, lineHeight: 1.1, letterSpacing: '-0.025em', color: T.ink900, marginTop: 6, marginBottom: 0 }}>
+              How much did<br /><span style={{ color: T.forest600, fontStyle: 'italic' }}>{child?.name}</span> sleep?
+            </h1>
+            <p style={{ fontSize: 14, color: T.ink500, marginTop: 8, lineHeight: 1.5 }}>Drag to set hours slept last night.</p>
+            <div style={{ marginTop: 32 }}>
+              <div style={{ fontFamily: "'Fraunces', serif", fontSize: 48, fontWeight: 600, color: T.forest700, letterSpacing: '-0.03em', textAlign: 'center', marginBottom: 16 }}>
+                {form.sleep_hours ?? 0}h
+              </div>
+              <input type="range" min={0} max={20} step={0.5}
+                value={form.sleep_hours ?? 0}
+                onChange={e => setForm(f => ({ ...f, sleep_hours: parseFloat(e.target.value) }))}
+                style={{ width: '100%', accentColor: T.forest600, cursor: 'pointer' }}
+              />
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: T.ink300, marginTop: 6 }}>
+                <span>0h</span><span style={{ color: T.forest600, fontWeight: 600 }}>Goal: 14–17h</span><span>20h</span>
+              </div>
+            </div>
+          </>
+        )}
+
+        {current.id === 'feeding' && (
+          <>
+            <h1 style={{ fontFamily: "'Fraunces', serif", fontSize: 30, fontWeight: 600, lineHeight: 1.1, letterSpacing: '-0.025em', color: T.ink900, marginTop: 6, marginBottom: 0 }}>
+              Feeding notes
+            </h1>
+            <p style={{ fontSize: 14, color: T.ink500, marginTop: 8, lineHeight: 1.5 }}>How did feeding go today? Any changes?</p>
+            <textarea value={form.feeding_notes} onChange={e => setForm(f => ({ ...f, feeding_notes: e.target.value }))}
+              placeholder="e.g. Fed well, no issues..."
+              rows={5}
+              style={{ width: '100%', marginTop: 20, padding: '14px', borderRadius: 14, border: `0.5px solid ${T.ink100}`, background: '#fff', fontSize: 15, color: T.ink900, outline: 'none', resize: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
+            />
+          </>
+        )}
+
+        {current.id === 'milestones' && (
+          <>
+            <h1 style={{ fontFamily: "'Fraunces', serif", fontSize: 30, fontWeight: 600, lineHeight: 1.1, letterSpacing: '-0.025em', color: T.ink900, marginTop: 6, marginBottom: 0 }}>
+              Anything new<br /><span style={{ color: T.forest600, fontStyle: 'italic' }}>this week?</span>
+            </h1>
+            <p style={{ fontSize: 14, color: T.ink500, marginTop: 8, lineHeight: 1.5 }}>New sounds, movements, smiles — anything.</p>
+            <textarea value={form.new_skills} onChange={e => setForm(f => ({ ...f, new_skills: e.target.value }))}
+              placeholder="e.g. First smile, tracked my face..."
+              rows={5}
+              style={{ width: '100%', marginTop: 20, padding: '14px', borderRadius: 14, border: `0.5px solid ${T.ink100}`, background: '#fff', fontSize: 15, color: T.ink900, outline: 'none', resize: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
+            />
+          </>
+        )}
+
+        {current.id === 'concerns' && (
+          <>
+            <h1 style={{ fontFamily: "'Fraunces', serif", fontSize: 30, fontWeight: 600, lineHeight: 1.1, letterSpacing: '-0.025em', color: T.ink900, marginTop: 6, marginBottom: 0 }}>
+              Anything<br /><span style={{ color: T.forest600, fontStyle: 'italic' }}>worrying you?</span>
+            </h1>
+            <p style={{ fontSize: 14, color: T.ink500, marginTop: 8, lineHeight: 1.5 }}>Dr. Bloom will review and respond. Nothing is too small.</p>
+            <textarea value={form.concerns} onChange={e => setForm(f => ({ ...f, concerns: e.target.value }))}
+              placeholder="e.g. A bit more fussy than usual..."
+              rows={5}
+              style={{ width: '100%', marginTop: 20, padding: '14px', borderRadius: 14, border: `0.5px solid ${T.ink100}`, background: '#fff', fontSize: 15, color: T.ink900, outline: 'none', resize: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
+            />
+          </>
         )}
       </div>
 
+      {/* Footer */}
+      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, padding: '12px 20px 36px', background: `linear-gradient(to top, ${T.bg} 60%, transparent)` }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button style={{ width: 54, height: 54, borderRadius: '50%', background: '#fff', border: `0.5px solid ${T.ink100}`, color: T.terra, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+            <CBIcon name="mic" size={22} />
+          </button>
+          <button onClick={handleNext} disabled={saveMutation.isPending}
+            style={{ flex: 1, height: 54, borderRadius: 99, background: T.forest700, color: '#fff', border: 'none', cursor: saveMutation.isPending ? 'not-allowed' : 'pointer', fontSize: 15, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: saveMutation.isPending ? 0.7 : 1 }}>
+            {step === total - 1 ? (saveMutation.isPending ? 'Saving…' : 'Done') : 'Continue'}
+            {step < total - 1 && <CBIcon name="arrow-right" size={16} />}
+          </button>
+        </div>
+        <div style={{ textAlign: 'center', fontSize: 11, color: T.ink300, marginTop: 8 }}>
+          Hold mic to dictate · English / हिन्दी / മലയാളം
+        </div>
+      </div>
     </div>
   );
 }

@@ -15,7 +15,8 @@
     "foodTracker": "Food",
     "health": "Health",
     "settings": "Settings",
-    "signOut": "Sign Out"
+    "signOut": "Sign Out",
+    "vaccines": "Vaccines"
   },
   "greeting": {
     "morning": "Good morning",
@@ -210,11 +211,52 @@
     "howWasWeekGeneric": "How was this week?",
     "measurements": "Size",
     "moodSleep": "Mood & Rest",
+    "sleep": "Sleep",
     "development": "What's New",
     "feeding": "Eating",
     "concerns": "Anything Else?",
     "aiInsight": "Dr. Bloom's Take",
     "saveUpdate": "Save {{name}}'s week"
+  },
+  "sleep": {
+    "title": "Sleep Tracker",
+    "hoursSlept": "Hours slept",
+    "lastNight": "Last night",
+    "save": "Save",
+    "chartTitle": "Sleep History",
+    "recommended": "Recommended",
+    "hours": "hours"
+  },
+  "emergency": {
+    "nav": "Emergency",
+    "title": "Emergency Guide",
+    "callFirst": "Call emergency services (112) immediately for life-threatening situations",
+    "infantCpr": "Infant CPR (under 1 year)",
+    "childCpr": "Child CPR (1–8 years)",
+    "chokingInfant": "Choking – Infant",
+    "chokingChild": "Choking – Child",
+    "fever": "High Fever",
+    "allergicReaction": "Allergic Reaction",
+    "burns": "Burns",
+    "seizure": "Seizure",
+    "callEmergency": "Call 112",
+    "critical": "Critical",
+    "urgent": "Urgent",
+    "manageable": "Manageable"
+  },
+  "vaccines": {
+    "title": "Vaccination Tracker",
+    "progress": "{{done}} of {{total}} vaccines given",
+    "overdue": "Overdue",
+    "upcoming": "Upcoming",
+    "given": "Given",
+    "dueSoon": "Due soon",
+    "markGiven": "Mark as Given",
+    "dateGiven": "Date given",
+    "notes": "Notes (optional)",
+    "save": "Save",
+    "noOverdue": "No overdue vaccines",
+    "noUpcoming": "Nothing due in the next 8 weeks"
   },
   "common": {
     "continue": "Continue",
