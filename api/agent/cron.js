@@ -6,96 +6,221 @@
  *   Evening  → 6:00 PM IST  (12:30 PM UTC) — posts evening tweet + sends daily brief
  *
  * Secured with CRON_SECRET so only Vercel can trigger it.
+ *
+ * NOTE: lib helpers are inlined here (not in api/agent/lib/) to stay
+ * within Vercel Hobby plan's 12-function limit.
  */
 
-import { researchTrendingTopic } from './lib/research.js';
-import { generatePost } from './lib/content.js';
-import { postTweet } from './lib/twitter.js';
-import { getDailyStats } from './lib/stats.js';
+import Anthropic from '@anthropic-ai/sdk';
+import { TwitterApi } from 'twitter-api-v2';
 import { createClient } from '@supabase/supabase-js';
 
+// ── SUPABASE ─────────────────────────────────────────────────────────────────
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+// ── ANTHROPIC ─────────────────────────────────────────────────────────────────
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+// ── RESEARCH ──────────────────────────────────────────────────────────────────
+async function researchTrendingTopic() {
+  const today = new Date().toLocaleDateString('en-US', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+  });
+
+  const response = await anthropic.messages.create({
+    model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514',
+    max_tokens: 600,
+    messages: [{
+      role: 'user',
+      content: `You are a market research agent for ChildBloom — an AI-powered pediatrician app that tracks child development and gives parents real-time insights. The app's target audience is parents of children aged 0–5.
+
+Today is ${today}. Research and identify ONE highly relevant, trending topic in child development or parenting right now. Consider:
+- Seasonal health concerns (cold/flu, heat, allergies)
+- Current child development milestones parents worry about
+- Viral parenting conversations on social media
+- New pediatric health guidance
+- Back to school health prep, screen time, sleep regressions, feeding milestones, speech development, etc.
+
+Return a JSON object with this exact structure:
+{
+  "topic": "Short topic name",
+  "insight": "A specific, data-backed or expert-backed insight about this topic in 2 sentences",
+  "angle": "How ChildBloom specifically helps with this topic",
+  "hashtags": ["#hashtag1", "#hashtag2", "#hashtag3", "#hashtag4"]
+}
+
+Only return the JSON, nothing else.`
+    }]
+  });
+
+  try {
+    const text = response.content[0].text.trim();
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    return JSON.parse(jsonMatch ? jsonMatch[0] : text);
+  } catch {
+    return {
+      topic: 'Child Development Tracking',
+      insight: 'Every milestone matters. Early tracking of developmental markers helps parents and pediatricians catch concerns before they become problems.',
+      angle: 'ChildBloom tracks your child\'s development daily, giving you AI-powered insights backed by pediatric science.',
+      hashtags: ['#ChildDevelopment', '#Parenting', '#ChildBloom', '#AIHealth']
+    };
+  }
+}
+
+// ── CONTENT GENERATION ────────────────────────────────────────────────────────
+async function generatePost(research, slot = 'morning') {
+  const toneGuide = slot === 'morning'
+    ? 'energizing and motivating — sets a positive tone for the day'
+    : 'reflective and reassuring — winds down the day with warmth';
+
+  const response = await anthropic.messages.create({
+    model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514',
+    max_tokens: 400,
+    messages: [{
+      role: 'user',
+      content: `You are the social media voice for ChildBloom — an AI-powered pediatrician app that tracks child development for parents.
+
+Brand voice: Inspirational yet professional. Warm, trustworthy, science-backed. Like a best friend who's also a pediatrician.
+Audience: Parents of children 0–5 years old.
+Tone for this post: ${toneGuide}
+
+Topic to write about:
+- Topic: ${research.topic}
+- Insight: ${research.insight}
+- ChildBloom angle: ${research.angle}
+- Hashtags to use: ${research.hashtags.join(' ')}
+
+Write ONE X (Twitter) post. Rules:
+- Maximum 240 characters (leave room for link)
+- NO generic opener like "Hey parents!" or "Did you know?"
+- Lead with the insight or a powerful statement
+- End with a subtle nod to ChildBloom or a CTA
+- Include 2-3 of the provided hashtags at the end
+- Sound human, not corporate
+
+Return ONLY the tweet text, nothing else.`
+    }]
+  });
+
+  return response.content[0].text.trim();
+}
+
+// ── TWITTER ───────────────────────────────────────────────────────────────────
+async function postTweet(text) {
+  const accessToken = process.env.TWITTER_ACCESS_TOKEN;
+  const accessSecret = process.env.TWITTER_ACCESS_TOKEN_SECRET;
+
+  if (!accessToken || !accessSecret) {
+    console.warn('[Twitter] Access token missing — logging post instead of tweeting');
+    console.log('[Twitter] Would have posted:', text);
+    return { simulated: true, text };
+  }
+
+  const client = new TwitterApi({
+    appKey: process.env.TWITTER_CONSUMER_KEY,
+    appSecret: process.env.TWITTER_CONSUMER_SECRET,
+    accessToken,
+    accessSecret
+  });
+
+  const tweet = await client.v2.tweet(text);
+  console.log('[Twitter] Posted tweet:', tweet.data.id);
+  return { success: true, tweetId: tweet.data.id, text };
+}
+
+// ── STATS ─────────────────────────────────────────────────────────────────────
+async function getDailyStats() {
+  const yesterday = new Date();
+  yesterday.setHours(yesterday.getHours() - 24);
+  const since = yesterday.toISOString();
+
+  const { data: newUsers, error: newUsersErr } = await supabase
+    .from('profiles')
+    .select('id, full_name, created_at')
+    .gte('created_at', since);
+
+  const { count: totalUsers } = await supabase
+    .from('profiles')
+    .select('*', { count: 'exact', head: true });
+
+  const { count: totalChildren } = await supabase
+    .from('children')
+    .select('*', { count: 'exact', head: true });
+
+  const { data: newChildren } = await supabase
+    .from('children')
+    .select('id, created_at')
+    .gte('created_at', since);
+
+  if (newUsersErr) console.error('Stats fetch error:', newUsersErr);
+
+  return {
+    newUsers: newUsers?.length ?? 0,
+    totalUsers: totalUsers ?? 0,
+    newChildren: newChildren?.length ?? 0,
+    totalChildren: totalChildren ?? 0,
+    revenue24h: null,
+    generatedAt: new Date().toISOString()
+  };
+}
+
+// ── MAIN HANDLER ──────────────────────────────────────────────────────────────
 export default async function handler(req, res) {
-  // Security: only allow Vercel Cron calls (or manual calls with secret)
   const authHeader = req.headers.authorization;
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  // Determine slot: morning (before noon UTC) or evening
   const utcHour = new Date().getUTCHours();
   const slot = utcHour < 10 ? 'morning' : 'evening';
 
   console.log(`[Agent] Running ${slot} cron at ${new Date().toISOString()}`);
 
   try {
-    // ── 1. MARKET RESEARCH ──────────────────────────────────────────────────
     console.log('[Agent] Researching trending topic...');
     const research = await researchTrendingTopic();
     console.log('[Agent] Topic:', research.topic);
 
-    // ── 2. GENERATE POST ────────────────────────────────────────────────────
     console.log(`[Agent] Generating ${slot} post...`);
     const postText = await generatePost(research, slot);
     console.log('[Agent] Generated:', postText);
 
-    // ── 3. POST TO X ────────────────────────────────────────────────────────
     const tweetResult = await postTweet(postText);
 
-    // ── 4. DAILY BRIEF (evening run only) ───────────────────────────────────
     let stats = null;
     if (slot === 'evening') {
       console.log('[Agent] Fetching daily stats for brief...');
       stats = await getDailyStats();
       console.log('[Agent] Stats:', stats);
 
-      // Log brief to Supabase for easy retrieval
       await supabase.from('agent_logs').insert({
         type: 'daily_brief',
-        data: {
-          stats,
-          topic: research.topic,
-          posts: { morning: null, evening: postText }
-        },
+        data: { stats, topic: research.topic, posts: { morning: null, evening: postText } },
         created_at: new Date().toISOString()
       });
     }
 
-    // ── 5. LOG THIS RUN ─────────────────────────────────────────────────────
     await supabase.from('agent_logs').insert({
       type: `post_${slot}`,
-      data: {
-        topic: research.topic,
-        post: postText,
-        tweet: tweetResult,
-        slot
-      },
+      data: { topic: research.topic, post: postText, tweet: tweetResult, slot },
       created_at: new Date().toISOString()
     });
 
     return res.status(200).json({
-      success: true,
-      slot,
-      topic: research.topic,
-      post: postText,
-      tweet: tweetResult,
+      success: true, slot, topic: research.topic, post: postText, tweet: tweetResult,
       ...(stats ? { stats } : {})
     });
 
   } catch (error) {
     console.error('[Agent] Error:', error);
-
-    // Log the error to Supabase
     await supabase.from('agent_logs').insert({
       type: 'error',
       data: { error: error.message, slot },
       created_at: new Date().toISOString()
     }).catch(() => {});
-
     return res.status(500).json({ error: error.message });
   }
 }
