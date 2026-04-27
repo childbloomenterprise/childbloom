@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
+import { FAST_MODEL, corsOrigin } from '../lib/models.js';
 import {
   isEmergency,
   getEmergencyResponse,
@@ -14,9 +15,10 @@ import {
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Origin', corsOrigin());
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Vary', 'Origin');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: { message: 'Method not allowed' } });
@@ -40,6 +42,29 @@ export default async function handler(req, res) {
   if (!message || !childId) {
     return res.status(400).json({ error: { message: 'message and childId are required' } });
   }
+
+  // ── Rate limit: 10 requests per user per hour ──
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return res.status(401).json({ error: { message: 'Unauthorized' } });
+  }
+
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const { count } = await supabase
+    .from('api_usage')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+    .eq('endpoint', 'ask')
+    .gte('created_at', oneHourAgo);
+
+  if (count >= 10) {
+    return res.status(429).json({
+      error: { message: 'You\'ve reached the limit of 10 questions per hour. Please try again later.' }
+    });
+  }
+
+  // Log this request (fire-and-forget — don't block the response)
+  supabase.from('api_usage').insert({ user_id: user.id, endpoint: 'ask' }).then(() => {});
 
   // ── Emergency check — runs before anything else, bypasses AI ──
   if (isEmergency(message)) {
@@ -91,18 +116,16 @@ export default async function handler(req, res) {
       .order('record_date', { ascending: false })
       .limit(5),
 
-    // Fix: correct column names — logged_date (not log_date), quantity+notes (no reaction)
     supabase
       .from('food_logs')
-      .select('logged_date, meal_type, food_name, quantity, notes')
+      .select('log_date, meal_type, food_name, quantity, notes')
       .eq('child_id', childId)
-      .order('logged_date', { ascending: false })
+      .order('log_date', { ascending: false })
       .limit(7),
 
-    // Fix: description (not notes) for health_records
     supabase
       .from('health_records')
-      .select('record_date, record_type, title, description')
+      .select('record_date, record_type, title, notes')
       .eq('child_id', childId)
       .order('record_date', { ascending: false })
       .limit(3),
@@ -172,7 +195,7 @@ export default async function handler(req, res) {
 
   try {
     const stream = anthropic.messages.stream({
-      model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6',
+      model: FAST_MODEL,
       max_tokens: 1024,
       system: systemPrompt,
       messages,
