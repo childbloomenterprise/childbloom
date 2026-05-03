@@ -7,12 +7,21 @@ export function useAuth() {
   const { setSession, setProfile, clearSession, setLoading } = useAuthStore();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    let cancelled = false;
+
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (cancelled) return;
       setSession(session);
-      if (session?.user) {
-        fetchProfile(session.user.id);
+      if (session?.access_token) {
+        localStorage.setItem('sb-access-token', session.access_token);
       }
-    });
+      if (session?.user) {
+        await fetchProfile(session.user.id);
+      } else {
+        setLoading(false);
+      }
+    })();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
@@ -25,7 +34,10 @@ export function useAuth() {
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
   }, []);
 
   async function fetchProfile(userId) {
@@ -59,6 +71,16 @@ export function useAuth() {
     return data;
   }
 
+  async function signInWithGoogle() {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+    if (error) throw error;
+  }
+
   async function signOut() {
     await supabase.auth.signOut();
     localStorage.removeItem('sb-access-token');
@@ -81,5 +103,5 @@ export function useAuth() {
     return data;
   }
 
-  return { signIn, signUp, signOut, updateProfile, fetchProfile };
+  return { signIn, signUp, signInWithGoogle, signOut, updateProfile, fetchProfile };
 }

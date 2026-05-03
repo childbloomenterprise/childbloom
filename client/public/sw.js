@@ -1,4 +1,4 @@
-const CACHE_NAME = 'childbloom-v2';
+const CACHE_NAME = 'childbloom-v3';
 const OFFLINE_URL = '/offline.html';
 
 const STATIC_ASSETS = [
@@ -12,21 +12,14 @@ const STATIC_ASSETS = [
   '/favicon.svg',
 ];
 
-const GUIDE_URLS = [
-  '/guides',
-  '/guides/pregnancy',
-  '/guides/newborn',
-  '/guides/infant',
-  '/guides/toddler',
-  '/guides/preschool',
-  '/guides/early-childhood',
-];
+// Guide stage URLs are populated lazily via the runtime cache-first handler
+// below. Pre-caching dynamic SPA routes is fragile — a single 404 makes the
+// whole addAll() reject and the install silently fails.
 
-// ── Install: pre-cache app shell and guides ───────────────────────────────
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) =>
-      cache.addAll([...STATIC_ASSETS, ...GUIDE_URLS])
+      cache.addAll(STATIC_ASSETS)
     ).then(() => self.skipWaiting())
   );
 });
@@ -55,8 +48,10 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(request)
         .then((res) => {
-          const clone = res.clone();
-          caches.open(CACHE_NAME).then((c) => c.put(request, clone));
+          if (res.ok) {
+            const clone = res.clone();
+            caches.open(CACHE_NAME).then((c) => c.put(request, clone));
+          }
           return res;
         })
         .catch(async () => {
@@ -76,7 +71,9 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       caches.match(request).then((cached) => {
         const networkFetch = fetch(request).then((res) => {
-          caches.open(CACHE_NAME).then((c) => c.put(request, res.clone()));
+          if (res.ok) {
+            caches.open(CACHE_NAME).then((c) => c.put(request, res.clone()));
+          }
           return res;
         });
         return cached || networkFetch;
@@ -94,7 +91,9 @@ self.addEventListener('fetch', (event) => {
       caches.match(request).then((cached) => {
         if (cached) return cached;
         return fetch(request).then((res) => {
-          caches.open(CACHE_NAME).then((c) => c.put(request, res.clone()));
+          if (res.ok) {
+            caches.open(CACHE_NAME).then((c) => c.put(request, res.clone()));
+          }
           return res;
         });
       })
