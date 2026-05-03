@@ -155,6 +155,44 @@
     <priority>0.7</priority>
   </url>
 
+  <!-- SEO landing pages — keyword-targeted static HTML -->
+  <url>
+    <loc>https://childbloom.in/ai-pediatrician-india.html</loc>
+    <lastmod>2026-05-03</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://childbloom.in/baby-growth-tracker-india.html</loc>
+    <lastmod>2026-05-03</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://childbloom.in/iap-vaccination-schedule.html</loc>
+    <lastmod>2026-05-03</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://childbloom.in/baby-milestones-tracker.html</loc>
+    <lastmod>2026-05-03</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://childbloom.in/baby-development-ai.html</loc>
+    <lastmod>2026-05-03</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://childbloom.in/indian-baby-food-chart.html</loc>
+    <lastmod>2026-05-03</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
   <!-- Privacy policy -->
   <url>
     <loc>https://childbloom.in/privacy</loc>
