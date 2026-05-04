@@ -274,7 +274,6 @@ export default function FoodTrackerPage() {
         logged_date: today,
         logged_at: now,
         food_type: feedType,
-        quantity_ml: null,
         duration_minutes: duration,
         notes: notes || null,
       });
