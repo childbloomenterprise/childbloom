@@ -57,7 +57,7 @@ export default function FoodTrackerPage() {
 
   const addMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from('food_logs').insert({
+      const { data, error } = await supabase.from('food_logs').insert({
         child_id: childId,
         user_id: user.id,
         logged_date: today,
@@ -66,12 +66,12 @@ export default function FoodTrackerPage() {
         quantity_ml: null,
         duration_minutes: duration ? parseInt(duration) : null,
         notes: notes || null,
-      });
+      }).select().single();
       if (error) throw error;
+      return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['food-logs', childId] });
-      queryClient.invalidateQueries({ queryKey: ['food-logs-today', childId] });
+    onSuccess: (newLog) => {
+      queryClient.setQueryData(['food-logs', childId], (old = []) => [newLog, ...(old || [])]);
       setShowForm(false);
       setDuration('');
       setNotes('');

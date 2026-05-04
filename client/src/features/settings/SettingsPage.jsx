@@ -6,40 +6,34 @@ import useAuthStore from '../../stores/authStore';
 import useChildStore from '../../stores/childStore';
 import { useChildren, useSelectedChild } from '../../hooks/useChild';
 import CBIcon from '../../components/cb/CBIcon';
-import CBLogoMark from '../../components/cb/CBLogoMark';
 import CBLargeTitle from '../../components/cb/CBLargeTitle';
 import CBCell from '../../components/cb/CBCell';
 import { T } from '../../components/cb/tokens';
-import { differenceInDays } from 'date-fns';
-import { useTranslation } from 'react-i18next';
+import { differenceInDays, format } from 'date-fns';
 
-const LANGS = [
-  { id: 'en', name: 'English',   native: 'English' },
-  { id: 'hi', name: 'Hindi',     native: 'हिन्दी' },
-  { id: 'ml', name: 'Malayalam', native: 'മലയാളം' },
-  { id: 'ta', name: 'Tamil',     native: 'தமிழ்' },
-  { id: 'te', name: 'Telugu',    native: 'తెలుగు' },
-  { id: 'pa', name: 'Punjabi',   native: 'ਪੰਜਾਬੀ' },
-];
+function calcAge(dob) {
+  if (!dob) return '';
+  const days = differenceInDays(new Date(), new Date(dob));
+  const months = Math.floor(days / 30);
+  if (days < 30) return `${days} days old`;
+  if (months < 24) return `${months} months old`;
+  const y = Math.floor(months / 12);
+  const m = months % 12;
+  return m > 0 ? `${y} yr ${m} mo old` : `${y} years old`;
+}
 
 export default function SettingsPage() {
   const navigate = useNavigate();
-  const { i18n } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const clearAuth = useAuthStore((s) => s.clearAuth);
   const { data: children = [] } = useChildren();
   const child = useSelectedChild();
   const { setSelectedChildId } = useChildStore();
-  const [lang, setLang] = useState(i18n.language || 'en');
+  const [expandedChildId, setExpandedChildId] = useState(null);
 
-  const ageInDays = child?.date_of_birth
-    ? differenceInDays(new Date(), new Date(child.date_of_birth))
-    : null;
-
-  const handleLangChange = (id) => {
-    setLang(id);
-    i18n.changeLanguage(id);
-    localStorage.setItem('i18nextLng', id);
+  const handleChildClick = (c) => {
+    setSelectedChildId(c.id);
+    setExpandedChildId(prev => prev === c.id ? null : c.id);
   };
 
   const logoutMutation = useMutation({
@@ -68,56 +62,62 @@ export default function SettingsPage() {
           <div style={{ fontSize: 15, fontWeight: 600, color: T.ink900, letterSpacing: '-0.005em' }}>{parentName}</div>
           <div style={{ fontSize: 12, color: T.ink300, marginTop: 1 }}>{user?.email}</div>
         </div>
-        <CBIcon name="chevron-right" size={16} />
-      </div>
-
-      {/* Language */}
-      <div style={{ padding: '0 20px 8px', display: 'flex', justifyContent: 'space-between' }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: T.ink300, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Language</div>
-        <div style={{ fontSize: 11, color: T.ink300 }}>Dr. Bloom speaks 6</div>
-      </div>
-      <div style={{ margin: '0 16px 18px', background: '#fff', borderRadius: 14, overflow: 'hidden' }}>
-        {LANGS.map((l, i) => (
-          <button key={l.id} onClick={() => handleLangChange(l.id)}
-            style={{ width: '100%', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, border: 'none', borderBottom: i < LANGS.length - 1 ? `0.5px solid ${T.ink100}` : 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left' }}>
-            <div style={{ width: 30, height: 30, borderRadius: 8, background: T.forest50, color: T.forest700, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 600, flexShrink: 0 }}>
-              {l.native[0]}
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14, fontWeight: 500, color: T.ink900 }}>{l.name}</div>
-              <div style={{ fontSize: 12, color: T.ink300, marginTop: 1 }}>{l.native}</div>
-            </div>
-            {lang === l.id && <CBIcon name="check" size={17} stroke={2.4} />}
-          </button>
-        ))}
       </div>
 
       {/* Child section */}
       <div style={{ padding: '0 20px 8px', fontSize: 11, fontWeight: 700, color: T.ink300, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Child</div>
       <div style={{ margin: '0 16px 18px', background: '#fff', borderRadius: 14, overflow: 'hidden' }}>
         {children.map((c, i) => (
-          <CBCell key={c.id} icon="user" iconColor={T.forest600}
-            title={c.name}
-            sub={ageInDays != null && c.id === child?.id ? `${ageInDays} days · ${ageInDays <= 30 ? 'Newborn' : ageInDays <= 365 ? 'Infant' : 'Toddler'}` : c.date_of_birth}
-            divider={i < children.length - 1}
-            onClick={() => setSelectedChildId(c.id)}
-          />
+          <div key={c.id}>
+            {/* Child row */}
+            <button
+              onClick={() => handleChildClick(c)}
+              style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', borderBottom: `0.5px solid ${T.ink100}` }}
+            >
+              <div style={{ width: 30, height: 30, borderRadius: 7, background: (c.id === child?.id ? T.forest600 : T.ink300) + '1f', color: c.id === child?.id ? T.forest600 : T.ink300, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <CBIcon name="user" size={17} stroke={1.8} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 15, fontWeight: 500, color: T.ink700 }}>{c.name}</div>
+                <div style={{ fontSize: 12, color: T.ink300, marginTop: 1 }}>{calcAge(c.date_of_birth)}</div>
+              </div>
+              <CBIcon name={expandedChildId === c.id ? 'chevron-down' : 'chevron-right'} size={14} stroke={2.2} />
+            </button>
+
+            {/* Expanded child detail */}
+            {expandedChildId === c.id && (
+              <div style={{ padding: '14px 16px 16px', background: T.forest50, borderBottom: i < children.length - 1 ? `0.5px solid ${T.ink100}` : 'none' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                  <div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: T.ink300, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>Name</div>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: T.ink900 }}>{c.name}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: T.ink300, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>Date of birth</div>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: T.ink900 }}>{c.date_of_birth ? format(new Date(c.date_of_birth), 'dd MMM yyyy') : '—'}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: T.ink300, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>Age</div>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: T.forest700 }}>{calcAge(c.date_of_birth)}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: T.ink300, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>Days old</div>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: T.ink900 }}>
+                      {c.date_of_birth ? differenceInDays(new Date(), new Date(c.date_of_birth)) : '—'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         ))}
         <CBCell icon="plus" iconColor={T.blue} title="Add another child" divider={false} onClick={() => navigate('/onboarding')} />
-      </div>
-
-      {/* Bloom AI section */}
-      <div style={{ padding: '0 20px 8px', fontSize: 11, fontWeight: 700, color: T.ink300, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Bloom AI</div>
-      <div style={{ margin: '0 16px 18px', background: '#fff', borderRadius: 14, overflow: 'hidden' }}>
-        <CBCell icon="sparkle" iconColor={T.forest600} title="Voice & tone" value="Warm, calm" />
-        <CBCell icon="bell" iconColor={T.orange} title="Daily nudges" value="9:00 AM" />
-        <CBCell icon="shield" iconColor={T.red} title="Red-flag alerts" value="On" divider={false} />
       </div>
 
       {/* Privacy section */}
       <div style={{ padding: '0 20px 8px', fontSize: 11, fontWeight: 700, color: T.ink300, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Privacy & trust</div>
       <div style={{ margin: '0 16px 18px', background: '#fff', borderRadius: 14, overflow: 'hidden' }}>
-        <CBCell icon="lock" iconColor={T.ink500} title="Your data, your phone" sub="Stored encrypted on-device" onClick={() => navigate('/privacy')} />
+        <CBCell icon="lock" iconColor={T.ink500} title="Your data, your phone" sub="Stored encrypted on-device" />
         <CBCell icon="book" iconColor={T.ink500} title="Pediatrician sources" sub="IAP, WHO, AAP" divider={false} />
       </div>
 
