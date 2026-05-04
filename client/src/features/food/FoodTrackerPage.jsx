@@ -241,8 +241,9 @@ export default function FoodTrackerPage() {
   const [duration, setDuration] = useState(15);
   const [notes, setNotes] = useState('');
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
-  const openSheet = (type) => { setFeedType(type || 'breast'); setSheetOpen(true); };
+  const openSheet = (type) => { setFeedType(type || 'breast'); setSheetOpen(true); setSaveError(''); };
   const closeSheet = () => { if (!addMutation.isPending) setSheetOpen(false); };
 
   const { data: logs = [] } = useQuery({
@@ -266,26 +267,42 @@ export default function FoodTrackerPage() {
 
   const addMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.from('food_logs').insert({
+      const now = new Date().toISOString();
+      const { error } = await supabase.from('food_logs').insert({
         child_id: childId,
         user_id: user.id,
         logged_date: today,
-        logged_at: new Date().toISOString(),
+        logged_at: now,
         food_type: feedType,
         quantity_ml: null,
         duration_minutes: duration,
         notes: notes || null,
-      }).select().single();
+      });
       if (error) throw error;
-      return data;
+      // Return synthetic object — avoids RLS read-back issues
+      return {
+        id: crypto.randomUUID(),
+        child_id: childId,
+        user_id: user.id,
+        logged_date: today,
+        logged_at: now,
+        food_type: feedType,
+        duration_minutes: duration,
+        notes: notes || null,
+      };
     },
     onSuccess: (newLog) => {
+      setSaveError('');
       queryClient.setQueryData(['food-logs', childId], (old = []) => [newLog, ...(old || [])]);
+      queryClient.invalidateQueries({ queryKey: ['food-logs', childId] });
       setSaved(true);
       setTimeout(() => {
         setSheetOpen(false);
         setTimeout(() => { setSaved(false); setNotes(''); setDuration(15); setFeedType('breast'); }, 400);
-      }, 1000);
+      }, 900);
+    },
+    onError: (err) => {
+      setSaveError(err?.message || 'Could not save. Check your connection and try again.');
     },
   });
 
@@ -452,9 +469,16 @@ export default function FoodTrackerPage() {
           />
         </div>
 
+        {/* Error */}
+        {saveError && (
+          <div style={{ marginBottom: 14, padding: '10px 14px', borderRadius: 12, background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.18)', fontSize: 13, color: '#dc2626' }}>
+            {saveError}
+          </div>
+        )}
+
         {/* Save */}
         <button
-          onClick={() => !saved && addMutation.mutate()}
+          onClick={() => { if (!saved && !addMutation.isPending) addMutation.mutate(); }}
           disabled={addMutation.isPending || saved}
           style={{
             width: '100%',
