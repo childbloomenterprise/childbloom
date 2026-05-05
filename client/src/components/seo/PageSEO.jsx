@@ -1,8 +1,28 @@
-import { Helmet } from 'react-helmet-async';
+import { useEffect } from 'react';
 
 const SITE_NAME = 'ChildBloom';
 const SITE_URL = 'https://childbloom.in';
 const DEFAULT_OG_IMAGE = `${SITE_URL}/og-image.png`;
+
+function setMeta(name, content, attr = 'name') {
+  let el = document.querySelector(`meta[${attr}="${name}"]`);
+  if (!el) {
+    el = document.createElement('meta');
+    el.setAttribute(attr, name);
+    document.head.appendChild(el);
+  }
+  el.setAttribute('content', content);
+}
+
+function setLink(rel, href) {
+  let el = document.querySelector(`link[rel="${rel}"]`);
+  if (!el) {
+    el = document.createElement('link');
+    el.setAttribute('rel', rel);
+    document.head.appendChild(el);
+  }
+  el.setAttribute('href', href);
+}
 
 export default function PageSEO({
   title,
@@ -21,37 +41,36 @@ export default function PageSEO({
     ? `${SITE_URL}${canonical}`
     : SITE_URL;
 
-  return (
-    <Helmet>
-      <title>{fullTitle}</title>
-      {description && <meta name="description" content={description} />}
-      {noindex ? (
-        <meta name="robots" content="noindex, nofollow" />
-      ) : (
-        <meta name="robots" content="index, follow" />
-      )}
-      <link rel="canonical" href={resolvedCanonical} />
+  useEffect(() => {
+    document.title = fullTitle;
 
-      {/* Open Graph */}
-      <meta property="og:title" content={fullTitle} />
-      {description && <meta property="og:description" content={description} />}
-      <meta property="og:type" content={ogType} />
-      <meta property="og:url" content={resolvedCanonical} />
-      <meta property="og:image" content={ogImage} />
-      <meta property="og:site_name" content={SITE_NAME} />
+    if (description) setMeta('description', description);
+    setMeta('robots', noindex ? 'noindex, nofollow' : 'index, follow');
+    setLink('canonical', resolvedCanonical);
 
-      {/* Twitter */}
-      <meta name="twitter:card" content="summary_large_image" />
-      <meta name="twitter:title" content={fullTitle} />
-      {description && <meta name="twitter:description" content={description} />}
-      <meta name="twitter:image" content={ogImage} />
+    setMeta('og:title', fullTitle, 'property');
+    if (description) setMeta('og:description', description, 'property');
+    setMeta('og:type', ogType, 'property');
+    setMeta('og:url', resolvedCanonical, 'property');
+    setMeta('og:image', ogImage, 'property');
+    setMeta('og:site_name', SITE_NAME, 'property');
 
-      {/* Structured data */}
-      {structuredData && (
-        <script type="application/ld+json">
-          {JSON.stringify(structuredData)}
-        </script>
-      )}
-    </Helmet>
-  );
+    setMeta('twitter:card', 'summary_large_image');
+    setMeta('twitter:title', fullTitle);
+    if (description) setMeta('twitter:description', description);
+    setMeta('twitter:image', ogImage);
+
+    if (structuredData) {
+      let el = document.querySelector('script[type="application/ld+json"]#page-seo');
+      if (!el) {
+        el = document.createElement('script');
+        el.type = 'application/ld+json';
+        el.id = 'page-seo';
+        document.head.appendChild(el);
+      }
+      el.textContent = JSON.stringify(structuredData);
+    }
+  }, [fullTitle, description, noindex, resolvedCanonical, ogType, ogImage, structuredData]);
+
+  return null;
 }

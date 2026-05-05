@@ -311,6 +311,45 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {/* SOS Emergency button */}
+      <div className="animate-stagger-up stagger-6" style={{ margin: '14px 16px 0' }}>
+        <button
+          onClick={() => navigate('/emergency')}
+          style={{
+            width: '100%',
+            background: 'linear-gradient(135deg, #B91C1C 0%, #7F1D1D 100%)',
+            border: 'none',
+            borderRadius: 16,
+            padding: '14px 18px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            cursor: 'pointer',
+            boxShadow: '0 4px 16px rgba(185,28,28,0.25)',
+          }}
+        >
+          <div style={{
+            width: 36, height: 36, borderRadius: 10,
+            background: 'rgba(255,255,255,0.18)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0,
+          }}>
+            <CBIcon name="siren" size={18} stroke={2} style={{ color: '#fff' }} />
+          </div>
+          <div style={{ flex: 1, textAlign: 'left' }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', letterSpacing: '-0.01em' }}>
+              Emergency First-Aid
+            </div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)', marginTop: 1 }}>
+              CPR, choking, burns, seizures &amp; more
+            </div>
+          </div>
+          <div style={{ fontSize: 11, fontWeight: 800, color: '#fff', background: 'rgba(255,255,255,0.2)', padding: '4px 8px', borderRadius: 99, letterSpacing: '0.06em' }}>
+            SOS
+          </div>
+        </button>
+      </div>
+
       <div style={{ height: 24 }} />
     </div>
   );
