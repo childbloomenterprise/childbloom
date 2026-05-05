@@ -273,6 +273,7 @@ export default function FoodTrackerPage() {
         user_id: user.id,
         logged_date: today,
         logged_at: now,
+        food_name: feedType,
         food_type: feedType,
         duration_minutes: duration,
         notes: notes || null,
