@@ -1,3 +1,8 @@
+// Onboarding v2 — 5-screen flow matching the Bloom design canvas.
+// Screens: Welcome → Child → Birth & health → About you + tone → Ready.
+// Saves: profiles (full_name, language, ai_tone, onboarding_complete) +
+//        children (name, dob, pronouns, gestational_age, birth_weight, blood_group, allergies).
+
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -5,106 +10,667 @@ import { supabase } from '../../lib/supabase';
 import i18n, { LANGUAGES } from '../../i18n';
 import useAuthStore from '../../stores/authStore';
 import useChildStore from '../../stores/childStore';
-import { LogoMark } from '../../components/ui/LogoMark';
+import { T, FONTS, RADIUS } from '../../components/cb/tokens';
+import {
+  Card, Button, Body, Mono, Eyebrow, Display, Spacer, Stack, HRow, Divider,
+  PhotoSlot, BloomFlower, ProgressBar,
+} from '../../components/cb/primitives';
+import CBIcon from '../../components/cb/CBIcon';
+import CBLogoMark from '../../components/cb/CBLogoMark';
 
-const TOTAL_SCREENS = 2;
+const TOTAL = 5;
+const BRAND_DARK = '#0F3D2E';
+const ACCENT = '#1D9E75';
+
+const PRONOUN_OPTIONS = [
+  { id: 'she/her',   label: 'she / her' },
+  { id: 'he/him',    label: 'he / him' },
+  { id: 'they/them', label: 'they / them' },
+];
+
+const TONE_OPTIONS = [
+  { id: 'warm',    label: 'Warm friend',    body: 'Encouraging, conversational, big-hearted.' },
+  { id: 'precise', label: 'Precise coach',  body: 'Concise data, clear next actions, no fluff.' },
+  { id: 'expert',  label: 'Quiet expert',   body: 'Pediatrics-grounded, calm, evidence-led.' },
+];
+
+const BLOOD_GROUPS = ['A+','A-','B+','B-','AB+','AB-','O+','O-','Unknown'];
 
 function calcAge(dob) {
   if (!dob) return null;
-  const days   = Math.floor((Date.now() - new Date(dob).getTime()) / 86400000);
-  const weeks  = Math.floor(days / 7);
+  const days = Math.floor((Date.now() - new Date(dob).getTime()) / 86400000);
+  const weeks = Math.floor(days / 7);
   const months = Math.floor(days / 30);
-  if (days < 1)    return 'Today!';
-  if (days < 21)   return `${days} days old`;
-  if (months < 3)  return `${weeks} weeks old`;
+  if (days < 1) return 'born today';
+  if (days < 21) return `${days} days old`;
+  if (months < 3) return `${weeks} weeks old`;
   if (months < 24) return `${months} months old`;
-  const y = Math.floor(months / 12);
-  const m = months % 12;
+  const y = Math.floor(months / 12), m = months % 12;
   return m > 0 ? `${y} yr ${m} mo old` : `${y} years old`;
 }
 
-function FieldLabel({ children }) {
+// ─── shared field primitives ────────────────────────────────────────────
+
+function DarkLabel({ children }) {
   return (
-    <label style={{ display: 'block', color: 'rgba(255,255,255,0.45)', fontSize: '12px',
-                    fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase',
-                    marginBottom: '8px' }}>
-      {children}
-    </label>
+    <label style={{
+      display: 'block', color: 'rgba(255,255,255,0.50)', fontSize: 11,
+      fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase',
+      marginBottom: 8,
+    }}>{children}</label>
   );
 }
 
-function TextInput({ value, onChange, placeholder, autoFocus }) {
+function LightLabel({ children }) {
+  return (
+    <Mono size={10} color={T.ink400} style={{
+      letterSpacing: '0.10em', textTransform: 'uppercase',
+      display: 'block', marginBottom: 7,
+    }}>{children}</Mono>
+  );
+}
+
+function DarkInput({ value, onChange, placeholder, type = 'text', autoFocus, suffix, min, max }) {
   return (
     <input
-      type="text"
+      type={type}
       value={value}
-      onChange={e => onChange(e.target.value)}
+      onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      autoCapitalize="words"
       autoFocus={autoFocus}
+      min={min}
+      max={max}
+      autoCapitalize={type === 'text' ? 'words' : 'off'}
       style={{
-        width: '100%',
-        padding: '15px 16px',
-        borderRadius: '14px',
+        width: '100%', padding: '15px 16px', borderRadius: 14,
         border: '1.5px solid rgba(255,255,255,0.10)',
         background: 'rgba(255,255,255,0.06)',
-        color: 'white',
-        fontSize: '17px',
-        fontWeight: 500,
-        outline: 'none',
-        colorScheme: 'dark',
-        transition: 'border-color 0.18s',
-        boxSizing: 'border-box',
+        color: value ? 'white' : 'rgba(255,255,255,0.30)',
+        fontSize: 16, fontWeight: 500, outline: 'none',
+        colorScheme: 'dark', transition: 'border-color 0.18s',
+        boxSizing: 'border-box', fontFamily: FONTS.sans,
       }}
-      onFocus={e => { e.target.style.borderColor = 'rgba(29,158,117,0.60)'; }}
-      onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.10)'; }}
+      onFocus={(e) => { e.target.style.borderColor = `${ACCENT}99`; }}
+      onBlur={(e) => { e.target.style.borderColor = 'rgba(255,255,255,0.10)'; }}
     />
   );
 }
 
-export default function OnboardingPage() {
-  const navigate    = useNavigate();
-  const queryClient = useQueryClient();
-  const user        = useAuthStore(s => s.user);
+function LightInput({ value, onChange, placeholder, type = 'text', autoFocus, min, max }) {
+  return (
+    <input
+      type={type}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      autoFocus={autoFocus}
+      min={min}
+      max={max}
+      autoCapitalize={type === 'text' ? 'words' : 'off'}
+      style={{
+        width: '100%', padding: '13px 14px', borderRadius: RADIUS.md,
+        border: `1px solid ${T.line}`, background: T.surface,
+        color: T.ink900, fontSize: 15, fontWeight: 500, outline: 'none',
+        boxSizing: 'border-box', fontFamily: FONTS.sans,
+        transition: 'border-color 0.18s, box-shadow 0.18s',
+      }}
+      onFocus={(e) => {
+        e.target.style.borderColor = T.brand;
+        e.target.style.boxShadow = `0 0 0 3px ${T.brandTint}`;
+      }}
+      onBlur={(e) => {
+        e.target.style.borderColor = T.line;
+        e.target.style.boxShadow = 'none';
+      }}
+    />
+  );
+}
 
-  const [screen, setScreen]       = useState(0);
-  const [screenKey, setScreenKey] = useState(0);
-  const [saving, setSaving]       = useState(false);
+function PillToggleGroup({ options, value, onChange }) {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${options.length}, 1fr)`, gap: 8 }}>
+      {options.map((o) => {
+        const active = value === o.id;
+        return (
+          <button key={o.id} type="button" onClick={() => onChange(o.id)}
+            style={{
+              padding: '11px 8px', borderRadius: RADIUS.md, cursor: 'pointer',
+              background: active ? T.brandTint : T.surface,
+              border: `1.5px solid ${active ? T.brand : T.line}`,
+              color: active ? T.brand : T.ink700,
+              fontFamily: FONTS.sans, fontSize: 13, fontWeight: 600,
+              transition: 'all 0.18s',
+            }}>
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function StepDots({ step }) {
+  return (
+    <HRow gap={6}>
+      {Array.from({ length: TOTAL }).map((_, i) => (
+        <div key={i} style={{
+          height: 4, flex: 1, borderRadius: 2,
+          background: i <= step ? T.brand : T.ink100,
+          transition: 'background 0.2s',
+        }} />
+      ))}
+    </HRow>
+  );
+}
+
+// ─── individual screens ─────────────────────────────────────────────────
+
+function ScreenWelcome({ onNext }) {
+  return (
+    <div style={{
+      minHeight: '100dvh', background: BRAND_DARK, position: 'relative',
+      overflow: 'hidden', color: '#fff', fontFamily: FONTS.sans,
+    }}>
+      {/* Decorative flower */}
+      <div style={{ position: 'absolute', right: -100, top: -100, opacity: 0.22, pointerEvents: 'none' }}>
+        <BloomFlower size={520} colors={['#fff','#fff','#fff','#fff','#fff','#fff']} />
+      </div>
+
+      <div style={{
+        position: 'relative', zIndex: 1,
+        padding: '60px 28px 36px',
+        minHeight: '100dvh', display: 'flex', flexDirection: 'column',
+      }}>
+        {/* Logo */}
+        <HRow gap={10} align="center">
+          <div style={{
+            width: 36, height: 36, borderRadius: 999, background: 'rgba(255,255,255,0.16)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <CBLogoMark size={18} color="#fff" />
+          </div>
+          <div style={{
+            fontFamily: FONTS.serif, fontSize: 19, fontStyle: 'italic',
+            letterSpacing: '-0.02em',
+          }}>Bloom</div>
+          <div style={{ flex: 1 }} />
+          <Mono size={11} color="rgba(255,255,255,0.45)">STEP 1 OF {TOTAL}</Mono>
+        </HRow>
+
+        <div style={{ flex: 1, minHeight: 40 }} />
+
+        {/* Headline */}
+        <div style={{
+          fontFamily: FONTS.serif, fontSize: 42, fontStyle: 'italic',
+          fontWeight: 300, lineHeight: 1.04, letterSpacing: '-0.02em',
+          color: '#fff', textWrap: 'pretty', maxWidth: 320,
+        }}>
+          Every day with your baby,<br/>beautifully understood.
+        </div>
+        <Spacer h={16} />
+        <div style={{
+          fontFamily: FONTS.sans, fontSize: 15, color: 'rgba(255,255,255,0.72)',
+          maxWidth: 300, lineHeight: 1.55,
+        }}>
+          Bloom watches what you log and gently turns it into rhythms,
+          milestones, and reassurance — never noise.
+        </div>
+
+        <div style={{ flex: 1, minHeight: 40 }} />
+
+        {/* CTAs */}
+        <Stack gap={10}>
+          <button onClick={onNext} style={{
+            width: '100%', height: 54, borderRadius: 16, border: 'none',
+            background: '#fff', color: BRAND_DARK,
+            fontFamily: FONTS.sans, fontSize: 16, fontWeight: 700,
+            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            gap: 8, boxShadow: '0 4px 20px rgba(0,0,0,0.18)',
+          }}>
+            Begin your baby's profile
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+          </button>
+          <div style={{
+            textAlign: 'center', fontFamily: FONTS.sans, fontSize: 12,
+            color: 'rgba(255,255,255,0.50)', marginTop: 4,
+          }}>
+            Free forever for the basics · Premium when you want depth.
+          </div>
+        </Stack>
+      </div>
+    </div>
+  );
+}
+
+function ScreenChild({ form, update, onNext, onBack }) {
+  const ageDisplay = calcAge(form.dateOfBirth);
+  const canProceed = form.babyName.trim().length >= 2 && !!form.dateOfBirth && !!form.pronouns;
+
+  return (
+    <ScreenShell step={1} onBack={onBack}>
+      <Eyebrow color={T.brand}>About your little one</Eyebrow>
+      <Spacer h={6} />
+      <Display size={28} italic weight={400} lh={1.15}>
+        Tell us about <span style={{ fontStyle: 'normal' }}>your baby.</span>
+      </Display>
+      <Spacer h={6} />
+      <Body size={13} color={T.ink500}>Bloom personalises everything from this moment.</Body>
+
+      <Spacer h={26} />
+
+      <Card p={20}>
+        <HRow gap={14} align="center">
+          <PhotoSlot label="add photo" w={64} h={64} radius="pill" />
+          <Stack gap={4} style={{ flex: 1 }}>
+            <LightLabel>Name</LightLabel>
+            <LightInput
+              value={form.babyName}
+              onChange={(v) => update('babyName', v)}
+              placeholder="e.g. Adoa, Arjun, Priya…"
+              autoFocus
+            />
+          </Stack>
+        </HRow>
+
+        <Spacer h={16} />
+        <Divider />
+        <Spacer h={16} />
+
+        <LightLabel>Pronouns</LightLabel>
+        <PillToggleGroup
+          options={PRONOUN_OPTIONS}
+          value={form.pronouns}
+          onChange={(v) => update('pronouns', v)}
+        />
+
+        <Spacer h={16} />
+
+        <LightLabel>Birthday</LightLabel>
+        <LightInput
+          type="date"
+          value={form.dateOfBirth}
+          onChange={(v) => update('dateOfBirth', v)}
+          max={new Date().toISOString().split('T')[0]}
+          min={new Date(Date.now() - 7 * 365 * 86400000).toISOString().split('T')[0]}
+        />
+        {ageDisplay && (
+          <div style={{ marginTop: 8 }}>
+            <Body size={12} weight={600} color={T.brand}>
+              {form.babyName || 'Your child'} is {ageDisplay} 🌱
+            </Body>
+          </div>
+        )}
+      </Card>
+
+      <Spacer h={20} />
+
+      <ContinueBar onNext={onNext} canProceed={canProceed} />
+    </ScreenShell>
+  );
+}
+
+function ScreenBirth({ form, update, onNext, onBack }) {
+  const toggleAllergy = (allergy) => {
+    const cur = form.allergies || [];
+    update('allergies', cur.includes(allergy) ? cur.filter((a) => a !== allergy) : [...cur, allergy]);
+  };
+
+  const presetAllergies = ['Milk', 'Egg', 'Peanut', 'Tree nut', 'Soy', 'Wheat', 'Fish', 'Shellfish'];
+
+  return (
+    <ScreenShell step={2} onBack={onBack}>
+      <Eyebrow color={T.brand}>Birth & health</Eyebrow>
+      <Spacer h={6} />
+      <Display size={28} italic weight={400} lh={1.15}>
+        A few <span style={{ fontStyle: 'normal' }}>health basics.</span>
+      </Display>
+      <Spacer h={6} />
+      <Body size={13} color={T.ink500}>All optional. Helps Dr. Bloom give safer answers.</Body>
+
+      <Spacer h={22} />
+
+      <Card p={20}>
+        <HRow gap={10}>
+          <Stack gap={6} style={{ flex: 1 }}>
+            <LightLabel>Born at (weeks)</LightLabel>
+            <LightInput
+              type="number"
+              value={form.gestationalAge}
+              onChange={(v) => update('gestationalAge', v)}
+              placeholder="40"
+              min="20"
+              max="44"
+            />
+          </Stack>
+          <Stack gap={6} style={{ flex: 1 }}>
+            <LightLabel>Birth weight (kg)</LightLabel>
+            <LightInput
+              type="number"
+              value={form.birthWeightKg}
+              onChange={(v) => update('birthWeightKg', v)}
+              placeholder="3.1"
+              min="0.5"
+              max="8"
+            />
+          </Stack>
+        </HRow>
+
+        <Spacer h={16} />
+        <Divider />
+        <Spacer h={16} />
+
+        <LightLabel>Blood group</LightLabel>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+          {BLOOD_GROUPS.map((bg) => {
+            const active = form.bloodGroup === bg;
+            return (
+              <button key={bg} type="button" onClick={() => update('bloodGroup', active ? '' : bg)}
+                style={{
+                  padding: '9px 6px', borderRadius: RADIUS.sm, cursor: 'pointer',
+                  background: active ? T.brandTint : T.surface,
+                  border: `1px solid ${active ? T.brand : T.line}`,
+                  color: active ? T.brand : T.ink700,
+                  fontFamily: FONTS.sans, fontSize: 13, fontWeight: 600,
+                  transition: 'all 0.18s',
+                }}>
+                {bg}
+              </button>
+            );
+          })}
+        </div>
+
+        <Spacer h={16} />
+        <Divider />
+        <Spacer h={16} />
+
+        <LightLabel>Known allergies</LightLabel>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          {presetAllergies.map((a) => {
+            const active = (form.allergies || []).includes(a);
+            return (
+              <button key={a} type="button" onClick={() => toggleAllergy(a)}
+                style={{
+                  padding: '8px 14px', borderRadius: 999, cursor: 'pointer',
+                  background: active ? T.brand : T.surface,
+                  border: `1px solid ${active ? T.brand : T.line}`,
+                  color: active ? '#fff' : T.ink700,
+                  fontFamily: FONTS.sans, fontSize: 12, fontWeight: 600,
+                  transition: 'all 0.18s',
+                }}>
+                {active ? '✓ ' : '+ '}{a}
+              </button>
+            );
+          })}
+        </div>
+      </Card>
+
+      <Spacer h={20} />
+
+      <ContinueBar onNext={onNext} canProceed={true} />
+    </ScreenShell>
+  );
+}
+
+function ScreenAboutYou({ form, update, onNext, onBack }) {
+  const canProceed = form.parentName.trim().length >= 2;
+  return (
+    <ScreenShell step={3} onBack={onBack}>
+      <Eyebrow color={T.brand}>About you</Eyebrow>
+      <Spacer h={6} />
+      <Display size={28} italic weight={400} lh={1.15}>
+        So Bloom knows <span style={{ fontStyle: 'normal' }}>who to talk to.</span>
+      </Display>
+
+      <Spacer h={22} />
+
+      <Card p={20}>
+        <LightLabel>Your name</LightLabel>
+        <LightInput
+          value={form.parentName}
+          onChange={(v) => update('parentName', v)}
+          placeholder="Your first name"
+          autoFocus
+        />
+
+        <Spacer h={16} />
+        <Divider />
+        <Spacer h={16} />
+
+        <LightLabel>Preferred language</LightLabel>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+          {LANGUAGES.slice(0, 6).map(({ code, nativeLabel, label }) => {
+            const active = form.language === code;
+            return (
+              <button key={code} type="button"
+                onClick={() => {
+                  update('language', code);
+                  i18n.changeLanguage(code);
+                  localStorage.setItem('childbloom-lang', code);
+                }}
+                style={{
+                  padding: '10px 6px', borderRadius: RADIUS.sm, cursor: 'pointer',
+                  background: active ? T.brandTint : T.surface,
+                  border: `1.5px solid ${active ? T.brand : T.line}`,
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+                  fontFamily: FONTS.sans, transition: 'all 0.18s',
+                }}>
+                <span style={{ fontSize: 14, fontWeight: 700, color: active ? T.brand : T.ink900 }}>{nativeLabel}</span>
+                <span style={{ fontSize: 10, color: T.ink400 }}>{label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </Card>
+
+      <Spacer h={20} />
+
+      <Body size={12} color={T.ink400} style={{ paddingLeft: 4, marginBottom: 8 }}>
+        How would you like Bloom to talk to you?
+      </Body>
+      <Stack gap={8}>
+        {TONE_OPTIONS.map((t) => {
+          const active = form.aiTone === t.id;
+          return (
+            <button key={t.id} type="button" onClick={() => update('aiTone', t.id)}
+              style={{
+                width: '100%', padding: 16, borderRadius: RADIUS.lg,
+                background: T.surface, border: 'none', cursor: 'pointer', textAlign: 'left',
+                boxShadow: active
+                  ? `0 0 0 2px ${T.brand}, 0 4px 16px rgba(11,23,20,0.10)`
+                  : 'var(--shadow-sm), var(--shadow-ring)',
+                transition: 'box-shadow 0.18s',
+              }}>
+              <HRow gap={12} align="flex-start">
+                <div style={{
+                  width: 22, height: 22, borderRadius: 11, flexShrink: 0,
+                  border: `1.5px solid ${active ? T.brand : T.ink300}`,
+                  background: active ? T.brand : 'transparent',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  {active && <CBIcon name="check" size={12} stroke={3} style={{ color: '#fff' }} />}
+                </div>
+                <Stack gap={3} style={{ flex: 1 }}>
+                  <div style={{
+                    fontFamily: FONTS.serif, fontSize: 17, fontStyle: 'italic',
+                    color: T.ink900, letterSpacing: '-0.02em',
+                  }}>{t.label}</div>
+                  <Body size={12} color={T.ink500}>{t.body}</Body>
+                </Stack>
+              </HRow>
+            </button>
+          );
+        })}
+      </Stack>
+
+      <Spacer h={20} />
+
+      <ContinueBar onNext={onNext} canProceed={canProceed} />
+    </ScreenShell>
+  );
+}
+
+function ScreenReady({ form, onFinish, saving, saveError }) {
+  return (
+    <div style={{
+      minHeight: '100dvh', background: T.bg,
+      paddingTop: 'max(env(safe-area-inset-top, 0px), 20px)',
+      paddingBottom: 'max(env(safe-area-inset-bottom, 0px) + 20px, 32px)',
+      paddingLeft: 20, paddingRight: 20,
+      display: 'flex', flexDirection: 'column',
+      fontFamily: FONTS.sans,
+    }} data-theme-root>
+
+      <StepDots step={4} />
+      <Spacer h={28} />
+
+      <Eyebrow color={T.brand}>You're set</Eyebrow>
+      <Spacer h={6} />
+      <Display size={30} italic weight={400} lh={1.1}>
+        Bloom is learning{' '}
+        <span style={{ fontStyle: 'normal' }}>{form.babyName || 'your child'}.</span>
+      </Display>
+      <Spacer h={8} />
+      <Body size={13} color={T.ink500}>
+        Three days of logs is usually enough to see their rhythm.
+      </Body>
+
+      <Spacer h={26} />
+
+      <Card p={26} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <BloomFlower size={170} />
+        <Spacer h={14} />
+        <Display size={20} italic weight={400}>Day 1 of 3</Display>
+        <Spacer h={6} />
+        <Body size={12} color={T.ink500} style={{ textAlign: 'center' }}>
+          Log a feed and a sleep to get started.
+        </Body>
+        <Spacer h={16} />
+        <div style={{ width: '100%' }}>
+          <ProgressBar value={0.18} />
+        </div>
+      </Card>
+
+      <Spacer h={18} />
+
+      <Card p={16} tone="warm">
+        <HRow gap={10} align="center">
+          <CBIcon name="sparkle" size={18} style={{ color: T.brand }} />
+          <Body size={12} color={T.ink500} style={{ flex: 1 }}>
+            Bloom won't predict — it'll wait, watch, and meet you where you are.
+          </Body>
+        </HRow>
+      </Card>
+
+      {saveError && (
+        <>
+          <Spacer h={14} />
+          <div style={{
+            padding: '12px 14px', borderRadius: 12,
+            background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.20)',
+          }}>
+            <Body size={13} color="#B0492C">{saveError}</Body>
+          </div>
+        </>
+      )}
+
+      <div style={{ flex: 1, minHeight: 24 }} />
+
+      <Button variant="primary" size="lg" full onClick={onFinish} disabled={saving}>
+        {saving ? 'Saving…' : 'Open my dashboard →'}
+      </Button>
+    </div>
+  );
+}
+
+// ─── shared shell for steps 2–4 (light theme) ───────────────────────────
+
+function ScreenShell({ step, onBack, children }) {
+  return (
+    <div style={{
+      minHeight: '100dvh', background: T.bg, fontFamily: FONTS.sans,
+      paddingTop: 'max(env(safe-area-inset-top, 0px), 20px)',
+      paddingBottom: 140,
+    }} data-theme-root>
+      <div style={{ padding: '0 20px 0' }}>
+        <HRow gap={12} align="center" style={{ marginBottom: 18 }}>
+          <button onClick={onBack} aria-label="Back"
+            style={{
+              width: 36, height: 36, borderRadius: 999, background: T.surface,
+              border: `1px solid ${T.line}`, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: T.ink700, flexShrink: 0,
+            }}>
+            <CBIcon name="chevron-left" size={16} stroke={2} />
+          </button>
+          <div style={{ flex: 1 }}>
+            <StepDots step={step} />
+          </div>
+          <Mono size={10} color={T.ink400}>{step + 1}/{TOTAL}</Mono>
+        </HRow>
+
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function ContinueBar({ onNext, canProceed }) {
+  return (
+    <div style={{
+      position: 'fixed', left: 0, right: 0, bottom: 0,
+      padding: '14px 20px',
+      paddingBottom: 'max(env(safe-area-inset-bottom, 0px) + 16px, 24px)',
+      background: `linear-gradient(to top, ${T.bg} 65%, transparent)`,
+      zIndex: 10,
+    }}>
+      <Button variant="primary" size="lg" full onClick={onNext} disabled={!canProceed}>
+        <span>Continue</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 6 }}>
+          <path d="M5 12h14M13 6l6 6-6 6" />
+        </svg>
+      </Button>
+    </div>
+  );
+}
+
+// ─── root component ─────────────────────────────────────────────────────
+
+export default function OnboardingPage() {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const user = useAuthStore((s) => s.user);
+
+  const [step, setStep] = useState(0);
+  const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
 
-  const [formData, setFormData] = useState({
-    babyName:    '',
+  const [form, setForm] = useState({
+    babyName: '',
     dateOfBirth: '',
-    parentName:  '',
-    language:    'en',
+    pronouns: '',
+    gestationalAge: '',
+    birthWeightKg: '',
+    bloodGroup: '',
+    allergies: [],
+    parentName: '',
+    language: localStorage.getItem('childbloom-lang') || 'en',
+    aiTone: 'warm',
   });
 
   useEffect(() => {
-    if (user?.user_metadata?.full_name && !formData.parentName) {
-      setFormData(d => ({ ...d, parentName: user.user_metadata.full_name }));
+    if (user?.user_metadata?.full_name && !form.parentName) {
+      setForm((f) => ({ ...f, parentName: user.user_metadata.full_name }));
     }
   }, [user]);
 
-  const update = (field, value) => setFormData(d => ({ ...d, [field]: value }));
+  const update = useCallback((k, v) => setForm((f) => ({ ...f, [k]: v })), []);
 
-  const canProceed = () => {
-    if (screen === 0) {
-      return formData.babyName.trim().length >= 2 && !!formData.dateOfBirth;
-    }
-    if (screen === 1) {
-      return formData.parentName.trim().length >= 2;
-    }
-    return false;
-  };
+  const next = () => setStep((s) => Math.min(s + 1, TOTAL - 1));
+  const back = () => setStep((s) => Math.max(s - 1, 0));
 
-  const goBack = useCallback(() => {
-    if (screen === 0) return;
-    setScreen(s => s - 1);
-    setScreenKey(k => k + 1);
-    setSaveError('');
-  }, [screen]);
-
-  const handleSave = async () => {
+  const handleFinish = async () => {
     if (saving) return;
     setSaving(true);
     setSaveError('');
@@ -118,24 +684,39 @@ export default function OnboardingPage() {
     }
 
     try {
+      const birthWeightGrams = form.birthWeightKg
+        ? Math.round(parseFloat(form.birthWeightKg) * 1000)
+        : null;
+      const gestAge = form.gestationalAge ? parseInt(form.gestationalAge, 10) : null;
+      const isPremature = gestAge != null && gestAge < 37;
+
+      const childPayload = {
+        user_id: userId,
+        name: form.babyName.trim(),
+        date_of_birth: form.dateOfBirth,
+        due_date: null,
+        is_pregnant: false,
+        pronouns: form.pronouns || null,
+        gestational_age_at_birth: gestAge,
+        is_premature: isPremature,
+        birth_weight_grams: birthWeightGrams,
+        blood_group: form.bloodGroup && form.bloodGroup !== 'Unknown' ? form.bloodGroup : null,
+        known_allergies: form.allergies || [],
+      };
+
       const [profileRes, childRes] = await Promise.all([
         supabase.from('profiles').update({
-          full_name:           formData.parentName,
+          full_name: form.parentName.trim(),
+          language: form.language,
+          ai_tone: form.aiTone,
           onboarding_complete: true,
-          updated_at:          new Date().toISOString(),
+          updated_at: new Date().toISOString(),
         }).eq('id', userId),
-
-        supabase.from('children').insert({
-          user_id:       userId,
-          name:          formData.babyName.trim(),
-          date_of_birth: formData.dateOfBirth,
-          due_date:      null,
-          is_pregnant:   false,
-        }).select(),
+        supabase.from('children').insert(childPayload).select(),
       ]);
 
       if (profileRes.error) throw profileRes.error;
-      if (childRes.error)   throw childRes.error;
+      if (childRes.error) throw childRes.error;
 
       await queryClient.invalidateQueries({ queryKey: ['children'] });
 
@@ -144,16 +725,19 @@ export default function OnboardingPage() {
         useChildStore.getState().setSelectedChildId(childRes.data[0].id);
       }
 
-      localStorage.setItem('childbloom_voice_lang', formData.language);
-      localStorage.setItem('childbloom-lang', formData.language);
-      i18n.changeLanguage(formData.language);
+      localStorage.setItem('childbloom_voice_lang', form.language);
+      localStorage.setItem('childbloom-lang', form.language);
+      i18n.changeLanguage(form.language);
 
       useAuthStore.getState().setProfile({
         ...useAuthStore.getState().profile,
-        full_name:           formData.parentName,
+        full_name: form.parentName.trim(),
+        language: form.language,
+        ai_tone: form.aiTone,
         onboarding_complete: true,
       });
       localStorage.setItem('cb_onboarded', 'true');
+      localStorage.setItem('cb_ai_tone', form.aiTone);
 
       navigate('/dashboard', { replace: true });
     } catch (err) {
@@ -163,220 +747,12 @@ export default function OnboardingPage() {
     }
   };
 
-  const handleContinue = () => {
-    if (!canProceed()) return;
-    if (screen === TOTAL_SCREENS - 1) {
-      handleSave();
-    } else {
-      setScreen(s => s + 1);
-      setScreenKey(k => k + 1);
-    }
-  };
-
-  const ageDisplay = calcAge(formData.dateOfBirth);
-
-  const renderScreen = () => {
-    switch (screen) {
-
-      case 0:
-        return (
-          <div className="space-y-6">
-            <div>
-              <h2 style={{ fontFamily: 'Fraunces, Georgia, serif', fontSize: '26px',
-                           color: 'white', fontWeight: 600, lineHeight: 1.25, marginBottom: '6px' }}>
-                Your child
-              </h2>
-              <p style={{ color: 'rgba(255,255,255,0.40)', fontSize: '14px' }}>
-                We'll use this to personalise everything for them.
-              </p>
-            </div>
-
-            <div>
-              <FieldLabel>Child's name</FieldLabel>
-              <TextInput
-                value={formData.babyName}
-                onChange={v => update('babyName', v)}
-                placeholder="e.g. Arjun, Priya…"
-                autoFocus
-              />
-            </div>
-
-            <div>
-              <FieldLabel>Date of birth</FieldLabel>
-              <input
-                type="date"
-                value={formData.dateOfBirth}
-                max={new Date().toISOString().split('T')[0]}
-                min={new Date(Date.now() - 7 * 365 * 86400000).toISOString().split('T')[0]}
-                onChange={e => update('dateOfBirth', e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '15px 16px',
-                  borderRadius: '14px',
-                  border: '1.5px solid rgba(255,255,255,0.10)',
-                  background: 'rgba(255,255,255,0.06)',
-                  color: formData.dateOfBirth ? 'white' : 'rgba(255,255,255,0.30)',
-                  fontSize: '17px',
-                  outline: 'none',
-                  colorScheme: 'dark',
-                  boxSizing: 'border-box',
-                }}
-              />
-              {ageDisplay && (
-                <p className="animate-fade-in" style={{ color: '#3DD68C', fontSize: '13px',
-                               fontWeight: 600, marginTop: '8px' }}>
-                  {formData.babyName ? `${formData.babyName}` : 'Your child'} is {ageDisplay} 🌱
-                </p>
-              )}
-            </div>
-          </div>
-        );
-
-      case 1:
-        return (
-          <div className="space-y-6">
-            <div>
-              <h2 style={{ fontFamily: 'Fraunces, Georgia, serif', fontSize: '26px',
-                           color: 'white', fontWeight: 600, lineHeight: 1.25, marginBottom: '6px' }}>
-                About you
-              </h2>
-              <p style={{ color: 'rgba(255,255,255,0.40)', fontSize: '14px' }}>
-                So Dr. Bloom knows who to talk to.
-              </p>
-            </div>
-
-            <div>
-              <FieldLabel>Your name</FieldLabel>
-              <TextInput
-                value={formData.parentName}
-                onChange={v => update('parentName', v)}
-                placeholder="Your first name"
-                autoFocus
-              />
-            </div>
-
-            <div>
-              <FieldLabel>Preferred language</FieldLabel>
-              <div className="grid grid-cols-2 gap-2">
-                {LANGUAGES.slice(0, 6).map(({ code, nativeLabel, label }) => (
-                  <button
-                    key={code}
-                    onClick={() => {
-                      update('language', code);
-                      i18n.changeLanguage(code);
-                      localStorage.setItem('childbloom-lang', code);
-                    }}
-                    className="rounded-xl flex flex-col items-center justify-center transition-all duration-200 active:scale-[0.96]"
-                    style={{
-                      padding: '14px 10px',
-                      background: formData.language === code ? 'rgba(29,158,117,0.15)' : 'rgba(255,255,255,0.05)',
-                      border: formData.language === code
-                        ? '1.5px solid #1D9E75'
-                        : '1.5px solid rgba(255,255,255,0.08)',
-                    }}
-                  >
-                    <span style={{ fontSize: '16px', fontWeight: 600, color: 'white', marginBottom: '2px' }}>
-                      {nativeLabel}
-                    </span>
-                    <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.38)' }}>{label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {saveError && (
-              <div className="rounded-xl p-4"
-                   style={{ background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.22)' }}>
-                <p style={{ color: '#FCA5A5', fontSize: '13px' }}>{saveError}</p>
-              </div>
-            )}
-          </div>
-        );
-
-      default:
-        return null;
-    }
-  };
-
-  return (
-    <div className="min-h-screen flex flex-col" style={{ background: '#0C0C0E' }}>
-
-      {/* Header */}
-      <div className="flex items-center justify-between px-5"
-           style={{ height: '60px', paddingTop: 'max(env(safe-area-inset-top, 0px), 16px)' }}>
-
-        {screen > 0 ? (
-          <button onClick={goBack}
-                  className="flex items-center justify-center w-9 h-9 rounded-xl transition-opacity active:opacity-60"
-                  style={{ background: 'rgba(255,255,255,0.06)' }}>
-            <svg width="18" height="18" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="2" viewBox="0 0 24 24">
-              <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>
-        ) : (
-          <div className="flex items-center gap-2">
-            <LogoMark size={22} />
-            <span style={{ color: 'white', fontSize: '15px', fontWeight: 600 }}>ChildBloom</span>
-          </div>
-        )}
-
-        {/* Step indicator */}
-        <div className="flex items-center gap-1.5">
-          {Array.from({ length: TOTAL_SCREENS }).map((_, i) => (
-            <div key={i} className="rounded-full transition-all duration-300"
-                 style={{
-                   width:      i === screen ? 20 : 6,
-                   height:     6,
-                   background: i <= screen ? '#1D9E75' : 'rgba(255,255,255,0.15)',
-                 }} />
-          ))}
-        </div>
-      </div>
-
-      {/* Content */}
-      <div key={screenKey} className="flex-1 px-5 pt-8 pb-36 overflow-y-auto animate-fade-in-up">
-        {renderScreen()}
-      </div>
-
-      {/* Bottom button */}
-      <div className="fixed bottom-0 left-0 right-0 px-5"
-           style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px) + 20px, 32px)',
-                    background: 'linear-gradient(to top, #0C0C0E 70%, transparent)' }}>
-        <button
-          onClick={handleContinue}
-          disabled={!canProceed() || saving}
-          className="w-full rounded-2xl font-semibold flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.98]"
-          style={{
-            height:     '54px',
-            fontSize:   '16px',
-            background: canProceed() && !saving ? '#1D9E75' : 'rgba(255,255,255,0.07)',
-            color:      canProceed() && !saving ? 'white' : 'rgba(255,255,255,0.22)',
-            boxShadow:  canProceed() && !saving ? '0 4px 20px rgba(29,158,117,0.30)' : 'none',
-            cursor:     canProceed() && !saving ? 'pointer' : 'not-allowed',
-          }}
-        >
-          {saving ? (
-            <>
-              <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
-              Saving…
-            </>
-          ) : screen === TOTAL_SCREENS - 1 ? (
-            <>
-              Get started
-              <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </>
-          ) : (
-            <>
-              Continue
-              <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </>
-          )}
-        </button>
-      </div>
-    </div>
-  );
+  switch (step) {
+    case 0: return <ScreenWelcome onNext={next} />;
+    case 1: return <ScreenChild form={form} update={update} onNext={next} onBack={back} />;
+    case 2: return <ScreenBirth form={form} update={update} onNext={next} onBack={back} />;
+    case 3: return <ScreenAboutYou form={form} update={update} onNext={next} onBack={back} />;
+    case 4: return <ScreenReady form={form} onFinish={handleFinish} saving={saving} saveError={saveError} />;
+    default: return null;
+  }
 }

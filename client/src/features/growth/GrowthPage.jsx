@@ -5,14 +5,16 @@ import { supabase } from '../../lib/supabase';
 import { useChildById } from '../../hooks/useChild';
 import useAuthStore from '../../stores/authStore';
 import CBIcon from '../../components/cb/CBIcon';
-import CBLogoMark from '../../components/cb/CBLogoMark';
-import CBLargeTitle from '../../components/cb/CBLargeTitle';
+import { T, FONTS, RADIUS } from '../../components/cb/tokens';
+import {
+  Card, Button, Display, Eyebrow, Body, Mono,
+  Stack, HRow, Spacer, Divider, SectionLabel, ChromeBtn,
+  AIBubble,
+} from '../../components/cb/primitives';
 import CBSegmented from '../../components/cb/CBSegmented';
-import { T } from '../../components/cb/tokens';
 import { format, differenceInWeeks } from 'date-fns';
 
 function percentileLabel(val, metric, ageWeeks) {
-  // Rough WHO percentile estimation
   const norms = {
     weight: { p50: 3.3 + ageWeeks * 0.2, spread: 0.8 },
     height: { p50: 50 + ageWeeks * 0.7, spread: 2.5 },
@@ -36,14 +38,16 @@ export default function GrowthPage() {
   const queryClient = useQueryClient();
   const [metric, setMetric] = useState('weight');
   const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({ record_date: format(new Date(), 'yyyy-MM-dd'), weight_kg: '', height_cm: '', head_circumference_cm: '' });
+  const [formData, setFormData] = useState({
+    record_date: format(new Date(), 'yyyy-MM-dd'),
+    weight_kg: '', height_cm: '', head_circumference_cm: '',
+  });
 
   const { data: records = [] } = useQuery({
     queryKey: ['growth-records', childId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('growth_records')
-        .select('*')
+        .from('growth_records').select('*')
         .eq('child_id', childId)
         .order('record_date', { ascending: true });
       if (error) throw error;
@@ -76,7 +80,6 @@ export default function GrowthPage() {
     ? differenceInWeeks(new Date(), new Date(child.date_of_birth))
     : 0;
 
-  // Chart data
   const metricKey = { weight: 'weight_kg', height: 'height_cm', head: 'head_circumference_cm' }[metric];
   const points = records
     .filter(r => r[metricKey] != null)
@@ -90,157 +93,172 @@ export default function GrowthPage() {
   const ys = (v) => H - padY - ((v - vMin) / (vMax - vMin || 1)) * (H - padY * 2);
   const linePath = points.length > 1 ? `M${points.map((p, i) => `${xs(i)},${ys(p.v)}`).join(' L')}` : null;
 
-  const unit = { weight: 'kg', height: 'cm', head: 'cm' }[metric];
+  const inputStyle = {
+    padding: '10px', borderRadius: RADIUS.sm,
+    border: `0.5px solid ${T.line}`, fontSize: 14,
+    outline: 'none', boxSizing: 'border-box',
+    background: T.surface, color: T.ink900, fontFamily: FONTS.sans,
+  };
 
   return (
-    <div style={{ background: T.bg, minHeight: '100dvh', fontFamily: "-apple-system, 'Inter', system-ui, sans-serif" }}>
+    <div data-theme-root style={{ background: T.bg, minHeight: '100dvh', fontFamily: FONTS.sans }}>
       <div style={{ paddingTop: 52 }}>
-        <CBLargeTitle
-          eyebrow={child ? `${child.name.toUpperCase()} · ${ageWeeks} WEEKS` : 'GROWTH'}
-          title="Growth"
-          trailing={
-            <button onClick={() => setShowForm(!showForm)}
-              style={{ width: 36, height: 36, borderRadius: '50%', background: '#fff', border: 'none', cursor: 'pointer', color: T.forest700, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-              <CBIcon name="plus" size={18} />
-            </button>
-          }
-        />
-      </div>
 
-      {/* Add form */}
-      {showForm && (
-        <div style={{ margin: '0 16px 16px', background: '#fff', borderRadius: 16, padding: '16px', border: `0.5px solid ${T.ink100}` }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: T.ink500, marginBottom: 12 }}>Log measurement</div>
-          <input type="date" value={formData.record_date} onChange={e => setFormData(f => ({ ...f, record_date: e.target.value }))}
-            style={{ width: '100%', padding: '10px', borderRadius: 10, border: `0.5px solid ${T.ink100}`, fontSize: 14, marginBottom: 8, outline: 'none', boxSizing: 'border-box' }} />
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-            {[{ k: 'weight_kg', l: 'Weight (kg)' }, { k: 'height_cm', l: 'Height (cm)' }, { k: 'head_circumference_cm', l: 'Head (cm)' }].map(f => (
-              <input key={f.k} type="number" step="0.1" placeholder={f.l} value={formData[f.k]}
-                onChange={e => setFormData(prev => ({ ...prev, [f.k]: e.target.value }))}
-                style={{ padding: '10px', borderRadius: 10, border: `0.5px solid ${T.ink100}`, fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
-            ))}
+        {/* Header */}
+        <div style={{ padding: '4px 20px 16px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
+          <div>
+            {child && <Eyebrow color={T.ink300}>{child.name.toUpperCase()} · {ageWeeks} WEEKS</Eyebrow>}
+            <Spacer h={4} />
+            <Display size={34} italic weight={600} lh={1.05}>Growth</Display>
           </div>
-          <button onClick={() => addMutation.mutate()} disabled={addMutation.isPending}
-            style={{ width: '100%', marginTop: 12, padding: '12px', borderRadius: 99, background: T.forest700, color: '#fff', border: 'none', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
-            {addMutation.isPending ? 'Saving…' : 'Save measurement'}
+          <button onClick={() => setShowForm(!showForm)}
+            style={{ width: 36, height: 36, borderRadius: '50%', background: T.surface, border: 'none', cursor: 'pointer', color: T.brand, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+            <CBIcon name="plus" size={18} />
           </button>
         </div>
-      )}
-
-      {/* KPI cards */}
-      {latest && (
-        <div style={{ padding: '0 16px', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-          {[
-            { l: 'Weight', v: latest.weight_kg, u: 'kg', metric: 'weight' },
-            { l: 'Height', v: latest.height_cm, u: 'cm', metric: 'height' },
-            { l: 'Head',   v: latest.head_circumference_cm, u: 'cm', metric: 'head' },
-          ].map(k => (
-            <div key={k.l} style={{ background: '#fff', borderRadius: 14, padding: '12px 12px' }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: T.ink300, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{k.l}</div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 3, marginTop: 4 }}>
-                <span style={{ fontFamily: "'Fraunces', serif", fontSize: 24, fontWeight: 600, color: T.ink900, letterSpacing: '-0.02em', lineHeight: 1 }}>
-                  {k.v ?? '—'}
-                </span>
-                {k.v && <span style={{ fontSize: 11, color: T.ink300, fontWeight: 500 }}>{k.u}</span>}
-              </div>
-              {k.v && <div style={{ fontSize: 11, color: T.forest600, marginTop: 6, fontWeight: 600 }}>{percentileLabel(k.v, k.metric, ageWeeks)} %ile</div>}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Metric toggle */}
-      <div style={{ padding: '18px 16px 12px', display: 'flex', justifyContent: 'center' }}>
-        <CBSegmented value={metric} onChange={setMetric}
-          options={[{ id: 'weight', label: 'Weight' }, { id: 'height', label: 'Height' }, { id: 'head', label: 'Head' }]} />
       </div>
 
-      {/* Chart */}
-      <div style={{ margin: '0 16px', background: '#fff', borderRadius: 16, padding: '16px 8px 12px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '0 12px 4px' }}>
-          <div>
-            <div style={{ fontSize: 11, color: T.ink300, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>WHO Standards</div>
-            <div style={{ fontFamily: "'Fraunces', serif", fontSize: 18, fontWeight: 600, color: T.ink900, letterSpacing: '-0.015em', marginTop: 2 }}>
-              {points.length > 0 ? 'Tracking healthy' : 'No data yet'}
+      <div style={{ padding: '0 16px' }}>
+
+        {/* Add form */}
+        {showForm && (
+          <Card p={16} style={{ marginBottom: 16 }}>
+            <Mono size={13} color={T.ink500} style={{ marginBottom: 12, display: 'block' }}>Log measurement</Mono>
+            <input type="date" value={formData.record_date}
+              onChange={e => setFormData(f => ({ ...f, record_date: e.target.value }))}
+              style={{ ...inputStyle, width: '100%', marginBottom: 8 }} />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+              {[{ k: 'weight_kg', l: 'Weight (kg)' }, { k: 'height_cm', l: 'Height (cm)' }, { k: 'head_circumference_cm', l: 'Head (cm)' }].map(f => (
+                <input key={f.k} type="number" step="0.1" placeholder={f.l}
+                  value={formData[f.k]}
+                  onChange={e => setFormData(prev => ({ ...prev, [f.k]: e.target.value }))}
+                  style={inputStyle} />
+              ))}
             </div>
-          </div>
-        </div>
-        {points.length > 1 ? (
-          <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ overflow: 'visible' }}>
-            {[0, 1, 2, 3].map(i => {
-              const y = padY + i * ((H - padY * 2) / 3);
-              return <line key={i} x1={padX} y1={y} x2={W - padX} y2={y} stroke={T.ink100} strokeWidth="0.5" />;
-            })}
-            <path d={linePath} fill="none" stroke={T.forest700} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
-            {points.map((p, i) => (
-              <g key={i}>
-                <circle cx={xs(i)} cy={ys(p.v)} r="4" fill="#fff" stroke={T.forest700} strokeWidth="2" />
-              </g>
+            <Spacer h={12} />
+            <Button variant="primary" full onClick={() => addMutation.mutate()} disabled={addMutation.isPending}>
+              {addMutation.isPending ? 'Saving…' : 'Save measurement'}
+            </Button>
+          </Card>
+        )}
+
+        {/* KPI cards */}
+        {latest && (
+          <div className="stagger-children" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 16 }}>
+            {[
+              { l: 'Weight', v: latest.weight_kg,             u: 'kg', metric: 'weight' },
+              { l: 'Height', v: latest.height_cm,             u: 'cm', metric: 'height' },
+              { l: 'Head',   v: latest.head_circumference_cm, u: 'cm', metric: 'head' },
+            ].map(k => (
+              <Card key={k.l} p={12}>
+                <Mono size={10} color={T.ink300} style={{ textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block' }}>{k.l}</Mono>
+                <Spacer h={4} />
+                <HRow gap={3} align="baseline">
+                  <div className="animate-count-in" style={{ fontFamily: FONTS.serif, fontSize: 24, fontStyle: 'italic', color: T.ink900, letterSpacing: '-0.02em', lineHeight: 1 }}>
+                    {k.v ?? '—'}
+                  </div>
+                  {k.v && <Mono size={11} color={T.ink300}>{k.u}</Mono>}
+                </HRow>
+                {k.v && <Mono size={11} color={T.brand} style={{ marginTop: 6, display: 'block' }}>{percentileLabel(k.v, k.metric, ageWeeks)} %ile</Mono>}
+              </Card>
             ))}
-            {points.map((p, i) => (
-              <text key={`l-${i}`} x={xs(i)} y={H - 2} textAnchor="middle" fontSize="9" fill={T.ink300}>w{differenceInWeeks(new Date(p.d), new Date(child?.date_of_birth || p.d))}</text>
-            ))}
-          </svg>
-        ) : (
-          <div style={{ height: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.ink300, fontSize: 13 }}>
-            Add 2+ measurements to see chart
           </div>
         )}
-        <div style={{ padding: '8px 12px 4px', display: 'flex', gap: 14, fontSize: 10, color: T.ink500, fontWeight: 500 }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-            <span style={{ width: 14, height: 2, background: T.forest700, borderRadius: 2, display: 'inline-block' }} /> {child?.name}
-          </span>
-        </div>
-      </div>
 
-      {/* Dr. Bloom interpretation */}
-      {latest && (
-        <div style={{ margin: '14px 16px 0', padding: '14px 16px', borderRadius: 14, background: T.forest50, border: `0.5px solid ${T.forest100}` }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-            <CBLogoMark size={14} color={T.forest700} />
-            <span style={{ fontSize: 10, fontWeight: 700, color: T.forest700, letterSpacing: '0.14em', textTransform: 'uppercase' }}>Dr. Bloom reads this as</span>
+        {/* Metric toggle */}
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
+          <CBSegmented value={metric} onChange={setMetric}
+            options={[{ id: 'weight', label: 'Weight' }, { id: 'height', label: 'Height' }, { id: 'head', label: 'Head' }]} />
+        </div>
+
+        {/* Chart */}
+        <Card p={0} style={{ paddingTop: 16, paddingBottom: 12 }}>
+          <HRow justify="space-between" align="baseline" style={{ padding: '0 16px 4px' }}>
+            <div>
+              <Mono size={11} color={T.ink300} style={{ textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block' }}>WHO Standards</Mono>
+              <Spacer h={2} />
+              <Display size={18} italic weight={600}>
+                {points.length > 0 ? 'Tracking healthy' : 'No data yet'}
+              </Display>
+            </div>
+          </HRow>
+          {points.length > 1 ? (
+            <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ overflow: 'visible' }}>
+              {[0, 1, 2, 3].map(i => {
+                const y = padY + i * ((H - padY * 2) / 3);
+                return <line key={i} x1={padX} y1={y} x2={W - padX} y2={y} stroke={T.line} strokeWidth="0.5" />;
+              })}
+              <path d={linePath} fill="none" stroke={T.brand} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+              {points.map((p, i) => (
+                <circle key={i} cx={xs(i)} cy={ys(p.v)} r="4" fill={T.surface} stroke={T.brand} strokeWidth="2" />
+              ))}
+              {points.map((p, i) => (
+                <text key={`l-${i}`} x={xs(i)} y={H - 2} textAnchor="middle" fontSize="9" fill={T.ink300}>
+                  w{differenceInWeeks(new Date(p.d), new Date(child?.date_of_birth || p.d))}
+                </text>
+              ))}
+            </svg>
+          ) : (
+            <div style={{ height: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Body size={13} color={T.ink300}>Add 2+ measurements to see chart</Body>
+            </div>
+          )}
+          <div style={{ padding: '8px 16px 4px', display: 'flex', gap: 14 }}>
+            <HRow gap={4}>
+              <span style={{ width: 14, height: 2, background: T.brand, borderRadius: 2, display: 'inline-block' }} />
+              <Mono size={10} color={T.ink500}>{child?.name}</Mono>
+            </HRow>
           </div>
-          <p style={{ fontFamily: "'Fraunces', serif", fontSize: 15, color: T.forest900, fontWeight: 500, letterSpacing: '-0.005em', lineHeight: 1.45, margin: 0 }}>
+        </Card>
+
+        <Spacer h={14} />
+
+        {/* Dr. Bloom interpretation */}
+        {latest && (
+          <AIBubble lead="Dr. Bloom" sparkle>
             {latest.weight_kg
               ? `${child?.name} weighs ${latest.weight_kg} kg at ${ageWeeks} weeks — in the WHO healthy range. Keep doing what you're doing.`
               : `Log ${child?.name}'s measurements to see Dr. Bloom's growth interpretation.`
             }
-          </p>
-        </div>
-      )}
+          </AIBubble>
+        )}
 
-      {/* Recent measurements */}
-      <div style={{ margin: '18px 16px 0' }}>
-        <div style={{ padding: '0 4px 8px', fontSize: 11, fontWeight: 700, color: T.ink300, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Recent measurements</div>
+        <Spacer h={18} />
+
+        {/* Recent measurements */}
+        <SectionLabel title="Recent measurements" />
         {records.length === 0 ? (
-          <div style={{ background: '#fff', borderRadius: 14, padding: '20px', textAlign: 'center' }}>
-            <p style={{ color: T.ink300, fontSize: 14 }}>No measurements yet.</p>
-            <button onClick={() => setShowForm(true)}
-              style={{ marginTop: 10, padding: '10px 20px', borderRadius: 99, background: T.forest700, color: '#fff', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-              Add first measurement
-            </button>
-          </div>
+          <Card p={20} style={{ textAlign: 'center' }}>
+            <Body size={14} color={T.ink300}>No measurements yet.</Body>
+            <Spacer h={10} />
+            <Button variant="primary" size="sm" onClick={() => setShowForm(true)}>Add first measurement</Button>
+          </Card>
         ) : (
-          <div style={{ background: '#fff', borderRadius: 14, overflow: 'hidden' }}>
+          <Card p={0}>
             {[...records].reverse().slice(0, 10).map((r, i, arr) => (
-              <div key={r.id} style={{ display: 'flex', alignItems: 'center', padding: '12px 14px', borderBottom: i < arr.length - 1 ? `0.5px solid ${T.ink100}` : 'none', gap: 10 }}>
-                <div style={{ width: 32, height: 32, borderRadius: 8, background: T.forest50, color: T.forest600, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <CBIcon name="scale" size={15} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: T.ink900, letterSpacing: '-0.005em' }}>{format(new Date(r.record_date), 'MMM d, yyyy')}</div>
-                  <div style={{ fontSize: 11, color: T.ink500, marginTop: 1 }}>
-                    {[r.weight_kg && `${r.weight_kg}kg`, r.height_cm && `${r.height_cm}cm`, r.head_circumference_cm && `HC ${r.head_circumference_cm}cm`].filter(Boolean).join(' · ')}
+              <div key={r.id}>
+                <HRow gap={10} style={{ padding: '12px 14px' }} align="center">
+                  <div style={{ width: 32, height: 32, borderRadius: RADIUS.sm, background: T.brandWash, color: T.brand, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <CBIcon name="scale" size={15} />
                   </div>
-                </div>
-                {i === 0 && <div style={{ padding: '3px 8px', borderRadius: 99, background: T.forest100, color: T.forest700, fontSize: 10, fontWeight: 700 }}>Latest</div>}
+                  <Stack gap={2} style={{ flex: 1 }}>
+                    <Body size={13} color={T.ink900} weight={600}>{format(new Date(r.record_date), 'MMM d, yyyy')}</Body>
+                    <Body size={11} color={T.ink500}>
+                      {[r.weight_kg && `${r.weight_kg}kg`, r.height_cm && `${r.height_cm}cm`, r.head_circumference_cm && `HC ${r.head_circumference_cm}cm`].filter(Boolean).join(' · ')}
+                    </Body>
+                  </Stack>
+                  {i === 0 && (
+                    <div style={{ padding: '3px 8px', borderRadius: 999, background: T.brandWash, color: T.brand, fontSize: 10, fontWeight: 700 }}>Latest</div>
+                  )}
+                </HRow>
+                {i < arr.length - 1 && <Divider />}
               </div>
             ))}
-          </div>
+          </Card>
         )}
-      </div>
 
-      <div style={{ height: 24 }} />
+        <Spacer h={24} />
+      </div>
     </div>
   );
 }

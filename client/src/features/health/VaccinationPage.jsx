@@ -4,8 +4,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import { useChildById } from '../../hooks/useChild';
 import CBIcon from '../../components/cb/CBIcon';
-import CBLargeTitle from '../../components/cb/CBLargeTitle';
-import { T } from '../../components/cb/tokens';
+import { T, FONTS, RADIUS } from '../../components/cb/tokens';
+import {
+  Card, Button, Display, Eyebrow, Body, Mono,
+  Stack, HRow, Spacer, Divider, SectionLabel, ProgressBar, BloomFlower,
+} from '../../components/cb/primitives';
 import { differenceInDays, format } from 'date-fns';
 
 const IAP_SCHEDULE = [
@@ -120,7 +123,6 @@ export default function VaccinationPage() {
   const doneCount = IAP_SCHEDULE.filter(s => getStatus(s) === 'done').length;
   const totalCount = IAP_SCHEDULE.length;
 
-  // Next upcoming vaccine
   const nextVaccine = IAP_SCHEDULE.find(s => {
     const status = getStatus(s);
     return status === 'soon' || status === 'overdue';
@@ -133,118 +135,138 @@ export default function VaccinationPage() {
       )
     : null;
 
+  const inputStyle = {
+    width: '100%', padding: '12px', borderRadius: RADIUS.md,
+    border: `0.5px solid ${T.line}`, fontSize: 15, outline: 'none',
+    marginBottom: 12, boxSizing: 'border-box', fontFamily: FONTS.sans,
+    background: T.surface, color: T.ink900,
+  };
+
   return (
-    <div style={{ background: T.bg, minHeight: '100dvh', fontFamily: "-apple-system, 'Inter', system-ui, sans-serif" }}>
+    <div data-theme-root style={{ background: T.bg, minHeight: '100dvh', fontFamily: FONTS.sans }}>
       <div style={{ paddingTop: 52 }}>
-        <CBLargeTitle eyebrow="IAP SCHEDULE" title="Vaccines"
-          trailing={
-            <button style={{ width: 36, height: 36, borderRadius: '50%', background: '#fff', border: 'none', cursor: 'pointer', color: T.forest700, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-              <CBIcon name="calendar" size={17} />
-            </button>
-          }
-        />
-      </div>
-
-      {/* Up next card */}
-      {nextVaccine && (
-        <div style={{ margin: '0 16px 16px', borderRadius: 18, background: T.forest700, color: '#fff', padding: 18, position: 'relative', overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', right: -20, top: -20, opacity: 0.08, color: '#fff' }}>
-            <CBIcon name="syringe" size={120} />
-          </div>
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', opacity: 0.8 }}>Up next</div>
-          <div style={{ fontFamily: "'Fraunces', serif", fontSize: 30, fontWeight: 600, letterSpacing: '-0.025em', marginTop: 6, lineHeight: 1 }}>
-            {nextDaysUntil === 0 ? 'Today'
-              : nextDaysUntil && nextDaysUntil > 0 ? `In ${nextDaysUntil} day${nextDaysUntil !== 1 ? 's' : ''}`
-              : nextDaysUntil && nextDaysUntil < 0 ? `${Math.abs(nextDaysUntil)}d overdue`
-              : 'Upcoming'
-            }
-          </div>
-          <div style={{ fontSize: 13, opacity: 0.85, marginTop: 6 }}>{nextVaccine.name}</div>
-        </div>
-      )}
-
-      {/* Progress */}
-      <div style={{ padding: '0 20px 16px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: T.ink300, fontWeight: 600, marginBottom: 6, letterSpacing: '0.04em' }}>
-          <span>{doneCount} of {totalCount} doses</span>
-          <span>Series complete by 16 yrs</span>
-        </div>
-        <div style={{ height: 6, background: T.ink100, borderRadius: 99, overflow: 'hidden', display: 'flex', gap: 1.5 }}>
-          {Array.from({ length: totalCount }).map((_, i) => (
-            <div key={i} style={{ flex: 1, background: i < doneCount ? T.forest500 : 'transparent' }} />
-          ))}
+        <div style={{ padding: '4px 20px 16px' }}>
+          <Eyebrow color={T.ink300}>IAP SCHEDULE</Eyebrow>
+          <Spacer h={4} />
+          <Display size={34} italic weight={600} lh={1.05}>Vaccines</Display>
         </div>
       </div>
 
-      {/* Schedule groups */}
-      {groups.map((g) => {
-        const groupStatus = g.items.every(it => getStatus(it) === 'done') ? 'done'
-          : g.items.some(it => getStatus(it) === 'overdue') ? 'overdue'
-          : g.items.some(it => getStatus(it) === 'soon') ? 'soon'
-          : 'upcoming';
+      <div style={{ padding: '0 16px' }}>
 
-        const statusColor = { done: T.forest500, overdue: T.red, soon: T.orange, upcoming: T.ink300 }[groupStatus];
+        {/* Up next card */}
+        {nextVaccine && (
+          <Card p={18} tone="brand" style={{ position: 'relative', overflow: 'hidden', marginBottom: 16 }}>
+            <div style={{ position: 'absolute', right: -20, top: -20, opacity: 0.1, pointerEvents: 'none', color: '#fff' }}>
+              <CBIcon name="syringe" size={120} />
+            </div>
+            <Eyebrow color="rgba(255,255,255,0.75)">Up next</Eyebrow>
+            <Spacer h={6} />
+            <div style={{ fontFamily: FONTS.serif, fontSize: 30, fontStyle: 'italic', fontWeight: 400, letterSpacing: '-0.025em', lineHeight: 1, color: '#fff' }}>
+              {nextDaysUntil === 0 ? 'Today'
+                : nextDaysUntil && nextDaysUntil > 0 ? `In ${nextDaysUntil} day${nextDaysUntil !== 1 ? 's' : ''}`
+                : nextDaysUntil && nextDaysUntil < 0 ? `${Math.abs(nextDaysUntil)}d overdue`
+                : 'Upcoming'}
+            </div>
+            <Spacer h={4} />
+            <Body size={13} color="rgba(255,255,255,0.85)">{nextVaccine.name}</Body>
+          </Card>
+        )}
 
-        return (
-          <div key={g.label} style={{ margin: '12px 16px 0' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '0 4px 8px' }}>
-              <h3 style={{ fontFamily: "'Fraunces', serif", fontSize: 18, fontWeight: 600, color: T.ink900, letterSpacing: '-0.015em', margin: 0 }}>{g.label}</h3>
-              <span style={{ fontSize: 11, fontWeight: 600, color: statusColor }}>
-                {groupStatus === 'done' ? 'completed' : groupStatus === 'overdue' ? 'overdue' : groupStatus === 'soon' ? 'coming up' : ''}
-              </span>
-            </div>
-            <div style={{ background: '#fff', borderRadius: 14, overflow: 'hidden', border: groupStatus === 'overdue' ? `1px solid ${T.red}30` : groupStatus === 'soon' ? `1px solid ${T.orange}30` : 'none' }}>
-              {g.items.map((it, i) => {
-                const status = getStatus(it);
-                const isDone = status === 'done';
-                const isOverdue = status === 'overdue';
-                const isSoon = status === 'soon';
-                return (
-                  <div key={it.name}
-                    onClick={() => !isDone && setSelectedVaccine(it)}
-                    style={{ display: 'flex', alignItems: 'center', padding: '12px 14px', borderBottom: i < g.items.length - 1 ? `0.5px solid ${T.ink100}` : 'none', gap: 10, cursor: isDone ? 'default' : 'pointer' }}>
-                    <div style={{ width: 24, height: 24, borderRadius: '50%', flexShrink: 0, background: isDone ? T.forest500 : isOverdue ? T.red + '25' : isSoon ? T.orange + '25' : '#fafafa', color: isDone ? '#fff' : isOverdue ? T.red : isSoon ? T.orange : T.ink300, display: 'flex', alignItems: 'center', justifyContent: 'center', border: isDone || isOverdue || isSoon ? 'none' : `1px solid ${T.ink100}` }}>
-                      {isDone ? <CBIcon name="check" size={13} stroke={2.5} /> : (isOverdue || isSoon) ? <CBIcon name="syringe" size={11} /> : null}
+        {/* Progress */}
+        <div style={{ marginBottom: 16 }}>
+          <HRow justify="space-between" style={{ marginBottom: 6 }}>
+            <Mono size={11} color={T.ink300}>{doneCount} of {totalCount} doses</Mono>
+            <Mono size={11} color={T.ink300}>Series complete by 16 yrs</Mono>
+          </HRow>
+          <ProgressBar value={doneCount / totalCount} animated />
+        </div>
+
+        {/* Schedule groups */}
+        {groups.map((g) => {
+          const groupStatus = g.items.every(it => getStatus(it) === 'done') ? 'done'
+            : g.items.some(it => getStatus(it) === 'overdue') ? 'overdue'
+            : g.items.some(it => getStatus(it) === 'soon') ? 'soon'
+            : 'upcoming';
+
+          const statusColors = {
+            done:     { color: T.brand,  label: 'completed' },
+            overdue:  { color: '#FF3B30', label: 'overdue' },
+            soon:     { color: '#FF9500', label: 'coming up' },
+            upcoming: { color: T.ink300,  label: '' },
+          }[groupStatus];
+
+          return (
+            <div key={g.label} style={{ marginBottom: 16 }}>
+              <HRow justify="space-between" align="baseline" style={{ marginBottom: 8, padding: '0 4px' }}>
+                <Display size={18} italic weight={600}>{g.label}</Display>
+                {statusColors.label && <Mono size={11} color={statusColors.color}>{statusColors.label}</Mono>}
+              </HRow>
+              <Card p={0} style={{ border: groupStatus === 'overdue' ? `1px solid #FF3B3030` : groupStatus === 'soon' ? `1px solid #FF950030` : 'none' }}>
+                {g.items.map((it, i) => {
+                  const status = getStatus(it);
+                  const isDone = status === 'done';
+                  const isOverdue = status === 'overdue';
+                  const isSoon = status === 'soon';
+                  const dotColor = isDone ? T.brand : isOverdue ? '#FF3B30' : isSoon ? '#FF9500' : T.ink300;
+                  return (
+                    <div key={it.name}>
+                      <HRow gap={10} style={{ padding: '12px 14px', cursor: isDone ? 'default' : 'pointer' }} align="center"
+                        onClick={() => !isDone && setSelectedVaccine(it)}>
+                        <div style={{
+                          width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
+                          background: isDone ? T.brand : isOverdue ? '#FF3B3025' : isSoon ? '#FF950025' : T.surfaceDim,
+                          color: isDone ? '#fff' : dotColor,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          border: isDone || isOverdue || isSoon ? 'none' : `1px solid ${T.line}`,
+                          animation: isOverdue ? 'glow-ring 1.8s ease-in-out infinite' : isSoon ? 'badge-pulse 2s ease-in-out infinite' : 'none',
+                        }}>
+                          {isDone ? <CBIcon name="check" size={13} stroke={2.5} /> : (isOverdue || isSoon) ? <CBIcon name="syringe" size={11} /> : null}
+                        </div>
+                        <Body size={14} color={isDone ? T.ink300 : T.ink900} weight={isDone ? 400 : 600} style={{ flex: 1, textDecoration: isDone ? 'line-through' : 'none' }}>{it.name}</Body>
+                        {!isDone && <CBIcon name="chevron-right" size={14} style={{ color: T.ink300 }} />}
+                      </HRow>
+                      {i < g.items.length - 1 && <Divider />}
                     </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: isDone ? T.ink300 : T.ink900 }}>{it.name}</div>
-                    </div>
-                    {!isDone && <CBIcon name="chevron-right" size={14} />}
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </Card>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
+
+        <Spacer h={24} />
+      </div>
 
       {/* Mark as given modal */}
       {selectedVaccine && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200, display: 'flex', alignItems: 'flex-end' }}>
-          <div style={{ width: '100%', background: '#fff', borderRadius: '20px 20px 0 0', padding: '24px 20px 40px' }}>
-            <div style={{ fontFamily: "'Fraunces', serif", fontSize: 22, fontWeight: 600, color: T.ink900, marginBottom: 6 }}>Mark as given</div>
-            <div style={{ fontSize: 15, color: T.ink500, marginBottom: 20 }}>{selectedVaccine.name}</div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: T.ink500, marginBottom: 6 }}>Date given</div>
-            <input type="date" value={dateGiven} max={format(new Date(), 'yyyy-MM-dd')} onChange={e => setDateGiven(e.target.value)}
-              style={{ width: '100%', padding: '12px', borderRadius: 12, border: `0.5px solid ${T.ink100}`, fontSize: 15, outline: 'none', marginBottom: 12, boxSizing: 'border-box' }} />
-            <div style={{ fontSize: 13, fontWeight: 600, color: T.ink500, marginBottom: 6 }}>Notes (optional)</div>
-            <input type="text" placeholder="e.g. Apollo Clinic, Dr. Sharma" value={notes} onChange={e => setNotes(e.target.value)}
-              style={{ width: '100%', padding: '12px', borderRadius: 12, border: `0.5px solid ${T.ink100}`, fontSize: 15, outline: 'none', marginBottom: 20, boxSizing: 'border-box' }} />
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => setSelectedVaccine(null)}
-                style={{ flex: 1, padding: '14px', borderRadius: 99, background: T.ink100, color: T.ink700, border: 'none', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>
-                Cancel
-              </button>
-              <button onClick={() => markMutation.mutate({ vaccineName: selectedVaccine.name, dateGiven, notes })} disabled={markMutation.isPending}
-                style={{ flex: 2, padding: '14px', borderRadius: 99, background: T.forest700, color: '#fff', border: 'none', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>
-                {markMutation.isPending ? 'Saving…' : 'Mark as given'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+        <>
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200 }} onClick={() => setSelectedVaccine(null)} />
+          <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: T.surface, borderRadius: '20px 20px 0 0', padding: '24px 20px 40px', zIndex: 201, boxShadow: '0 -8px 40px rgba(0,0,0,0.15)' }}>
+            <div style={{ width: 36, height: 4, borderRadius: 2, background: T.line, margin: '0 auto 20px' }} />
+            <Display size={22} italic weight={600} style={{ marginBottom: 6 }}>Mark as given</Display>
+            <Body size={15} color={T.ink500} style={{ marginBottom: 20 }}>{selectedVaccine.name}</Body>
 
-      <div style={{ height: 24 }} />
+            <Mono size={13} color={T.ink400} weight={600} style={{ display: 'block', marginBottom: 6 }}>Date given</Mono>
+            <input type="date" value={dateGiven} max={format(new Date(), 'yyyy-MM-dd')}
+              onChange={e => setDateGiven(e.target.value)} style={inputStyle} />
+
+            <Mono size={13} color={T.ink400} weight={600} style={{ display: 'block', marginBottom: 6 }}>Notes (optional)</Mono>
+            <input type="text" placeholder="e.g. Apollo Clinic, Dr. Sharma" value={notes}
+              onChange={e => setNotes(e.target.value)} style={inputStyle} />
+
+            <Spacer h={8} />
+            <HRow gap={10}>
+              <Button variant="secondary" style={{ flex: 1 }} onClick={() => setSelectedVaccine(null)}>Cancel</Button>
+              <Button variant="primary" style={{ flex: 2 }}
+                onClick={() => markMutation.mutate({ vaccineName: selectedVaccine.name, dateGiven, notes })}
+                disabled={markMutation.isPending}>
+                {markMutation.isPending ? 'Saving…' : 'Mark as given'}
+              </Button>
+            </HRow>
+          </div>
+        </>
+      )}
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
+import { DEFAULT_MODEL } from './lib/models.js';
 import { DR_BLOOM_SYSTEM_PROMPT } from './lib/drBloomPrompt.js';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -219,7 +220,7 @@ Tone: Like a wise, warm family doctor writing to a close friend. Never clinical.
 If concerns were logged, address them gently in the "focus next week" section.`;
 
     const message = await anthropic.messages.create({
-      model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6',
+      model: DEFAULT_MODEL,
       max_tokens: 1200,
       system: DR_BLOOM_SYSTEM_PROMPT,
       messages: [{ role: 'user', content: summaryPrompt }],

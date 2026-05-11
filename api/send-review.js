@@ -1,7 +1,10 @@
+import { corsOrigin } from './lib/models.js';
+
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Origin', corsOrigin());
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Vary', 'Origin');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
@@ -52,8 +55,8 @@ export default async function handler(req, res) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'ChildBloom Reviews <onboarding@resend.dev>',
-        to: 'childbloomenterprise@gmail.com',
+        from: process.env.REVIEW_FROM || 'ChildBloom Reviews <onboarding@resend.dev>',
+        to: process.env.REVIEW_EMAIL || 'childbloomenterprise@gmail.com',
         subject: `${stars} ${ratingLabel} — New ChildBloom Review`,
         html,
       }),

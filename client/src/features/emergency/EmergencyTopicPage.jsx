@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useParams, useNavigate, Navigate } from 'react-router-dom';
 import { getEmergency, SEVERITY } from './data/emergencies';
 import { ILLUSTRATIONS } from './components/illustrations';
-import LottieIllustration, { hasLottie } from './components/LottieIllustration';
 import CPRRhythmCoach from './components/CPRRhythmCoach';
 import EmergencyStepGuide from './components/EmergencyStepGuide';
 import CBIcon from '../../components/cb/CBIcon';
@@ -17,8 +16,7 @@ export default function EmergencyTopicPage() {
   if (!data) return <Navigate to="/emergency" replace />;
 
   const sev = SEVERITY[data.severity];
-  const useLottie = hasLottie(data.illustration);
-  const Illustration = !useLottie ? ILLUSTRATIONS[data.illustration] : null;
+  const Illustration = ILLUSTRATIONS[data.illustration];
 
   return (
     <div style={{
@@ -89,14 +87,15 @@ export default function EmergencyTopicPage() {
         </div>
       )}
 
-      {/* Hero illustration — Lottie preferred, SVG fallback */}
-      {(useLottie || Illustration) && (
+      {/* Hero illustration */}
+      {Illustration && (
         <div style={{ padding: '0 16px', marginBottom: 16 }}>
           <div
+            className={slowMode ? 'slow-mode' : ''}
             style={{
               background: `linear-gradient(160deg, ${T.card} 70%, ${sev.color}0D 100%)`,
               borderRadius: 22,
-              padding: useLottie ? 8 : 24,
+              padding: 24,
               boxShadow: `0 6px 24px ${sev.color}18`,
               border: `1px solid ${sev.color}28`,
               position: 'relative',
@@ -123,14 +122,7 @@ export default function EmergencyTopicPage() {
             </button>
 
             <div style={{ display: 'flex', justifyContent: 'center' }}>
-              {useLottie
-                ? <LottieIllustration
-                    illustrationKey={data.illustration}
-                    slowMode={slowMode}
-                    size={300}
-                  />
-                : <Illustration severityColor={sev.color} />
-              }
+              <Illustration severityColor={sev.color} />
             </div>
           </div>
         </div>

@@ -5,15 +5,20 @@ import { supabase } from '../../lib/supabase';
 import { useChildById } from '../../hooks/useChild';
 import useAuthStore from '../../stores/authStore';
 import CBIcon from '../../components/cb/CBIcon';
-import { T } from '../../components/cb/tokens';
+import { T, FONTS, RADIUS } from '../../components/cb/tokens';
+import {
+  Display, Eyebrow, Body, Mono,
+  Stack, HRow, Spacer, Divider,
+  Card, Button, ProgressBar, ChromeBtn,
+} from '../../components/cb/primitives';
 import { format } from 'date-fns';
 
 const STEPS = [
-  { id: 'mood', label: 'mood' },
-  { id: 'sleep', label: 'sleep' },
-  { id: 'feeding', label: 'feeding' },
+  { id: 'mood',       label: 'mood' },
+  { id: 'sleep',      label: 'sleep' },
+  { id: 'feeding',    label: 'feeding' },
   { id: 'milestones', label: 'milestones' },
-  { id: 'concerns', label: 'concerns' },
+  { id: 'concerns',   label: 'concerns' },
 ];
 
 const MOODS = [
@@ -86,51 +91,67 @@ export default function WeeklyUpdatePage() {
     else navigate('/dashboard');
   };
 
+  const textarea = {
+    width: '100%', marginTop: 20, padding: '14px',
+    borderRadius: RADIUS.md, border: `0.5px solid ${T.line}`,
+    background: T.surface, fontSize: 15, color: T.ink900,
+    outline: 'none', resize: 'none', fontFamily: FONTS.sans,
+    boxSizing: 'border-box',
+  };
+
   return (
-    <div style={{ position: 'relative', minHeight: '100dvh', background: T.bg, fontFamily: "-apple-system, 'Inter', system-ui, sans-serif" }}>
+    <div data-theme-root style={{ position: 'relative', minHeight: '100dvh', background: T.bg, fontFamily: FONTS.sans }}>
 
       {/* Nav */}
       <div style={{ padding: '52px 16px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <button onClick={handleBack}
-          style={{ padding: '6px 4px', border: 'none', background: 'transparent', color: T.forest700, fontSize: 15, fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2 }}>
-          <CBIcon name="chevron-left" size={18} /> Back
-        </button>
-        <div style={{ fontSize: 13, fontWeight: 600, color: T.ink500 }}>{step + 1} of {total}</div>
+        <ChromeBtn icon="back" onClick={handleBack} />
+        <Mono size={13} color={T.ink500}>{step + 1} of {total}</Mono>
         <button onClick={() => navigate('/dashboard')}
           style={{ padding: '6px 4px', border: 'none', background: 'transparent', color: T.ink300, fontSize: 15, fontWeight: 500, cursor: 'pointer' }}>
           Skip
         </button>
       </div>
 
-      {/* Progress bar */}
+      {/* Progress */}
       <div style={{ padding: '0 16px 28px' }}>
-        <div style={{ height: 3, background: T.ink100, borderRadius: 99, overflow: 'hidden' }}>
-          <div style={{ width: `${progress}%`, height: '100%', background: T.forest600, borderRadius: 99, transition: 'width 300ms ease' }} />
-        </div>
+        <ProgressBar value={progress} animated />
       </div>
 
       {/* Body */}
       <div style={{ padding: '4px 24px' }}>
-        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: T.ink300 }}>Daily check-in</div>
+        <Eyebrow color={T.ink300}>Daily check-in</Eyebrow>
 
         {current.id === 'mood' && (
           <>
-            <h1 style={{ fontFamily: "'Fraunces', serif", fontSize: 30, fontWeight: 600, lineHeight: 1.1, letterSpacing: '-0.025em', color: T.ink900, marginTop: 6, marginBottom: 0 }}>
-              How was<br /><span style={{ color: T.forest600, fontStyle: 'italic' }}>{child?.name}</span> today?
-            </h1>
-            <p style={{ fontSize: 14, color: T.ink500, marginTop: 8, lineHeight: 1.5 }}>
-              Pick one — or hold the mic and just talk to me. I'll figure it out.
-            </p>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 24 }}>
+            <Spacer h={6} />
+            <Display size={30} italic weight={600} lh={1.1}>
+              How was{'\n'}<span style={{ color: T.brand, fontStyle: 'italic' }}>{child?.name}</span> today?
+            </Display>
+            <Spacer h={8} />
+            <Body size={14} color={T.ink500} lh={1.5}>Pick one — or hold the mic and just talk to me.</Body>
+            <Spacer h={24} />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               {MOODS.map(m => {
                 const active = form.mood === m.id;
                 return (
                   <button key={m.id} onClick={() => setForm(f => ({ ...f, mood: m.id }))}
-                    style={{ padding: '18px 14px', borderRadius: 16, border: active ? `1.5px solid ${T.forest500}` : `0.5px solid ${T.ink100}`, background: active ? T.forest50 : '#fff', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ width: 34, height: 34, borderRadius: '50%', background: active ? T.forest100 : '#fafafa', color: active ? T.forest700 : T.ink500, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    style={{
+                      padding: '18px 14px', borderRadius: RADIUS.lg,
+                      border: active ? `1.5px solid ${T.brand}` : `0.5px solid ${T.line}`,
+                      background: active ? T.brandWash : T.surface,
+                      cursor: 'pointer', textAlign: 'left',
+                      display: 'flex', alignItems: 'center', gap: 10,
+                      transition: 'all 0.15s ease',
+                    }}>
+                    <div style={{
+                      width: 34, height: 34, borderRadius: '50%',
+                      background: active ? T.brandSoft : T.surfaceDim,
+                      color: active ? T.brand : T.ink500,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
                       <CBIcon name={m.i} size={17} />
                     </div>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: T.ink900 }}>{m.l}</div>
+                    <Body size={14} color={T.ink900} weight={600}>{m.l}</Body>
                   </button>
                 );
               })}
@@ -140,84 +161,89 @@ export default function WeeklyUpdatePage() {
 
         {current.id === 'sleep' && (
           <>
-            <h1 style={{ fontFamily: "'Fraunces', serif", fontSize: 30, fontWeight: 600, lineHeight: 1.1, letterSpacing: '-0.025em', color: T.ink900, marginTop: 6, marginBottom: 0 }}>
-              How much did<br /><span style={{ color: T.forest600, fontStyle: 'italic' }}>{child?.name}</span> sleep?
-            </h1>
-            <p style={{ fontSize: 14, color: T.ink500, marginTop: 8, lineHeight: 1.5 }}>Drag to set hours slept last night.</p>
-            <div style={{ marginTop: 32 }}>
-              <div style={{ fontFamily: "'Fraunces', serif", fontSize: 48, fontWeight: 600, color: T.forest700, letterSpacing: '-0.03em', textAlign: 'center', marginBottom: 16 }}>
-                {form.sleep_hours ?? 0}h
-              </div>
-              <input type="range" min={0} max={20} step={0.5}
-                value={form.sleep_hours ?? 0}
-                onChange={e => setForm(f => ({ ...f, sleep_hours: parseFloat(e.target.value) }))}
-                style={{ width: '100%', accentColor: T.forest600, cursor: 'pointer' }}
-              />
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: T.ink300, marginTop: 6 }}>
-                <span>0h</span><span style={{ color: T.forest600, fontWeight: 600 }}>Goal: 14–17h</span><span>20h</span>
-              </div>
+            <Spacer h={6} />
+            <Display size={30} italic weight={600} lh={1.1}>
+              How much did{'\n'}<span style={{ color: T.brand }}>{child?.name}</span> sleep?
+            </Display>
+            <Spacer h={8} />
+            <Body size={14} color={T.ink500} lh={1.5}>Drag to set hours slept last night.</Body>
+            <Spacer h={32} />
+            <div style={{ fontFamily: FONTS.serif, fontSize: 48, fontStyle: 'italic', color: T.brand, letterSpacing: '-0.03em', textAlign: 'center', marginBottom: 16 }}>
+              {form.sleep_hours ?? 0}h
             </div>
+            <input type="range" min={0} max={20} step={0.5}
+              value={form.sleep_hours ?? 0}
+              onChange={e => setForm(f => ({ ...f, sleep_hours: parseFloat(e.target.value) }))}
+              style={{ width: '100%', accentColor: T.brand, cursor: 'pointer' }}
+            />
+            <HRow justify="space-between" style={{ marginTop: 6 }}>
+              <Mono size={12} color={T.ink300}>0h</Mono>
+              <Mono size={12} color={T.brand}>Goal: 14–17h</Mono>
+              <Mono size={12} color={T.ink300}>20h</Mono>
+            </HRow>
           </>
         )}
 
         {current.id === 'feeding' && (
           <>
-            <h1 style={{ fontFamily: "'Fraunces', serif", fontSize: 30, fontWeight: 600, lineHeight: 1.1, letterSpacing: '-0.025em', color: T.ink900, marginTop: 6, marginBottom: 0 }}>
-              Feeding notes
-            </h1>
-            <p style={{ fontSize: 14, color: T.ink500, marginTop: 8, lineHeight: 1.5 }}>How did feeding go today? Any changes?</p>
+            <Spacer h={6} />
+            <Display size={30} italic weight={600} lh={1.1}>Feeding notes</Display>
+            <Spacer h={8} />
+            <Body size={14} color={T.ink500} lh={1.5}>How did feeding go today? Any changes?</Body>
             <textarea value={form.feeding_notes} onChange={e => setForm(f => ({ ...f, feeding_notes: e.target.value }))}
-              placeholder="e.g. Fed well, no issues..."
-              rows={5}
-              style={{ width: '100%', marginTop: 20, padding: '14px', borderRadius: 14, border: `0.5px solid ${T.ink100}`, background: '#fff', fontSize: 15, color: T.ink900, outline: 'none', resize: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
-            />
+              placeholder="e.g. Fed well, no issues..." rows={5} style={textarea} />
           </>
         )}
 
         {current.id === 'milestones' && (
           <>
-            <h1 style={{ fontFamily: "'Fraunces', serif", fontSize: 30, fontWeight: 600, lineHeight: 1.1, letterSpacing: '-0.025em', color: T.ink900, marginTop: 6, marginBottom: 0 }}>
-              Anything new<br /><span style={{ color: T.forest600, fontStyle: 'italic' }}>this week?</span>
-            </h1>
-            <p style={{ fontSize: 14, color: T.ink500, marginTop: 8, lineHeight: 1.5 }}>New sounds, movements, smiles — anything.</p>
+            <Spacer h={6} />
+            <Display size={30} italic weight={600} lh={1.1}>
+              Anything new{'\n'}<span style={{ color: T.brand }}>this week?</span>
+            </Display>
+            <Spacer h={8} />
+            <Body size={14} color={T.ink500} lh={1.5}>New sounds, movements, smiles — anything.</Body>
             <textarea value={form.new_skills} onChange={e => setForm(f => ({ ...f, new_skills: e.target.value }))}
-              placeholder="e.g. First smile, tracked my face..."
-              rows={5}
-              style={{ width: '100%', marginTop: 20, padding: '14px', borderRadius: 14, border: `0.5px solid ${T.ink100}`, background: '#fff', fontSize: 15, color: T.ink900, outline: 'none', resize: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
-            />
+              placeholder="e.g. First smile, tracked my face..." rows={5} style={textarea} />
           </>
         )}
 
         {current.id === 'concerns' && (
           <>
-            <h1 style={{ fontFamily: "'Fraunces', serif", fontSize: 30, fontWeight: 600, lineHeight: 1.1, letterSpacing: '-0.025em', color: T.ink900, marginTop: 6, marginBottom: 0 }}>
-              Anything<br /><span style={{ color: T.forest600, fontStyle: 'italic' }}>worrying you?</span>
-            </h1>
-            <p style={{ fontSize: 14, color: T.ink500, marginTop: 8, lineHeight: 1.5 }}>Dr. Bloom will review and respond. Nothing is too small.</p>
+            <Spacer h={6} />
+            <Display size={30} italic weight={600} lh={1.1}>
+              Anything{'\n'}<span style={{ color: T.brand }}>worrying you?</span>
+            </Display>
+            <Spacer h={8} />
+            <Body size={14} color={T.ink500} lh={1.5}>Dr. Bloom will review and respond. Nothing is too small.</Body>
             <textarea value={form.concerns} onChange={e => setForm(f => ({ ...f, concerns: e.target.value }))}
-              placeholder="e.g. A bit more fussy than usual..."
-              rows={5}
-              style={{ width: '100%', marginTop: 20, padding: '14px', borderRadius: 14, border: `0.5px solid ${T.ink100}`, background: '#fff', fontSize: 15, color: T.ink900, outline: 'none', resize: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
-            />
+              placeholder="e.g. A bit more fussy than usual..." rows={5} style={textarea} />
           </>
         )}
       </div>
 
       {/* Footer */}
       <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, padding: '12px 20px 36px', background: `linear-gradient(to top, ${T.bg} 60%, transparent)` }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <button style={{ width: 54, height: 54, borderRadius: '50%', background: '#fff', border: `0.5px solid ${T.ink100}`, color: T.terra, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+        <HRow gap={10}>
+          <button style={{
+            width: 54, height: 54, borderRadius: '50%',
+            background: T.surface, border: `0.5px solid ${T.line}`,
+            color: T.accent, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0, boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+          }}>
             <CBIcon name="mic" size={22} />
           </button>
-          <button onClick={handleNext} disabled={saveMutation.isPending}
-            style={{ flex: 1, height: 54, borderRadius: 99, background: T.forest700, color: '#fff', border: 'none', cursor: saveMutation.isPending ? 'not-allowed' : 'pointer', fontSize: 15, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: saveMutation.isPending ? 0.7 : 1 }}>
+          <Button variant="primary" size="lg" full onClick={handleNext}
+            disabled={saveMutation.isPending}
+            style={{ opacity: saveMutation.isPending ? 0.7 : 1 }}>
             {step === total - 1 ? (saveMutation.isPending ? 'Saving…' : 'Done') : 'Continue'}
-            {step < total - 1 && <CBIcon name="arrow-right" size={16} />}
-          </button>
-        </div>
-        <div style={{ textAlign: 'center', fontSize: 11, color: T.ink300, marginTop: 8 }}>
+          </Button>
+        </HRow>
+        <Spacer h={8} />
+        <Body size={11} color={T.ink300} style={{ textAlign: 'center' }}>
           Hold mic to dictate · English / हिन्दी / മലയാളം
-        </div>
+        </Body>
       </div>
     </div>
   );

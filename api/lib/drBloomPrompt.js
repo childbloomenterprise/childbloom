@@ -148,9 +148,13 @@ export function buildChildProfileFolder(data) {
     growthTrend = `Weight gain: approximately ${weeklyGain}g per week over the last measurement period.`;
   }
 
+  // Surface allergen-relevant food logs as alerts (rough heuristic: notes mention
+  // reaction / rash / vomit / refused / fussy keywords).
+  const reactionKeywords = ['rash', 'reaction', 'vomit', 'refused', 'fuss', 'cried', 'allerg', 'swell', 'itch'];
   const reactionSummary = (foodLogs || []).reduce((acc, log) => {
-    if (log.reaction && log.reaction !== 'none' && log.reaction !== 'normal') {
-      acc.push(`${log.food_name} → ${log.reaction}`);
+    const note = (log.notes || '').toLowerCase();
+    if (reactionKeywords.some(k => note.includes(k))) {
+      acc.push(`${log.food_name} → ${log.notes}`);
     }
     return acc;
   }, []);
@@ -199,7 +203,7 @@ Parent concerns: ${weeklyUpdate.concerns || 'none noted'}` : 'No weekly check-in
 LAST 7 FOOD LOGS
 ${(foodLogs || []).length > 0
   ? foodLogs.slice(0, 7).map(f =>
-    `${f.log_date} | ${f.meal_type} | ${f.food_name}${f.reaction && f.reaction !== 'none' ? ` → reaction: ${f.reaction}` : ''}`
+    `${f.logged_date} | ${f.meal_type || 'meal'} | ${f.food_name}${f.notes ? ` — ${f.notes}` : ''}`
   ).join('\n')
   : 'No food logs recorded yet.'}
 ${reactionSummary.length > 0 ? `\nNOTED REACTIONS: ${reactionSummary.join(' | ')}` : ''}
@@ -207,7 +211,7 @@ ${reactionSummary.length > 0 ? `\nNOTED REACTIONS: ${reactionSummary.join(' | ')
 LAST 3 HEALTH RECORDS
 ${(healthRecords || []).length > 0
   ? healthRecords.slice(0, 3).map(h =>
-    `${h.record_date} | ${h.record_type} | ${h.title}: ${h.notes}`
+    `${h.record_date} | ${h.record_type} | ${h.title}${h.description ? `: ${h.description}` : ''}${h.doctor_name ? ` (${h.doctor_name})` : ''}`
   ).join('\n')
   : 'No health records yet.'}
 

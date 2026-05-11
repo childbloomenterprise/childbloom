@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
+import { DEFAULT_MODEL } from './lib/models.js';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -93,7 +94,7 @@ export default async function handler(req, res) {
     const base64Data = imageBase64.replace(/^data:image\/[a-z]+;base64,/, '');
 
     const message = await anthropic.messages.create({
-      model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6',
+      model: DEFAULT_MODEL,
       max_tokens: 2000,
       system: SYSTEM_PROMPT,
       messages: [

@@ -14,6 +14,18 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { TwitterApi } from 'twitter-api-v2';
 import { createClient } from '@supabase/supabase-js';
+import { DEFAULT_MODEL } from '../lib/models.js';
+
+// Cron slot detection: morning slot fires at 02:30 UTC, evening at 12:30 UTC.
+// 10 sits cleanly between them — see vercel.json.
+const MORNING_CUTOFF_HOUR = 10;
+
+async function logAgent(type, data) {
+  const { error } = await supabase
+    .from('agent_logs')
+    .insert({ type, data, created_at: new Date().toISOString() });
+  if (error) console.error(`[agent_logs] insert failed (type=${type}):`, error);
+}
 
 // ── SUPABASE ─────────────────────────────────────────────────────────────────
 const supabase = createClient(
@@ -31,7 +43,7 @@ async function researchTrendingTopic() {
   });
 
   const response = await anthropic.messages.create({
-    model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514',
+    model: DEFAULT_MODEL,
     max_tokens: 600,
     messages: [{
       role: 'user',
@@ -77,7 +89,7 @@ async function generatePost(research, slot = 'morning') {
     : 'reflective and reassuring — winds down the day with warmth';
 
   const response = await anthropic.messages.create({
-    model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514',
+    model: DEFAULT_MODEL,
     max_tokens: 400,
     messages: [{
       role: 'user',
@@ -126,9 +138,14 @@ async function postTweet(text) {
     accessSecret
   });
 
-  const tweet = await client.v2.tweet(text);
-  console.log('[Twitter] Posted tweet:', tweet.data.id);
-  return { success: true, tweetId: tweet.data.id, text };
+  try {
+    const tweet = await client.v2.tweet(text);
+    console.log('[Twitter] Posted tweet:', tweet.data.id);
+    return { success: true, tweetId: tweet.data.id, text };
+  } catch (err) {
+    console.error('[Twitter] post failed:', err?.code, err?.message);
+    return { success: false, error: err?.message || String(err), text };
+  }
 }
 
 // ── STATS ─────────────────────────────────────────────────────────────────────
@@ -141,21 +158,35 @@ async function getDailyStats() {
     .from('profiles')
     .select('id, full_name, created_at')
     .gte('created_at', since);
+  if (newUsersErr) {
+    console.error('[Stats] newUsers query failed:', newUsersErr);
+    return null;
+  }
 
-  const { count: totalUsers } = await supabase
+  const { count: totalUsers, error: totalUsersErr } = await supabase
     .from('profiles')
     .select('*', { count: 'exact', head: true });
+  if (totalUsersErr) {
+    console.error('[Stats] totalUsers query failed:', totalUsersErr);
+    return null;
+  }
 
-  const { count: totalChildren } = await supabase
+  const { count: totalChildren, error: totalChildrenErr } = await supabase
     .from('children')
     .select('*', { count: 'exact', head: true });
+  if (totalChildrenErr) {
+    console.error('[Stats] totalChildren query failed:', totalChildrenErr);
+    return null;
+  }
 
-  const { data: newChildren } = await supabase
+  const { data: newChildren, error: newChildrenErr } = await supabase
     .from('children')
     .select('id, created_at')
     .gte('created_at', since);
-
-  if (newUsersErr) console.error('Stats fetch error:', newUsersErr);
+  if (newChildrenErr) {
+    console.error('[Stats] newChildren query failed:', newChildrenErr);
+    return null;
+  }
 
   return {
     newUsers: newUsers?.length ?? 0,
@@ -175,7 +206,7 @@ export default async function handler(req, res) {
   }
 
   const utcHour = new Date().getUTCHours();
-  const slot = utcHour < 10 ? 'morning' : 'evening';
+  const slot = utcHour < MORNING_CUTOFF_HOUR ? 'morning' : 'evening';
 
   console.log(`[Agent] Running ${slot} cron at ${new Date().toISOString()}`);
 
@@ -196,17 +227,18 @@ export default async function handler(req, res) {
       stats = await getDailyStats();
       console.log('[Agent] Stats:', stats);
 
-      await supabase.from('agent_logs').insert({
-        type: 'daily_brief',
-        data: { stats, topic: research.topic, posts: { morning: null, evening: postText } },
-        created_at: new Date().toISOString()
+      await logAgent('daily_brief', {
+        stats,
+        topic: research.topic,
+        posts: { morning: null, evening: postText }
       });
     }
 
-    await supabase.from('agent_logs').insert({
-      type: `post_${slot}`,
-      data: { topic: research.topic, post: postText, tweet: tweetResult, slot },
-      created_at: new Date().toISOString()
+    await logAgent(`post_${slot}`, {
+      topic: research.topic,
+      post: postText,
+      tweet: tweetResult,
+      slot
     });
 
     return res.status(200).json({
@@ -216,11 +248,7 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('[Agent] Error:', error);
-    await supabase.from('agent_logs').insert({
-      type: 'error',
-      data: { error: error.message, slot },
-      created_at: new Date().toISOString()
-    }).catch(() => {});
+    await logAgent('error', { error: error.message, slot });
     return res.status(500).json({ error: error.message });
   }
 }

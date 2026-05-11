@@ -118,14 +118,14 @@ export default async function handler(req, res) {
 
     supabase
       .from('food_logs')
-      .select('log_date, meal_type, food_name, quantity, notes')
+      .select('logged_date, meal_type, food_name, quantity, notes, food_type')
       .eq('child_id', childId)
-      .order('log_date', { ascending: false })
+      .order('logged_date', { ascending: false })
       .limit(7),
 
     supabase
       .from('health_records')
-      .select('record_date, record_type, title, notes')
+      .select('record_date, record_type, title, description, doctor_name')
       .eq('child_id', childId)
       .order('record_date', { ascending: false })
       .limit(3),

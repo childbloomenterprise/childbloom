@@ -1,182 +1,183 @@
 import { Link } from 'react-router-dom';
-import { LogoWordmark } from '../../components/ui/LogoMark';
+import CBLogoMark from '../../components/cb/CBLogoMark';
+import { T, FONTS, RADIUS } from '../../components/cb/tokens';
+import { Card, Display, Eyebrow, Body, Mono, Stack, HRow, Spacer } from '../../components/cb/primitives';
+import PageSEO from '../../components/seo/PageSEO';
 
 function Section({ title, children }) {
   return (
-    <section className="mb-8">
-      <h2 className="text-lg font-serif font-bold mb-3" style={{ color: '#1D9E75' }}>{title}</h2>
-      <div className="text-sm leading-relaxed space-y-2" style={{ color: 'rgba(61,43,35,0.75)' }}>
+    <div style={{ marginBottom: 28 }}>
+      <Body size={16} color={T.brand} weight={700} style={{ marginBottom: 10, fontFamily: FONTS.serif, fontStyle: 'italic' }}>{title}</Body>
+      <Stack gap={8}>
         {children}
-      </div>
-    </section>
+      </Stack>
+    </div>
   );
 }
 
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen" style={{ background: '#F7F4EF' }}>
-      <div className="max-w-2xl mx-auto px-5 py-10">
+    <div data-theme-root style={{ minHeight: '100dvh', background: T.bg, fontFamily: FONTS.sans }}>
+      <PageSEO
+        title="Privacy Policy — ChildBloom"
+        description="ChildBloom's privacy policy. Learn how we collect, use, and protect your child's data. We do not sell data to third parties."
+        canonical="/privacy"
+      />
+      <div style={{ maxWidth: 640, margin: '0 auto', padding: '40px 20px' }}>
+
         {/* Header */}
-        <div className="mb-8">
-          <Link to="/login">
-            <LogoWordmark iconSize={36} className="mb-6" />
+        <div style={{ marginBottom: 28 }}>
+          <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 10, marginBottom: 24, textDecoration: 'none' }}>
+            <CBLogoMark size={32} color={T.brand} />
+            <span style={{ fontFamily: FONTS.serif, fontSize: 20, fontStyle: 'italic', color: T.ink900 }}>ChildBloom</span>
           </Link>
-          <h1 className="text-2xl font-serif font-bold mb-2" style={{ color: '#2A1C15' }}>
-            Privacy Policy
-          </h1>
-          <p className="text-sm" style={{ color: 'rgba(61,43,35,0.50)' }}>
-            Last updated: April 2026
-          </p>
+          <Display size={28} italic weight={400} lh={1.1}>Privacy Policy</Display>
+          <Spacer h={6} />
+          <Mono size={12} color={T.ink400}>Last updated: April 2026</Mono>
         </div>
 
-        <div
-          className="rounded-2xl border p-6 sm:p-8"
-          style={{
-            background: 'rgba(255,255,255,0.70)',
-            borderColor: 'rgba(232,196,184,0.50)',
-          }}
-        >
+        <Card p={24} style={{ marginBottom: 24 }}>
+
           <Section title="Who we are">
-            <p>
+            <Body size={13} color={T.ink700} lh={1.6}>
               ChildBloom is a child development companion app for Indian parents,
               operated by ChildBloom Enterprise. We are based in India and comply
               with India's <strong>Digital Personal Data Protection (DPDP) Act, 2023</strong>.
-            </p>
-            <p>
+            </Body>
+            <Body size={13} color={T.ink700} lh={1.6}>
               For privacy concerns, contact us at:{' '}
-              <a href="mailto:privacy@childbloom.app" style={{ color: '#1D9E75' }}>
-                privacy@childbloom.app
-              </a>
-            </p>
+              <a href="mailto:privacy@childbloom.app" style={{ color: T.brand }}>privacy@childbloom.app</a>
+            </Body>
           </Section>
 
           <Section title="What data we collect">
-            <p><strong>Account information:</strong> Your email address, used only for authentication.</p>
-            <p>
+            <Body size={13} color={T.ink700} lh={1.6}><strong>Account information:</strong> Your email address, used only for authentication.</Body>
+            <Body size={13} color={T.ink700} lh={1.6}>
               <strong>Child health data:</strong> Height, weight, sleep hours, mood, feeding notes,
               developmental milestones, vaccination records, and any concerns you log. This data is
               voluntarily entered by you.
-            </p>
-            <p>
+            </Body>
+            <Body size={13} color={T.ink700} lh={1.6}>
               <strong>AI conversations:</strong> Questions you ask Dr. Bloom are sent to Anthropic's
               Claude API to generate responses. We do not store your conversation history on our servers
               beyond the current session.
-            </p>
-            <p>
+            </Body>
+            <Body size={13} color={T.ink700} lh={1.6}>
               <strong>Device information:</strong> Basic usage data (page visits, errors) may be
               collected anonymously to improve the app. No personal identifiers are attached.
-            </p>
+            </Body>
           </Section>
 
           <Section title="How your data is stored">
-            <p>
+            <Body size={13} color={T.ink700} lh={1.6}>
               All account and child health data is stored in <strong>Supabase</strong>, a
               PostgreSQL database with encryption at rest and in transit (TLS 1.3).
-            </p>
-            <p>
+            </Body>
+            <Body size={13} color={T.ink700} lh={1.6}>
               <strong>Row-Level Security (RLS)</strong> is enforced at the database level —
               you can only ever read and write your own family's data. No ChildBloom employee
               can access your data without explicit authorization.
-            </p>
-            <p>
+            </Body>
+            <Body size={13} color={T.ink700} lh={1.6}>
               Data is stored on Supabase infrastructure hosted in the European Union (AWS Frankfurt).
-            </p>
+            </Body>
           </Section>
 
           <Section title="Who can access your data">
-            <p>Only you — the account holder — can access your child's health data.</p>
-            <p>
+            <Body size={13} color={T.ink700} lh={1.6}>Only you — the account holder — can access your child's health data.</Body>
+            <Body size={13} color={T.ink700} lh={1.6}>
               We do not share, sell, or transfer your personal data to any third party for
               advertising, marketing, or commercial purposes.
-            </p>
-            <p>
-              <strong>Third-party services we use:</strong>
-            </p>
-            <ul className="list-disc pl-5 space-y-1">
-              <li>
-                <strong>Anthropic (Claude AI)</strong> — processes your questions to generate
-                Dr. Bloom responses. Anthropic's privacy policy applies to this data.
-              </li>
-              <li>
-                <strong>Supabase</strong> — database and authentication infrastructure.
-              </li>
-              <li>
-                <strong>Vercel</strong> — hosting and serverless functions.
-              </li>
-              <li>
-                <strong>Google Cloud TTS</strong> (optional) — text-to-speech for voice responses.
-              </li>
-            </ul>
+            </Body>
+            <Body size={13} color={T.ink700} lh={1.6}><strong>Third-party services we use:</strong></Body>
+            <Stack gap={6} style={{ paddingLeft: 16 }}>
+              {[
+                ['Anthropic (Claude AI)', 'processes your questions to generate Dr. Bloom responses. Anthropic\'s privacy policy applies to this data.'],
+                ['Supabase', 'database and authentication infrastructure.'],
+                ['Vercel', 'hosting and serverless functions.'],
+                ['Google Cloud TTS (optional)', 'text-to-speech for voice responses.'],
+              ].map(([name, desc]) => (
+                <HRow key={name} gap={8} align="flex-start">
+                  <div style={{ width: 5, height: 5, borderRadius: '50%', background: T.brand, flexShrink: 0, marginTop: 7 }} />
+                  <Body size={13} color={T.ink700} lh={1.5}><strong>{name}</strong> — {desc}</Body>
+                </HRow>
+              ))}
+            </Stack>
           </Section>
 
           <Section title="How to delete your data">
-            <p>
+            <Body size={13} color={T.ink700} lh={1.6}>
               You may delete your account and all associated data at any time from the
-              <strong> Settings → Your Space</strong> section of the app.
-            </p>
-            <p>
+              <strong> Settings → Account</strong> section of the app.
+            </Body>
+            <Body size={13} color={T.ink700} lh={1.6}>
               On deletion, all your child profiles, weekly updates, growth records, health records,
               and food logs are permanently and irreversibly deleted from our database.
-            </p>
-            <p>
+            </Body>
+            <Body size={13} color={T.ink700} lh={1.6}>
               To request manual deletion, email{' '}
-              <a href="mailto:privacy@childbloom.app" style={{ color: '#1D9E75' }}>
-                privacy@childbloom.app
-              </a>{' '}
-              with your registered email address.
-            </p>
+              <a href="mailto:privacy@childbloom.app" style={{ color: T.brand }}>privacy@childbloom.app</a>
+              {' '}with your registered email address.
+            </Body>
           </Section>
 
           <Section title="Children's privacy">
-            <p>
+            <Body size={13} color={T.ink700} lh={1.6}>
               ChildBloom is designed for <strong>parents and guardians</strong>, not for use
-              by children directly. We do not knowingly collect personal data from children
-              under 13.
-            </p>
-            <p>
+              by children directly. We do not knowingly collect personal data from children under 13.
+            </Body>
+            <Body size={13} color={T.ink700} lh={1.6}>
               Health information about children is entered by their parents or guardians and
               is treated as the parent's data under this policy.
-            </p>
+            </Body>
           </Section>
 
           <Section title="No advertising">
-            <p>
+            <Body size={13} color={T.ink700} lh={1.6}>
               ChildBloom does not display advertisements. We do not use your data to serve
               personalized ads. We do not share your data with advertising networks.
-            </p>
+            </Body>
           </Section>
 
           <Section title="Compliance with India's DPDP Act 2023">
-            <p>
+            <Body size={13} color={T.ink700} lh={1.6}>
               Under the Digital Personal Data Protection Act, 2023, you have the right to:
-            </p>
-            <ul className="list-disc pl-5 space-y-1">
-              <li>Access a summary of your personal data we process</li>
-              <li>Correct inaccurate personal data</li>
-              <li>Erase your personal data</li>
-              <li>Withdraw consent at any time</li>
-              <li>Nominate another person to exercise your rights in case of death or incapacity</li>
-            </ul>
-            <p className="mt-2">
+            </Body>
+            <Stack gap={6} style={{ paddingLeft: 16 }}>
+              {[
+                'Access a summary of your personal data we process',
+                'Correct inaccurate personal data',
+                'Erase your personal data',
+                'Withdraw consent at any time',
+                'Nominate another person to exercise your rights in case of death or incapacity',
+              ].map(item => (
+                <HRow key={item} gap={8} align="flex-start">
+                  <div style={{ width: 5, height: 5, borderRadius: '50%', background: T.brand, flexShrink: 0, marginTop: 7 }} />
+                  <Body size={13} color={T.ink700} lh={1.5}>{item}</Body>
+                </HRow>
+              ))}
+            </Stack>
+            <Body size={13} color={T.ink700} lh={1.6}>
               To exercise these rights, contact:{' '}
-              <a href="mailto:privacy@childbloom.app" style={{ color: '#1D9E75' }}>
-                privacy@childbloom.app
-              </a>
-            </p>
+              <a href="mailto:privacy@childbloom.app" style={{ color: T.brand }}>privacy@childbloom.app</a>
+            </Body>
           </Section>
 
           <Section title="Changes to this policy">
-            <p>
+            <Body size={13} color={T.ink700} lh={1.6}>
               We will notify you of any significant changes to this policy by email or
               in-app notification. Continued use of the app after changes constitutes
               acceptance of the updated policy.
-            </p>
+            </Body>
           </Section>
-        </div>
 
-        <p className="text-xs text-center mt-6" style={{ color: 'rgba(61,43,35,0.35)' }}>
+        </Card>
+
+        <Mono size={12} color={T.ink300} style={{ textAlign: 'center', display: 'block' }}>
           ChildBloom · privacy@childbloom.app · India
-        </p>
+        </Mono>
+
+        <Spacer h={24} />
       </div>
     </div>
   );

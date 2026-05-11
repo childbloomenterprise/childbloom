@@ -1,3 +1,5 @@
+import { corsOrigin } from './lib/models.js';
+
 const VOICE_MAP = {
   ml: { languageCode: 'ml-IN', name: 'ml-IN-Wavenet-A', ssmlGender: 'FEMALE' },
   ta: { languageCode: 'ta-IN', name: 'ta-IN-Wavenet-A', ssmlGender: 'FEMALE' },
@@ -5,9 +7,10 @@ const VOICE_MAP = {
 };
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Origin', corsOrigin());
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Vary', 'Origin');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });

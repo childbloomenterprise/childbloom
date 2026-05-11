@@ -12,6 +12,13 @@ const supabase = createClient(
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).end();
 
+  // Internal endpoint — gated by CRON_SECRET so agent_logs (which contain
+  // unpublished social media plans + user stats) are not publicly readable.
+  const authHeader = req.headers.authorization;
+  if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
   const { data: logs, error } = await supabase
     .from('agent_logs')
     .select('*')

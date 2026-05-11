@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
+import { DEFAULT_MODEL, corsOrigin } from '../lib/models.js';
 import { DR_BLOOM_SYSTEM_PROMPT, WEEKLY_INSIGHT_ADDENDUM } from '../lib/drBloomPrompt.js';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -47,9 +48,10 @@ Tone: Trusted family pediatrician writing a personal letter. Warm, never clinica
 }
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Origin', corsOrigin());
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Vary', 'Origin');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: { message: 'Method not allowed' } });
@@ -60,7 +62,7 @@ export default async function handler(req, res) {
   try {
     const prompt = buildPrompt(req.body);
     const message = await anthropic.messages.create({
-      model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6',
+      model: DEFAULT_MODEL,
       max_tokens: 600,
       system: DR_BLOOM_SYSTEM_PROMPT + WEEKLY_INSIGHT_ADDENDUM,
       messages: [{ role: 'user', content: prompt }],

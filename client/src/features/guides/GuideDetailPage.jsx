@@ -1,23 +1,34 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import Card from '../../components/ui/Card';
-import Button from '../../components/ui/Button';
-import Badge from '../../components/ui/Badge';
-import { BookIcon, ChevronRightIcon } from '../../assets/icons';
+import CBIcon from '../../components/cb/CBIcon';
+import { T, FONTS, RADIUS } from '../../components/cb/tokens';
+import {
+  Card, Button, Display, Eyebrow, Body, Mono,
+  Stack, HRow, Spacer, Divider, ChromeBtn,
+} from '../../components/cb/primitives';
 import { GUIDE_STAGES } from '../../lib/constants';
+
+const STAGE_ICONS = {
+  pregnancy:         'heart',
+  newborn:           'leaf',
+  infant:            'sparkle',
+  toddler:           'sun',
+  preschool:         'book',
+  'early-childhood': 'chart',
+};
 
 const GUIDE_CONTENT = {
   pregnancy: {
     sections: [
       { title: 'Nourishing you and your baby', items: ['Eat iron-rich foods like spinach, jaggery, and dates', 'Include protein through dal, paneer, eggs, and fish', 'Take folic acid and iron supplements as prescribed', 'Stay hydrated — aim for 8-10 glasses of water daily', 'Limit caffeine to one cup of tea/coffee per day'] },
       { title: 'Connecting before birth', items: ['Talk and sing to your baby — they can hear from week 18', 'Play soft music or recite shlokas/prayers if culturally meaningful', 'Gentle belly massage with coconut or almond oil', 'Practice prenatal yoga or deep breathing (Pranayama)'] },
-      { title: 'What to keep an eye on', items: ['Attend all antenatal checkups on schedule', 'Report any bleeding, severe headache, or swelling immediately', 'Monitor baby\'s kicks from week 28 — aim for 10 kicks in 2 hours', 'Get the Tdap vaccine between weeks 27-36'] },
+      { title: 'What to keep an eye on', items: ['Attend all antenatal checkups on schedule', 'Report any bleeding, severe headache, or swelling immediately', "Monitor baby's kicks from week 28 — aim for 10 kicks in 2 hours", 'Get the Tdap vaccine between weeks 27-36'] },
     ],
   },
   newborn: {
     sections: [
       { title: 'Feeding in the first weeks', items: ['Breastfeed exclusively — no water needed before 6 months', 'Feed on demand, typically 8-12 times per day', 'Burp baby after every feed', 'Watch for a good latch — no pain, audible swallowing'] },
-      { title: 'Sleep and comfort', items: ['Newborns sleep 14-17 hours in short stretches', 'Always place baby on their back to sleep', 'Room-share but don\'t bed-share for safety', 'Swaddling can help with the startle reflex'] },
-      { title: 'What you\'ll notice', items: ['Focuses on faces within 8-12 inches', 'Responds to loud sounds', 'Lifts head briefly during tummy time', 'Recognises mother\'s voice and smell'] },
+      { title: 'Sleep and comfort', items: ["Newborns sleep 14-17 hours in short stretches", "Always place baby on their back to sleep", "Room-share but don't bed-share for safety", 'Swaddling can help with the startle reflex'] },
+      { title: "What you'll notice", items: ['Focuses on faces within 8-12 inches', 'Responds to loud sounds', 'Lifts head briefly during tummy time', "Recognises mother's voice and smell"] },
       { title: 'Health to take care of', items: ['BCG vaccine at birth', 'OPV and Hepatitis B within 24 hours', 'Keep umbilical stump clean and dry', 'First paediatrician visit within 48 hours of discharge'] },
     ],
   },
@@ -32,7 +43,7 @@ const GUIDE_CONTENT = {
   toddler: {
     sections: [
       { title: 'Language is exploding', items: ['12-18 months: 10-50 words, points at objects', '18-24 months: Two-word phrases ("more milk", "go park")', '2-3 years: Short sentences, 200+ words', 'Read aloud daily — picture books in any language help', 'Narrate daily activities to build vocabulary'] },
-      { title: 'What to feed a toddler', items: ['Offer family foods cut into small pieces', 'Include roti, rice, dal, vegetables, curd, and fruits daily', 'Serve whole milk and ghee — toddlers need healthy fats', 'Allow self-feeding even if messy — it builds motor skills', 'Don\'t force-feed; trust their appetite'] },
+      { title: 'What to feed a toddler', items: ['Offer family foods cut into small pieces', 'Include roti, rice, dal, vegetables, curd, and fruits daily', 'Serve whole milk and ghee — toddlers need healthy fats', 'Allow self-feeding even if messy — it builds motor skills', "Don't force-feed; trust their appetite"] },
       { title: 'Big feelings, small person', items: ['Tantrums are normal — stay calm, validate feelings', 'Set simple, consistent limits', 'Praise effort, not just results', 'Encourage play with other children', 'Start simple chores: putting toys away, wiping spills'] },
       { title: 'Health checks coming up', items: ['15-18 months: MMR 2nd dose, Varicella', 'Annual dental checkup from age 1', 'Check vision and hearing if concerns arise', 'Deworm every 6 months as per IAP guidelines'] },
     ],
@@ -59,62 +70,77 @@ export default function GuideDetailPage() {
   const { stage } = useParams();
   const navigate = useNavigate();
 
-  const stageInfo = GUIDE_STAGES.find((s) => s.slug === stage);
+  const stageInfo = GUIDE_STAGES.find(s => s.slug === stage);
   const content = GUIDE_CONTENT[stage];
+  const icon = STAGE_ICONS[stage] || 'book';
 
   if (!stageInfo || !content) {
     return (
-      <div className="text-center py-12">
-        <p className="text-gray-500">Guide not found.</p>
-        <Button variant="ghost" onClick={() => navigate('/guides')} className="mt-4">
-          Back to guides
-        </Button>
+      <div data-theme-root style={{ background: T.bg, minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 24px', fontFamily: FONTS.sans }}>
+        <Stack gap={16} align="center">
+          <Body size={14} color={T.ink300}>Guide not found.</Body>
+          <Button variant="primary" onClick={() => navigate('/guides')}>Back to guides</Button>
+        </Stack>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <button
-          onClick={() => navigate('/guides')}
-          className="text-sm text-forest-600 hover:text-forest-700 mb-3 inline-flex items-center gap-1"
-        >
-          <ChevronRightIcon className="w-4 h-4 rotate-180" />
-          All stages
+    <div data-theme-root style={{ background: T.bg, minHeight: '100dvh', fontFamily: FONTS.sans }}>
+
+      {/* Back header */}
+      <div style={{ paddingTop: 16, padding: '16px 12px 0' }}>
+        <button onClick={() => navigate('/guides')}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'transparent', border: 'none', cursor: 'pointer', color: T.brand, fontSize: 14, fontWeight: 600, padding: '6px 8px', fontFamily: FONTS.sans }}>
+          <CBIcon name="chevron-left" size={18} stroke={2.2} />
+          Development Guides
         </button>
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-forest-50 rounded-xl flex items-center justify-center">
-            <BookIcon className="w-6 h-6 text-forest-600" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-serif font-bold text-forest-700">{stageInfo.title}</h1>
-            <Badge variant="primary">{stageInfo.ageRange}</Badge>
-          </div>
-        </div>
-        <p className="text-sm text-gray-500 mt-3">{stageInfo.description}</p>
       </div>
 
-      {content.sections.map((section) => (
-        <Card key={section.title} className="p-5">
-          <h3 className="text-base font-semibold text-forest-700 mb-3">{section.title}</h3>
-          <ul className="space-y-2.5">
-            {section.items.map((item, i) => (
-              <li key={i} className="flex items-start gap-2.5 text-sm text-gray-600">
-                <span className="w-1.5 h-1.5 bg-forest-400 rounded-full mt-1.5 flex-shrink-0" />
-                {item}
-              </li>
-            ))}
-          </ul>
-        </Card>
-      ))}
+      {/* Title block */}
+      <div style={{ padding: '8px 20px 16px', display: 'flex', alignItems: 'center', gap: 14 }}>
+        <div style={{ width: 48, height: 48, borderRadius: RADIUS.md, background: T.brandWash, color: T.brand, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <CBIcon name={icon} size={24} stroke={1.7} />
+        </div>
+        <div>
+          <Eyebrow color={T.brand}>{stageInfo.ageRange}</Eyebrow>
+          <Spacer h={3} />
+          <Display size={30} italic weight={600} lh={1.08}>{stageInfo.title}</Display>
+        </div>
+      </div>
 
-      <Card className="p-4 bg-cream-100 border-cream-300">
-        <p className="text-xs text-gray-400 text-center leading-relaxed">
-          Based on WHO and IAP (Indian Academy of Pediatrics) guidelines.
-          Every child develops at their own pace — your paediatrician knows your child best.
-        </p>
-      </Card>
+      <div style={{ padding: '0 20px 16px' }}>
+        <Body size={14} color={T.ink500} lh={1.5}>{stageInfo.description}</Body>
+      </div>
+
+      {/* Content sections */}
+      <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {content.sections.map(section => (
+          <Card key={section.title} p={16}>
+            <Body size={13} color={T.brand} weight={700} style={{ marginBottom: 12 }}>{section.title}</Body>
+            <Stack gap={9}>
+              {section.items.map((item, i) => (
+                <HRow key={i} gap={10} align="flex-start">
+                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: T.brandSoft, flexShrink: 0, marginTop: 6 }} />
+                  <Body size={13} color={T.ink700} lh={1.5}>{item}</Body>
+                </HRow>
+              ))}
+            </Stack>
+          </Card>
+        ))}
+      </div>
+
+      <Spacer h={16} />
+
+      {/* Disclaimer */}
+      <div style={{ padding: '0 16px 24px' }}>
+        <div style={{ background: T.surfaceDim, border: `1px solid ${T.line}`, borderRadius: RADIUS.md, padding: '12px 14px', textAlign: 'center' }}>
+          <Body size={11} color={T.ink300} lh={1.5}>
+            Based on WHO and IAP (Indian Academy of Pediatrics) guidelines.
+            Every child develops at their own pace — your paediatrician knows your child best.
+          </Body>
+        </div>
+      </div>
     </div>
   );
 }

@@ -10,7 +10,14 @@ export function useAuth() {
     let cancelled = false;
 
     (async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      let { data: { session } } = await supabase.auth.getSession();
+
+      // No session — sign in anonymously so every visitor gets a real user ID
+      if (!session) {
+        const { data } = await supabase.auth.signInAnonymously();
+        session = data.session;
+      }
+
       if (cancelled) return;
       setSession(session);
       if (session?.access_token) {
@@ -59,13 +66,23 @@ export function useAuth() {
 
   async function signUp(email, password) {
     setLoading(true);
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+
+    let data, error;
+
+    if (currentUser?.is_anonymous) {
+      // Upgrade anonymous session → keeps all existing child data
+      ({ data, error } = await supabase.auth.updateUser({ email, password }));
+    } else {
+      ({ data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      }));
+    }
+
     setLoading(false);
     if (error) throw error;
     return data;

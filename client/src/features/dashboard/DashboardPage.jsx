@@ -7,14 +7,21 @@ import useAuthStore from '../../stores/authStore';
 import { differenceInDays, format } from 'date-fns';
 import CBIcon from '../../components/cb/CBIcon';
 import CBLogoMark from '../../components/cb/CBLogoMark';
-import { T } from '../../components/cb/tokens';
-import MotionButton from '../../components/ui/motion-button';
+import { T, FONTS, RADIUS } from '../../components/cb/tokens';
+import {
+  Card, Chip, Button, ProgressBar,
+  Display, Eyebrow, Body, Mono,
+  Stack, HRow, Spacer, Divider, SectionLabel, ChromeBtn,
+  Avatar, BloomFlower,
+  Ring, Spark, TripleArc,
+  TimelineEntry, QuickTile,
+} from '../../components/cb/primitives';
 
 function getGreeting() {
   const h = new Date().getHours();
-  if (h < 12) return 'Good morning,';
-  if (h < 17) return 'Good afternoon,';
-  return 'Good evening,';
+  if (h < 12) return 'Good morning';
+  if (h < 17) return 'Good afternoon';
+  return 'Good evening';
 }
 
 function getBloomNote(child, ageInDays) {
@@ -31,26 +38,84 @@ function getBloomNote(child, ageInDays) {
   return `${name} is growing beautifully. You're doing great.`;
 }
 
+function getTodayPhrase(ageInDays) {
+  const h = new Date().getHours();
+  if (!ageInDays) return 'is ready to be discovered';
+  if (h < 10) return 'had a gentle morning';
+  if (h < 14) return 'is having a calm day';
+  if (h < 18) return 'had a curious afternoon';
+  return 'is winding down';
+}
+
+// Hero card — flower variant. Bloom score + insight + 3 stats with progress bars.
+function HeroBloom({ score, insight, stats }) {
+  return (
+    <Card p={20} className="bloom-card-in card-shimmer" style={{ position: 'relative', overflow: 'hidden' }}>
+      <div style={{ position: 'absolute', right: -30, top: -30, opacity: 0.85, pointerEvents: 'none', animation: 'bloom-breathe 4s ease-in-out infinite' }}>
+        <BloomFlower size={220} />
+      </div>
+      <Eyebrow color={T.brand}>Today · Bloom score</Eyebrow>
+      <Spacer h={6} />
+      <Display size={44} italic weight={300} className="animate-count-in">
+        {score}
+        <span style={{ fontSize: 20, opacity: 0.5 }}>/100</span>
+      </Display>
+      <Spacer h={10} />
+      <Body size={13} color={T.ink500} style={{ maxWidth: 240 }}>{insight}</Body>
+      <Spacer h={16} />
+      <HRow gap={10}>
+        {stats.map((s, i) => (
+          <Stat key={i} {...s} />
+        ))}
+      </HRow>
+    </Card>
+  );
+}
+
+function Stat({ label, value, target, pct = 0.7, color }) {
+  return (
+    <div style={{ flex: 1, position: 'relative' }}>
+      <Eyebrow color={T.ink400}>{label}</Eyebrow>
+      <Spacer h={6} />
+      <HRow gap={3} align="baseline">
+        <div style={{ fontFamily: FONTS.serif, fontSize: 18, color: T.ink900, fontWeight: 500 }}>{value}</div>
+        {target && <Mono size={9}>{target}</Mono>}
+      </HRow>
+      <Spacer h={6} />
+      <ProgressBar value={pct} color={color} />
+    </div>
+  );
+}
+
+function CoachCard({ eyebrow, title, body, onOpen }) {
+  return (
+    <Card p={16} style={{ minWidth: 240, maxWidth: 240, flexShrink: 0 }}>
+      <Eyebrow color={T.brand}>{eyebrow}</Eyebrow>
+      <Spacer h={6} />
+      <div style={{ fontFamily: FONTS.serif, fontSize: 17, fontStyle: 'italic', color: T.ink900, letterSpacing: '-0.02em' }}>{title}</div>
+      <Spacer h={8} />
+      <Body size={12} color={T.ink500} lh={1.45}>{body}</Body>
+      <Spacer h={12} />
+      <HRow gap={6}>
+        <Chip tone="wash" icon="arrow-right" onClick={onOpen}>Open</Chip>
+      </HRow>
+    </Card>
+  );
+}
+
 export default function DashboardPage() {
   const navigate = useNavigate();
   const child = useSelectedChild();
   const user = useAuthStore((s) => s.user);
-  const [mood, setMood] = useState(null);
-
   const childId = child?.id;
   const ageInDays = child?.date_of_birth
     ? differenceInDays(new Date(), new Date(child.date_of_birth))
     : null;
 
-  const today = format(new Date(), 'EEE · MMM d').toUpperCase();
-
-  // Latest food logs
   const { data: foodLogs = [] } = useQuery({
     queryKey: ['food-logs-today', childId],
     queryFn: async () => {
-      const { data } = await supabase
-        .from('food_logs')
-        .select('*')
+      const { data } = await supabase.from('food_logs').select('*')
         .eq('child_id', childId)
         .eq('logged_date', format(new Date(), 'yyyy-MM-dd'))
         .order('logged_at', { ascending: false });
@@ -58,299 +123,379 @@ export default function DashboardPage() {
     },
     enabled: !!childId,
   });
-
-  // Latest sleep log
   const { data: sleepLogs = [] } = useQuery({
     queryKey: ['sleep-logs-today', childId],
     queryFn: async () => {
-      const { data } = await supabase
-        .from('sleep_logs')
-        .select('*')
+      const { data } = await supabase.from('sleep_logs').select('*')
         .eq('child_id', childId)
         .eq('logged_date', format(new Date(), 'yyyy-MM-dd'))
-        .order('created_at', { ascending: false })
-        .limit(1);
+        .order('created_at', { ascending: false }).limit(1);
       return data || [];
     },
     enabled: !!childId,
   });
-
-  // Next vaccine
   const { data: vaccines = [] } = useQuery({
     queryKey: ['vaccinations-dash', childId],
     queryFn: async () => {
-      const { data } = await supabase
-        .from('vaccinations')
-        .select('*')
-        .eq('child_id', childId)
-        .is('date_given', null)
-        .order('next_due', { ascending: true })
-        .limit(1);
+      const { data } = await supabase.from('vaccinations').select('*')
+        .eq('child_id', childId).is('date_given', null)
+        .order('next_due', { ascending: true }).limit(1);
       return data || [];
     },
     enabled: !!childId,
   });
-
-  // Latest weekly update
   const { data: latestUpdate } = useQuery({
     queryKey: ['latest-update', childId],
     queryFn: async () => {
-      const { data } = await supabase
-        .from('weekly_updates')
-        .select('*')
+      const { data } = await supabase.from('weekly_updates').select('*')
         .eq('child_id', childId)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+        .order('created_at', { ascending: false }).limit(1).single();
       return data;
     },
     enabled: !!childId,
   });
 
-  const feedsToday = foodLogs.length;
-  const feedsTarget = ageInDays && ageInDays <= 60 ? 8 : 6;
-  const lastFeed = foodLogs[0];
-  const lastFeedAgo = lastFeed
-    ? (() => {
-        const mins = Math.floor((Date.now() - new Date(lastFeed.logged_at)) / 60000);
-        if (mins < 60) return `${mins}m ago`;
-        return `${Math.floor(mins / 60)}h ago`;
-      })()
-    : null;
-
-  const sleepToday = sleepLogs[0]?.hours_slept ?? null;
-  const nextVaccine = vaccines[0];
+  const feedsToday   = foodLogs.length;
+  const feedsTarget  = ageInDays && ageInDays <= 60 ? 8 : 6;
+  const sleepToday   = sleepLogs[0]?.hours_slept ?? null;
+  const sleepTarget  = ageInDays && ageInDays <= 90 ? 14 : 12;
+  const nextVaccine  = vaccines[0];
   const nextVaccineDays = nextVaccine?.next_due
-    ? differenceInDays(new Date(nextVaccine.next_due), new Date())
-    : null;
+    ? differenceInDays(new Date(nextVaccine.next_due), new Date()) : null;
 
-  const bloomNote = getBloomNote(child, ageInDays);
-  const parentInitial = user?.user_metadata?.full_name?.[0] || user?.email?.[0]?.toUpperCase() || 'P';
-  const parentName = user?.user_metadata?.full_name?.split(' ')[0] || 'there';
+  const bloomNote   = getBloomNote(child, ageInDays);
+  const parentName  = user?.user_metadata?.full_name?.split(' ')[0] || 'there';
 
-  const moods = [
-    { id: 'tired', l: 'Tired', i: 'moon' },
-    { id: 'good', l: 'Good', i: 'sun' },
-    { id: 'anxious', l: 'Anxious', i: 'wave' },
-    { id: 'strong', l: 'Strong', i: 'flame' },
+  // Composite Bloom score (rough wellness % from sleep + feeds + check-in)
+  const sleepPct = sleepToday ? Math.min(sleepToday / sleepTarget, 1) : 0.5;
+  const feedPct  = Math.min(feedsToday / feedsTarget, 1);
+  const checkPct = latestUpdate ? 1 : 0.5;
+  const score    = Math.round((sleepPct * 0.4 + feedPct * 0.4 + checkPct * 0.2) * 100);
+
+  const quickTiles = [
+    { icon: 'bottle',    label: 'Feed',      color: T.brandWash,  path: childId ? `/child/${childId}/food` : null },
+    { icon: 'moon',      label: 'Sleep',     color: T.brandWash,  path: childId ? `/child/${childId}/weekly-update` : null },
+    { icon: 'drop',      label: 'Diaper',    color: T.accentSoft, path: childId ? `/child/${childId}/weekly-update` : null },
+    { icon: 'chart',     label: 'Growth',    color: T.brandWash,  path: childId ? `/child/${childId}/growth` : null },
+    { icon: 'pill',      label: 'Meds',      color: T.accentSoft, path: childId ? `/child/${childId}/health` : null },
+    { icon: 'sun',       label: 'Mood',      color: T.brandWash,  path: childId ? `/child/${childId}/weekly-update` : null },
+    { icon: 'sparkle',   label: 'Milestone', color: T.brandWash,  path: childId ? `/child/${childId}/development` : null },
+    { icon: 'edit',      label: 'Note',      color: T.surfaceDim, path: childId ? `/child/${childId}/weekly-update` : null },
   ];
 
-  if (!user) {
-    return (
-      <div className="animate-fade-in" style={{ minHeight: '100dvh', background: T.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 24px', textAlign: 'center' }}>
-        <div className="animate-bounce-subtle">
-          <CBLogoMark size={48} color={T.forest700} />
-        </div>
-        <h1 className="animate-fade-in-up stagger-2" style={{ fontFamily: "'Fraunces', serif", fontSize: 32, fontWeight: 600, color: T.ink900, marginTop: 20, letterSpacing: '-0.025em' }}>Welcome to ChildBloom</h1>
-        <p className="animate-fade-in-up stagger-3" style={{ fontSize: 16, color: T.ink500, marginTop: 10, lineHeight: 1.5 }}>A calm, AI-first companion for Indian parents.</p>
-        <div className="animate-fade-in-up stagger-4 mt-7">
-          <MotionButton label="Get started — free" onClick={() => navigate('/auth')} />
-        </div>
-      </div>
-    );
-  }
+  const childInitial = child?.name?.[0] || 'B';
 
   return (
-    <div className="animate-fade-in" style={{ background: T.bg, minHeight: '100dvh', fontFamily: "-apple-system, 'Inter', system-ui, sans-serif" }}>
-      {/* Greeting */}
-      <div className="animate-stagger-up stagger-1" style={{ padding: '56px 20px 0' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: T.ink300, letterSpacing: '-0.01em', marginBottom: 2 }}>{today}</div>
-            <h1 style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 34, lineHeight: 1.05, letterSpacing: '-0.025em', color: T.ink900, margin: 0 }}>
-              {getGreeting()}<br />
-              <span style={{ color: T.forest600, fontStyle: 'italic' }}>{parentName}</span>
-            </h1>
-          </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button style={{ width: 36, height: 36, borderRadius: '50%', background: '#fff', border: 'none', color: T.ink500, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-              <CBIcon name="bell" size={17} />
-            </button>
-            <button onClick={() => navigate('/settings')}
-              style={{ width: 36, height: 36, borderRadius: '50%', background: T.forest700, color: '#fff', border: 'none', cursor: 'pointer', fontFamily: "'Fraunces',serif", fontWeight: 600, fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {parentInitial}
-            </button>
-          </div>
-        </div>
-      </div>
+    <div data-theme-root style={{ background: T.bg, minHeight: '100dvh', fontFamily: FONTS.sans }}>
 
-      {/* Dr. Bloom card */}
-      <div className="card-shimmer animate-stagger-up stagger-2 hover-lift" style={{ margin: '20px 16px 16px', borderRadius: 20, background: T.forest700, color: '#fff', padding: '18px 18px 20px', position: 'relative', overflow: 'hidden', transition: 'transform 0.25s ease, box-shadow 0.25s ease' }}>
-        {/* decorative drifting orbs */}
-        <div className="animate-drift" style={{ position: 'absolute', right: 20, top: -30, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', pointerEvents: 'none' }} />
-        <div className="animate-drift-slow" style={{ position: 'absolute', left: -20, bottom: -20, width: 80, height: 80, borderRadius: '50%', background: 'rgba(255,255,255,0.05)', pointerEvents: 'none' }} />
-        <div className="animate-float" style={{ position: 'absolute', right: -30, bottom: -30, opacity: 0.07 }}>
-          <CBLogoMark size={140} color="#fff" />
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, position: 'relative' }}>
-          <CBIcon name="sparkle" size={13} />
-          <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase' }}>Dr. Bloom · just now</span>
-        </div>
-        <p style={{ fontFamily: "'Fraunces', serif", fontSize: 18, fontWeight: 500, lineHeight: 1.35, letterSpacing: '-0.01em', position: 'relative', margin: 0 }}>
-          "{bloomNote}"
-        </p>
-        <div style={{ display: 'flex', gap: 6, marginTop: 14, position: 'relative' }}>
-          <button onClick={() => navigate('/ask')}
-            style={{ padding: '7px 12px', borderRadius: 99, background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-            Ask follow-up →
-          </button>
-        </div>
-      </div>
-
-      {/* Stats row */}
-      {childId && (
-        <div className="animate-stagger-up stagger-3" style={{ padding: '0 16px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-          {[
-            { label: 'Feeds', value: `${feedsToday}/${feedsTarget}`, sub: lastFeedAgo || 'none today', color: T.forest600, icon: 'bottle' },
-            { label: 'Sleep', value: sleepToday ? `${sleepToday}h` : '—', sub: 'Goal 14–17', color: T.blue, icon: 'moon' },
-            { label: 'Check-in', value: latestUpdate ? '✓' : '—', sub: latestUpdate ? 'done today' : 'tap to log', color: T.orange, icon: 'clipboard' },
-          ].map((s, idx) => (
-            <div key={s.label}
-              className={`hover-lift press-effect card-shimmer animate-stagger-up stagger-${idx + 3}`}
-              style={{ background: '#fff', borderRadius: 14, padding: '12px 12px', cursor: 'pointer', transition: 'transform 0.22s ease, box-shadow 0.22s ease' }}
-              onClick={() => {
-                if (s.label === 'Feeds') navigate(`/child/${childId}/food`);
-                if (s.label === 'Check-in') navigate(`/child/${childId}/weekly-update`);
-              }}>
-              <div style={{ color: s.color, marginBottom: 6 }}><CBIcon name={s.icon} size={16} /></div>
-              <div className="animate-count-in" style={{ fontFamily: "'Fraunces', serif", fontSize: 22, fontWeight: 600, color: T.ink900, letterSpacing: '-0.02em', lineHeight: 1 }}>{s.value}</div>
-              <div style={{ fontSize: 10, fontWeight: 600, color: T.ink300, letterSpacing: '0.06em', textTransform: 'uppercase', marginTop: 6 }}>{s.label}</div>
-              <div style={{ fontSize: 11, color: T.ink500, marginTop: 1 }}>{s.sub}</div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Today timeline */}
-      {childId && (
-        <div className="animate-stagger-up stagger-4" style={{ margin: '20px 16px 0' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '0 4px 10px' }}>
-            <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: 22, fontWeight: 600, color: T.ink900, letterSpacing: '-0.015em', margin: 0 }}>
-              Today, with {child?.name}
-            </h2>
-          </div>
-          <div style={{ background: '#fff', borderRadius: 16, overflow: 'hidden' }}>
-            {[
-              { icon: 'bottle', color: T.forest600, title: 'Log a feed', sub: `${feedsToday} logged today`, state: feedsToday > 0 ? 'done' : 'now', path: `/child/${childId}/food`, live: feedsToday > 0 },
-              { icon: 'clipboard', color: T.terra, title: 'Daily check-in', sub: '2 min · Dr. Bloom listens', state: latestUpdate ? 'done' : 'now', path: `/child/${childId}/weekly-update`, live: false },
-              { icon: 'chart', color: T.blue, title: 'Growth tracking', sub: 'Weight, height, head', state: 'soon', path: `/child/${childId}/growth`, live: false },
-              { icon: 'shield', color: T.forest600, title: 'Vaccinations', sub: nextVaccine ? `Next: ${nextVaccine.vaccine_name}` : 'View IAP schedule', state: 'later', last: true, path: `/child/${childId}/vaccinations`, live: false },
-            ].map((it, i) => (
-              <div key={i} onClick={() => navigate(it.path)}
-                className="press-effect"
-                style={{ display: 'flex', gap: 12, padding: '12px 14px', borderBottom: it.last ? 'none' : `0.5px solid ${T.ink100}`, background: it.state === 'now' ? T.forest50 : 'transparent', cursor: 'pointer', alignItems: 'center', transition: 'background 0.18s ease' }}>
-                <div style={{ width: 28, height: 28, borderRadius: 8, background: it.color + '1f', color: it.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, position: 'relative' }}>
-                  <CBIcon name={it.icon} size={15} />
-                  {/* live pulse dot */}
-                  {it.live && (
-                    <span style={{ position: 'absolute', top: -3, right: -3, width: 8, height: 8, borderRadius: '50%', background: T.forest500, display: 'block' }}>
-                      <span className="animate-pulse-live" style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: T.forest500 }} />
-                    </span>
-                  )}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: it.state === 'done' ? T.ink300 : T.ink900, textDecoration: it.state === 'done' ? 'line-through' : 'none', letterSpacing: '-0.01em' }}>{it.title}</div>
-                  <div style={{ fontSize: 11, color: T.ink300, marginTop: 1 }}>{it.sub}</div>
-                </div>
-                {it.state === 'done'
-                  ? <CBIcon name="check" size={16} stroke={2.2} />
-                  : it.state === 'now'
-                    ? <button className="press-effect" style={{ padding: '5px 10px', borderRadius: 99, background: T.forest700, color: '#fff', border: 'none', fontSize: 11, fontWeight: 600, cursor: 'pointer', transition: 'transform 0.15s ease, opacity 0.15s ease' }}>Start</button>
-                    : <CBIcon name="chevron-right" size={14} />
-                }
+      {/* Header */}
+      <div style={{ padding: '56px 20px 0' }}>
+        <HRow gap={12} align="center" justify="space-between">
+          <HRow gap={10} align="center">
+            <Avatar name={childInitial} size={42} />
+            <Stack gap={1}>
+              <Body size={11} color={T.ink400} weight={500}>{getGreeting()}, {parentName}</Body>
+              <div style={{ fontFamily: FONTS.serif, fontSize: 19, color: T.ink900, lineHeight: 1.1, letterSpacing: '-0.02em' }}>
+                <span style={{ fontStyle: 'italic', fontWeight: 400 }}>{child?.name || 'your little one'}</span>{' '}
+                {getTodayPhrase(ageInDays)}.
               </div>
-            ))}
+            </Stack>
+          </HRow>
+          <HRow gap={6}>
+            <ChromeBtn icon="bell" badge={!!nextVaccine && nextVaccineDays !== null && nextVaccineDays <= 7} />
+            <ChromeBtn icon="settings" onClick={() => navigate('/settings')} />
+          </HRow>
+        </HRow>
+      </div>
+
+      <Spacer h={18} />
+
+      {/* Hero */}
+      <div style={{ padding: '0 16px' }}>
+        <HeroBloom
+          score={score}
+          insight={bloomNote}
+          stats={[
+            { label: 'Sleep', value: sleepToday ? `${sleepToday}h` : '—', target: `/ ${sleepTarget}h`, pct: sleepPct, color: T.brandSoft },
+            { label: 'Feeds', value: `${feedsToday}`, target: `/ ${feedsTarget}`, pct: feedPct, color: T.accent },
+            { label: 'Check-in', value: latestUpdate ? '✓' : '—', pct: checkPct, color: T.gold },
+          ]}
+        />
+      </div>
+
+      {/* Quick log */}
+      {childId && (
+        <>
+          <Spacer h={24} />
+          <div style={{ padding: '0 16px' }}>
+            <SectionLabel title="Log in one tap" trailing="Voice" />
+            <div className="stagger-children" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+              {quickTiles.map((q) => (
+                <QuickTile
+                  key={q.label}
+                  icon={q.icon}
+                  label={q.label}
+                  color={q.color}
+                  onClick={() => q.path && navigate(q.path)}
+                />
+              ))}
+            </div>
           </div>
-        </div>
+        </>
       )}
 
-      {/* Vaccine reminder */}
+      {/* AI insight */}
+      <Spacer h={26} />
+      <div style={{ padding: '0 16px' }}>
+        <Card p={18} style={{ position: 'relative', overflow: 'hidden' }} className="card-shimmer">
+          <HRow gap={8} align="center" style={{ marginBottom: 10 }}>
+            <div style={{
+              width: 28, height: 28, borderRadius: 999, background: T.brandWash,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              animation: 'bloom-breathe 2.4s ease-in-out infinite',
+            }}>
+              <CBLogoMark size={14} color={T.brand} />
+            </div>
+            <Eyebrow color={T.brand}>Dr. Bloom · just now</Eyebrow>
+            <div style={{
+              width: 7, height: 7, borderRadius: '50%', background: T.brand,
+              animation: 'pulse-live 2s ease-out infinite',
+            }} />
+          </HRow>
+          <div style={{
+            fontFamily: FONTS.serif, fontSize: 17, fontStyle: 'italic', color: T.ink900,
+            lineHeight: 1.35, letterSpacing: '-0.02em', marginBottom: 14,
+          }}>
+            "{bloomNote}"
+          </div>
+          <HRow gap={8}>
+            <Chip tone="wash" icon="sparkle" onClick={() => navigate('/ask')}>Ask follow-up</Chip>
+            <Chip tone="soft" icon="check">Got it</Chip>
+            <Chip tone="soft" icon="bell">Remind me</Chip>
+          </HRow>
+        </Card>
+      </div>
+
+      {/* Today's rhythm */}
+      {childId && (
+        <>
+          <Spacer h={26} />
+          <div style={{ padding: '0 16px' }}>
+            <SectionLabel title={`Today with ${child?.name}`} trailing="See all" onTrailing={() => navigate(`/child/${childId}/updates`)} />
+            <Card p={14}>
+              {[
+                { icon: 'bottle',    color: T.brandWash,  title: 'Log a feed',      sub: `${feedsToday} logged today`,        path: `/child/${childId}/food`,          done: feedsToday > 0 },
+                { icon: 'clipboard', color: '#FFF1E8',     title: 'Daily check-in',  sub: '2 min · Dr. Bloom listens',         path: `/child/${childId}/weekly-update`, done: !!latestUpdate },
+                { icon: 'chart',     color: '#EBF4FF',     title: 'Growth tracking', sub: 'Weight, height, head',              path: `/child/${childId}/growth`,        done: false },
+              ].map((it, i, arr) => (
+                <div key={i}>
+                  <TimelineEntry
+                    time={it.done ? '✓' : '·'}
+                    title={it.title}
+                    sub={it.sub}
+                    icon={it.icon}
+                    color={it.color}
+                    onClick={() => navigate(it.path)}
+                  />
+                  {i < arr.length - 1 && <Divider />}
+                </div>
+              ))}
+            </Card>
+          </div>
+        </>
+      )}
+
+      {/* Development journey — milestone ring + spark */}
+      {childId && ageInDays !== null && (
+        <>
+          <Spacer h={26} />
+          <div style={{ padding: '0 16px' }}>
+            <SectionLabel title="Development journey" trailing="See chart" onTrailing={() => navigate(`/child/${childId}/development`)} />
+            <Card p={18}>
+              <HRow justify="space-between" align="flex-start">
+                <Stack gap={4}>
+                  <Eyebrow color={T.brand}>Next milestone</Eyebrow>
+                  <Display size={22} italic weight={400}>
+                    {ageInDays <= 90 ? 'Rolling over' :
+                     ageInDays <= 180 ? 'Sitting unsupported' :
+                     ageInDays <= 365 ? 'First steps' :
+                     'First sentences'}
+                  </Display>
+                  <Body size={12} color={T.ink500}>
+                    typically in {ageInDays <= 90 ? 12 : ageInDays <= 180 ? 9 : 7} days · 73% confident
+                  </Body>
+                </Stack>
+                <Ring value={0.73} size={60} stroke={6} label="73" />
+              </HRow>
+              <Spacer h={14} />
+              <Spark points={[3, 4, 4, 5, 5, 6, 7, 7, 8]} w={300} h={42} dots />
+              <Spacer h={6} />
+              <HRow justify="space-between">
+                <Mono size={9}>WK {Math.max(1, Math.floor(ageInDays / 7) - 4)}</Mono>
+                <Mono size={9}>WK {Math.max(1, Math.floor(ageInDays / 7))}</Mono>
+              </HRow>
+            </Card>
+          </div>
+        </>
+      )}
+
+      {/* Parent intelligence — horizontal scroll coach cards */}
+      {childId && (
+        <>
+          <Spacer h={26} />
+          <div style={{ padding: '0 16px' }}>
+            <SectionLabel title="Parent intelligence" />
+            <HRow gap={10} style={{ overflowX: 'auto', paddingBottom: 4, marginRight: -16 }}>
+              <CoachCard
+                eyebrow="Is this normal?"
+                title="Cluster feeds at your stage"
+                body="Many babies eat more often as a developmental leap approaches."
+                onOpen={() => navigate('/ask')}
+              />
+              <CoachCard
+                eyebrow="Reassurance"
+                title="You're on rhythm"
+                body="Your check-ins are landing within minutes of your usual wind-down."
+                onOpen={() => navigate('/ask')}
+              />
+              <CoachCard
+                eyebrow="Coaching"
+                title="Try slightly earlier bath"
+                body="A 12-minute earlier bath often pulls the bedtime window forward."
+                onOpen={() => navigate('/ask')}
+              />
+            </HRow>
+          </div>
+        </>
+      )}
+
+      {/* Vaccine nudge */}
       {nextVaccine && nextVaccineDays !== null && nextVaccineDays <= 30 && (
-        <div onClick={() => navigate(`/child/${childId}/vaccinations`)}
-          className={`press-effect animate-stagger-up stagger-5${nextVaccineDays <= 7 ? ' animate-glow-ring' : ''}`}
-          style={{ margin: '14px 16px 0', borderRadius: 16, padding: '14px 16px', background: 'rgba(255,149,0,0.08)', border: `0.5px solid rgba(255,149,0,0.2)`, cursor: 'pointer', transition: 'transform 0.15s ease' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(255,149,0,0.18)', color: T.orange, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <CBIcon name="shield" size={17} />
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: T.orange }}>
-                Next vaccine · {nextVaccineDays === 0 ? 'today' : `in ${nextVaccineDays} day${nextVaccineDays !== 1 ? 's' : ''}`}
-              </div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: T.ink900, marginTop: 2, letterSpacing: '-0.01em' }}>{nextVaccine.vaccine_name}</div>
-            </div>
-            <CBIcon name="chevron-right" size={16} />
+        <>
+          <Spacer h={14} />
+          <div style={{ padding: '0 16px' }}>
+            <Card
+              p={14}
+              tone="surface"
+              onClick={() => navigate(`/child/${childId}/vaccinations`)}
+              style={{
+                background: 'rgba(201,163,90,0.08)',
+                boxShadow: '0 0 0 1px rgba(201,163,90,0.25)',
+              }}
+            >
+              <HRow gap={10}>
+                <div style={{
+                  width: 34, height: 34, borderRadius: RADIUS.sm, background: 'rgba(201,163,90,0.16)',
+                  color: T.gold, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <CBIcon name="shield" size={17} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <Eyebrow color={T.gold}>
+                    Next vaccine · {nextVaccineDays === 0 ? 'today' : `in ${nextVaccineDays} day${nextVaccineDays !== 1 ? 's' : ''}`}
+                  </Eyebrow>
+                  <Body size={13} color={T.ink900} weight={600} style={{ marginTop: 2 }}>{nextVaccine.vaccine_name}</Body>
+                </div>
+                <CBIcon name="chevron-right" size={16} style={{ color: T.ink200 }} />
+              </HRow>
+            </Card>
           </div>
-        </div>
+        </>
       )}
 
-      {/* Parent mood */}
-      <div className="animate-stagger-up stagger-6" style={{ margin: '14px 16px 0', background: '#fff', borderRadius: 16, padding: '14px 16px' }}>
-        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: T.ink300 }}>You today</div>
-        <div style={{ fontFamily: "'Fraunces', serif", fontSize: 16, fontWeight: 600, color: T.forest700, marginTop: 2, marginBottom: 10 }}>Two seconds for yourself.</div>
-        <div style={{ display: 'flex', gap: 6 }}>
-          {moods.map(m => {
-            const active = mood === m.id;
-            return (
-              <button key={m.id} onClick={() => setMood(m.id)}
-                className={`mood-btn press-effect${active ? ' animate-scale-in' : ''}`}
-                style={{ flex: 1, padding: '10px 4px', borderRadius: 10, border: `1.5px solid ${active ? T.forest500 : T.ink100}`, background: active ? T.forest50 : '#fafafa', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, color: active ? T.forest600 : T.ink500, transition: 'border-color 0.2s ease, background 0.2s ease, transform 0.15s ease' }}>
-                <CBIcon name={m.i} size={16} />
-                <span style={{ fontSize: 10, fontWeight: active ? 700 : 500 }}>{m.l}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      {/* Streak */}
+      {latestUpdate && (
+        <>
+          <Spacer h={14} />
+          <div style={{ padding: '0 16px' }}>
+            <Card p={18} tone="warm" style={{ border: `1px solid rgba(201,163,90,0.18)` }}>
+              <HRow gap={14} align="center">
+                <div style={{
+                  width: 52, height: 52, borderRadius: RADIUS.md, background: T.gold,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0,
+                }}>
+                  <CBIcon name="flame" size={24} stroke={1.8} />
+                </div>
+                <div>
+                  <Eyebrow color={T.gold}>Streak</Eyebrow>
+                  <div style={{
+                    fontFamily: FONTS.serif, fontSize: 17, fontStyle: 'italic', color: T.ink900, marginTop: 2,
+                  }}>You showed up. That matters.</div>
+                </div>
+              </HRow>
+            </Card>
+          </div>
+        </>
+      )}
 
-      {/* No child state */}
+      {/* No-child state */}
       {!childId && user && (
-        <div className="animate-fade-in-up" style={{ margin: '24px 16px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <p style={{ fontSize: 15, color: T.ink500, marginBottom: 16 }}>Add your child to get started</p>
-          <MotionButton label="Add child" onClick={() => navigate('/onboarding')} />
-        </div>
+        <>
+          <Spacer h={26} />
+          <div style={{ padding: '0 16px', textAlign: 'center' }}>
+            <Display size={20} italic weight={400} style={{ marginBottom: 8 }}>Add your child to begin</Display>
+            <Body size={14} color={T.ink500} style={{ marginBottom: 20 }}>Bloom personalizes everything from this moment.</Body>
+            <Button onClick={() => navigate('/onboarding')}>Add child</Button>
+          </div>
+        </>
       )}
 
-      {/* SOS Emergency button */}
-      <div className="animate-stagger-up stagger-6" style={{ margin: '14px 16px 0' }}>
+      {/* SOS */}
+      <Spacer h={14} />
+      <div style={{ padding: '0 16px' }}>
         <button
           onClick={() => navigate('/emergency')}
           style={{
-            width: '100%',
-            background: 'linear-gradient(135deg, #B91C1C 0%, #7F1D1D 100%)',
-            border: 'none',
-            borderRadius: 16,
-            padding: '14px 18px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-            cursor: 'pointer',
-            boxShadow: '0 4px 16px rgba(185,28,28,0.25)',
+            width: '100%', background: 'linear-gradient(135deg, #B91C1C 0%, #7F1D1D 100%)',
+            border: 'none', borderRadius: RADIUS.lg, padding: '14px 18px',
+            display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer',
+            boxShadow: '0 4px 16px rgba(185,28,28,0.22)',
           }}
         >
           <div style={{
-            width: 36, height: 36, borderRadius: 10,
-            background: 'rgba(255,255,255,0.18)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0,
+            width: 36, height: 36, borderRadius: RADIUS.sm, background: 'rgba(255,255,255,0.18)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: '#fff',
           }}>
-            <CBIcon name="siren" size={18} stroke={2} style={{ color: '#fff' }} />
+            <CBIcon name="siren" size={18} stroke={2} />
           </div>
           <div style={{ flex: 1, textAlign: 'left' }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', letterSpacing: '-0.01em' }}>
-              Emergency First-Aid
-            </div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)', marginTop: 1 }}>
-              CPR, choking, burns, seizures &amp; more
-            </div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', letterSpacing: '-0.01em' }}>Emergency First-Aid</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.72)', marginTop: 1 }}>CPR, choking, burns, seizures &amp; more</div>
           </div>
-          <div style={{ fontSize: 11, fontWeight: 800, color: '#fff', background: 'rgba(255,255,255,0.2)', padding: '4px 8px', borderRadius: 99, letterSpacing: '0.06em' }}>
-            SOS
-          </div>
+          <div style={{
+            fontSize: 11, fontWeight: 800, color: '#fff', background: 'rgba(255,255,255,0.2)',
+            padding: '4px 8px', borderRadius: 999, letterSpacing: '0.06em',
+          }}>SOS</div>
         </button>
       </div>
 
-      <div style={{ height: 24 }} />
+      {/* Save account nudge — only shown to anonymous users */}
+      {user?.is_anonymous && (
+        <>
+          <Spacer h={14} />
+          <div style={{ padding: '0 16px' }}>
+            <Card p={16} style={{ border: `1px solid ${T.ink100}`, background: T.surface }}>
+              <HRow gap={12} align="center">
+                <div style={{
+                  width: 34, height: 34, borderRadius: RADIUS.sm, background: T.brandWash,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.brand, flexShrink: 0,
+                }}>
+                  <CBIcon name="shield" size={17} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <Body size={13} color={T.ink900} weight={600}>Back up your data</Body>
+                  <Body size={11} color={T.ink500} style={{ marginTop: 2 }}>
+                    Create a free account to access from any device.
+                  </Body>
+                </div>
+                <Chip tone="brand" onClick={() => navigate('/onboarding?upgrade=true')}>Save</Chip>
+              </HRow>
+            </Card>
+          </div>
+        </>
+      )}
+
+      <Spacer h={32} />
     </div>
   );
 }

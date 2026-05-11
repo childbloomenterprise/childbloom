@@ -1,75 +1,36 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
-import { LogoMark } from '../../components/ui/LogoMark';
+import useAuthStore from '../../stores/authStore';
 
 export default function AuthCallback() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const handleCallback = async () => {
-      try {
-        // Exchange the code for a session (handles both email confirm + OAuth)
-        const { data: { session }, error } = await supabase.auth.exchangeCodeForSession(
-          window.location.href
-        );
-
-        if (error || !session) {
-          navigate('/auth', { replace: true });
-          return;
-        }
-
-        const user = session.user;
-
-        // For Google sign-in, persist profile data from Google metadata
-        if (user.app_metadata?.provider === 'google') {
-          await supabase.from('profiles').update({
-            full_name: user.user_metadata?.full_name || '',
-            avatar_url: user.user_metadata?.avatar_url || '',
-            updated_at: new Date().toISOString(),
-          }).eq('id', user.id);
-        }
-
-        // Fast path: check localStorage before hitting DB
-        if (localStorage.getItem('cb_onboarded')) {
-          navigate('/dashboard', { replace: true });
-          return;
-        }
-
-        // DB check: has this user completed onboarding?
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('onboarding_complete')
-          .eq('id', user.id)
-          .single();
-
-        if (profile?.onboarding_complete) {
-          localStorage.setItem('cb_onboarded', 'true');
-          navigate('/dashboard', { replace: true });
-        } else {
-          navigate('/onboarding', { replace: true });
-        }
-      } catch {
-        navigate('/auth', { replace: true });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        const profile = useAuthStore.getState().profile;
+        navigate(profile?.onboarding_complete ? '/dashboard' : '/onboarding', { replace: true });
       }
-    };
+    });
 
-    handleCallback();
+    // Fallback: if session already exists, redirect immediately
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        const profile = useAuthStore.getState().profile;
+        navigate(profile?.onboarding_complete ? '/dashboard' : '/onboarding', { replace: true });
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, [navigate]);
 
-  // Loading UI while processing
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center gap-6"
-         style={{ background: '#F7F4EF' }}>
-      <LogoMark size={64} className="animate-bloom-breathe" />
-      <p className="text-sm font-medium" style={{ color: 'rgba(61,43,35,0.55)' }}>
-        Setting up your account…
-      </p>
-      {/* Animated teal progress bar */}
-      <div className="w-48 h-1 rounded-full overflow-hidden" style={{ background: 'rgba(143,186,200,0.20)' }}>
-        <div className="h-full rounded-full animate-gradient"
-             style={{ background: 'linear-gradient(90deg, #8FBAC8, #1B4332, #8FBAC8)', backgroundSize: '200% 100%' }} />
-      </div>
+    <div style={{ minHeight: '100dvh', background: '#0F2318', display: 'flex',
+                  flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+      <div style={{ width: 36, height: 36, borderRadius: '50%', border: '3px solid rgba(29,158,117,0.25)',
+                    borderTopColor: '#1D9E75', animation: 'spin 0.7s linear infinite' }} />
+      <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 15, fontWeight: 500 }}>Signing you in…</p>
     </div>
   );
 }
