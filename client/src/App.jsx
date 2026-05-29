@@ -1,12 +1,16 @@
 import { lazy, Suspense, useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { AnimatePresence } from 'framer-motion';
 import { useAuth } from './hooks/useAuth';
+import { useNightDim } from './hooks/useNightDim';
 import useAuthStore from './stores/authStore';
 import AppLayout from './components/layout/AppLayout';
 import Skeleton from './components/ui/Skeleton';
 import Toast from './components/ui/Toast';
 import InstallPrompt from './components/InstallPrompt';
 import SplashScreen from './components/ui/SplashScreen';
+import ErrorBoundary from './components/shared/ErrorBoundary';
+import PWAUpdatePrompt from './components/ui/PWAUpdatePrompt';
 
 // ── App pages: lazy-loaded ──
 const DashboardPage     = lazy(() => import('./features/dashboard/DashboardPage'));
@@ -31,11 +35,23 @@ const AuthPage          = lazy(() => import('./features/auth/AuthPage'));
 const AuthCallback      = lazy(() => import('./features/auth/AuthCallback'));
 const OnboardingPage    = lazy(() => import('./features/onboarding/OnboardingPage'));
 const LandingPage       = lazy(() => import('./features/landing/LandingPage'));
+const AchievementsPage  = lazy(() => import('./features/achievements/AchievementsPage'));
+const BloomGardenPage   = lazy(() => import('./features/bloom/BloomGardenPage'));
+const BloomAreaPage     = lazy(() => import('./features/bloom/BloomAreaPage'));
+const HelpPage          = lazy(() => import('./features/help/HelpPage'));
+const InboxPage         = lazy(() => import('./features/inbox/InboxPage'));
 
 function RootRoute() {
-  const profile = useAuthStore((s) => s.profile);
-  const onboarded = profile?.onboarding_complete || localStorage.getItem('cb_onboarded') === 'true';
-  return onboarded ? <Navigate to="/dashboard" replace /> : <LandingPage />;
+  const session   = useAuthStore((s) => s.session);
+  const isLoading = useAuthStore((s) => s.isLoading);
+  const user      = session?.user;
+  // A real signed-in user is one with a session that is NOT anonymous.
+  // useAuth() always upgrades visitors to an anonymous session, so we must
+  // explicitly exclude that case before sending anyone into the app shell.
+  const signedIn = !!user && !user.is_anonymous;
+
+  if (isLoading) return <PageFallback />;
+  return signedIn ? <Navigate to="/dashboard" replace /> : <LandingPage />;
 }
 
 function PageFallback() {
@@ -94,11 +110,15 @@ function NotFound() {
 
 export default function App() {
   useAuth();
+  useNightDim();
   const [splashDone, setSplashDone] = useState(false);
 
   return (
     <>
-      {!splashDone && <SplashScreen onDone={() => setSplashDone(true)} />}
+      <AnimatePresence>
+        {!splashDone && <SplashScreen onDone={() => setSplashDone(true)} />}
+      </AnimatePresence>
+      <ErrorBoundary>
       <Suspense fallback={<PageFallback />}>
         <Routes>
           <Route path="/" element={<RootRoute />} />
@@ -113,6 +133,8 @@ export default function App() {
             <Route path="/child/:id/food"              element={<FoodTrackerPage />} />
             <Route path="/child/:id/health"            element={<HealthRecordsPage />} />
             <Route path="/child/:id/vaccinations"      element={<VaccinationPage />} />
+            <Route path="/child/:id/bloom"             element={<BloomGardenPage />} />
+            <Route path="/child/:id/bloom/:area"       element={<BloomAreaPage />} />
             <Route path="/emergency"                   element={<EmergencyGuidePage />} />
             <Route path="/emergency/:topic"            element={<EmergencyTopicPage />} />
             <Route path="/guides"                      element={<GuidesPage />} />
@@ -121,6 +143,9 @@ export default function App() {
             <Route path="/care"                        element={<CarePage />} />
             <Route path="/settings"                    element={<SettingsPage />} />
             <Route path="/family"                      element={<FamilyPage />} />
+            <Route path="/achievements"               element={<AchievementsPage />} />
+            <Route path="/help"                        element={<HelpPage />} />
+            <Route path="/inbox"                       element={<InboxPage />} />
           </Route>
 
           <Route path="/auth"          element={<AuthPage />} />
@@ -130,8 +155,10 @@ export default function App() {
           <Route path="*"              element={<NotFound />} />
         </Routes>
       </Suspense>
+      </ErrorBoundary>
       <Toast />
       <InstallPrompt />
+      <PWAUpdatePrompt />
     </>
   );
 }

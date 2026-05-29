@@ -1,24 +1,33 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
-import useAuthStore from '../../stores/authStore';
+
+async function resolveDestination(session) {
+  if (!session?.user?.id) return '/onboarding';
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('onboarding_complete')
+    .eq('id', session.user.id)
+    .single();
+  return profile?.onboarding_complete ? '/dashboard' : '/onboarding';
+}
 
 export default function AuthCallback() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session) {
-        const profile = useAuthStore.getState().profile;
-        navigate(profile?.onboarding_complete ? '/dashboard' : '/onboarding', { replace: true });
+        const dest = await resolveDestination(session);
+        navigate(dest, { replace: true });
       }
     });
 
     // Fallback: if session already exists, redirect immediately
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session) {
-        const profile = useAuthStore.getState().profile;
-        navigate(profile?.onboarding_complete ? '/dashboard' : '/onboarding', { replace: true });
+        const dest = await resolveDestination(session);
+        navigate(dest, { replace: true });
       }
     });
 

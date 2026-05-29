@@ -70,13 +70,14 @@ function LightLabel({ children }) {
   );
 }
 
-function DarkInput({ value, onChange, placeholder, type = 'text', autoFocus, suffix, min, max }) {
+function DarkInput({ value, onChange, placeholder, type = 'text', autoFocus, suffix, min, max, ariaLabel }) {
   return (
     <input
       type={type}
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
+      aria-label={ariaLabel || placeholder}
       autoFocus={autoFocus}
       min={min}
       max={max}
@@ -96,13 +97,14 @@ function DarkInput({ value, onChange, placeholder, type = 'text', autoFocus, suf
   );
 }
 
-function LightInput({ value, onChange, placeholder, type = 'text', autoFocus, min, max }) {
+function LightInput({ value, onChange, placeholder, type = 'text', autoFocus, min, max, ariaLabel }) {
   return (
     <input
       type={type}
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
+      aria-label={ariaLabel || placeholder}
       autoFocus={autoFocus}
       min={min}
       max={max}
@@ -126,13 +128,13 @@ function LightInput({ value, onChange, placeholder, type = 'text', autoFocus, mi
   );
 }
 
-function PillToggleGroup({ options, value, onChange }) {
+function PillToggleGroup({ options, value, onChange, ariaLabel }) {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${options.length}, 1fr)`, gap: 8 }}>
+    <div role="radiogroup" aria-label={ariaLabel} style={{ display: 'grid', gridTemplateColumns: `repeat(${options.length}, 1fr)`, gap: 8 }}>
       {options.map((o) => {
         const active = value === o.id;
         return (
-          <button key={o.id} type="button" onClick={() => onChange(o.id)}
+          <button key={o.id} type="button" role="radio" aria-checked={active} aria-label={o.label} onClick={() => onChange(o.id)}
             style={{
               padding: '11px 8px', borderRadius: RADIUS.md, cursor: 'pointer',
               background: active ? T.brandTint : T.surface,
@@ -220,7 +222,7 @@ function ScreenWelcome({ onNext }) {
 
         {/* CTAs */}
         <Stack gap={10}>
-          <button onClick={onNext} style={{
+          <button onClick={onNext} aria-label="Begin your baby's profile" style={{
             width: '100%', height: 54, borderRadius: 16, border: 'none',
             background: '#fff', color: BRAND_DARK,
             fontFamily: FONTS.sans, fontSize: 16, fontWeight: 700,
@@ -318,6 +320,7 @@ function ScreenBirth({ form, update, onNext, onBack }) {
   };
 
   const presetAllergies = ['Milk', 'Egg', 'Peanut', 'Tree nut', 'Soy', 'Wheat', 'Fish', 'Shellfish'];
+  const canProceed = !!form.bloodGroup;
 
   return (
     <ScreenShell step={2} onBack={onBack}>
@@ -327,7 +330,7 @@ function ScreenBirth({ form, update, onNext, onBack }) {
         A few <span style={{ fontStyle: 'normal' }}>health basics.</span>
       </Display>
       <Spacer h={6} />
-      <Body size={13} color={T.ink500}>All optional. Helps Dr. Bloom give safer answers.</Body>
+      <Body size={13} color={T.ink500}>Select a blood group to continue. Other fields are optional.</Body>
 
       <Spacer h={22} />
 
@@ -366,7 +369,10 @@ function ScreenBirth({ form, update, onNext, onBack }) {
           {BLOOD_GROUPS.map((bg) => {
             const active = form.bloodGroup === bg;
             return (
-              <button key={bg} type="button" onClick={() => update('bloodGroup', active ? '' : bg)}
+              <button key={bg} type="button"
+                aria-pressed={active}
+                aria-label={`Blood group: ${bg}`}
+                onClick={() => update('bloodGroup', active ? '' : bg)}
                 style={{
                   padding: '9px 6px', borderRadius: RADIUS.sm, cursor: 'pointer',
                   background: active ? T.brandTint : T.surface,
@@ -390,7 +396,10 @@ function ScreenBirth({ form, update, onNext, onBack }) {
           {presetAllergies.map((a) => {
             const active = (form.allergies || []).includes(a);
             return (
-              <button key={a} type="button" onClick={() => toggleAllergy(a)}
+              <button key={a} type="button"
+                aria-pressed={active}
+                aria-label={`Allergy: ${a}`}
+                onClick={() => toggleAllergy(a)}
                 style={{
                   padding: '8px 14px', borderRadius: 999, cursor: 'pointer',
                   background: active ? T.brand : T.surface,
@@ -408,7 +417,7 @@ function ScreenBirth({ form, update, onNext, onBack }) {
 
       <Spacer h={20} />
 
-      <ContinueBar onNext={onNext} canProceed={true} />
+      <ContinueBar onNext={onNext} canProceed={canProceed} />
     </ScreenShell>
   );
 }
@@ -444,6 +453,8 @@ function ScreenAboutYou({ form, update, onNext, onBack }) {
             const active = form.language === code;
             return (
               <button key={code} type="button"
+                aria-pressed={active}
+                aria-label={`Language: ${label}`}
                 onClick={() => {
                   update('language', code);
                   i18n.changeLanguage(code);
@@ -473,7 +484,10 @@ function ScreenAboutYou({ form, update, onNext, onBack }) {
         {TONE_OPTIONS.map((t) => {
           const active = form.aiTone === t.id;
           return (
-            <button key={t.id} type="button" onClick={() => update('aiTone', t.id)}
+            <button key={t.id} type="button"
+              aria-pressed={active}
+              aria-label={`Tone: ${t.label}. ${t.body}`}
+              onClick={() => update('aiTone', t.id)}
               style={{
                 width: '100%', padding: 16, borderRadius: RADIUS.lg,
                 background: T.surface, border: 'none', cursor: 'pointer', textAlign: 'left',
@@ -642,6 +656,21 @@ export default function OnboardingPage() {
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
 
+  // If user already completed onboarding, skip straight to dashboard
+  useEffect(() => {
+    if (!user?.id) return;
+    (async () => {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('onboarding_complete')
+        .eq('id', user.id)
+        .single();
+      if (profile?.onboarding_complete) {
+        navigate('/dashboard', { replace: true });
+      }
+    })();
+  }, [user?.id]);
+
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
@@ -704,18 +733,19 @@ export default function OnboardingPage() {
         known_allergies: form.allergies || [],
       };
 
-      const [profileRes, childRes] = await Promise.all([
-        supabase.from('profiles').update({
-          full_name: form.parentName.trim(),
-          language: form.language,
-          ai_tone: form.aiTone,
-          onboarding_complete: true,
-          updated_at: new Date().toISOString(),
-        }).eq('id', userId),
-        supabase.from('children').insert(childPayload).select(),
-      ]);
-
+      // Profile must exist before child insert (FK constraint). Use upsert in case
+      // the auto-create trigger didn't fire (e.g. Google OAuth race condition).
+      const profileRes = await supabase.from('profiles').upsert({
+        id: userId,
+        full_name: form.parentName.trim(),
+        language: form.language,
+        ai_tone: form.aiTone,
+        onboarding_complete: true,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'id' });
       if (profileRes.error) throw profileRes.error;
+
+      const childRes = await supabase.from('children').insert(childPayload).select();
       if (childRes.error) throw childRes.error;
 
       await queryClient.invalidateQueries({ queryKey: ['children'] });

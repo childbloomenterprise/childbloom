@@ -5,12 +5,22 @@ import useUiStore from '../../stores/uiStore';
 import ChildSwitcher from '../shared/ChildSwitcher';
 import { DashboardIcon, GrowthIcon, FoodIcon, BookIcon, ChatIcon, HealthIcon, SettingsIcon, ClipboardIcon, LogoutIcon, EmergencyIcon, VaccineIcon } from '../../assets/icons';
 import { useAuth } from '../../hooks/useAuth';
+import { useInbox } from '../../hooks/useInbox';
+
+function InboxIcon({ className }) {
+  return (
+    <svg className={className} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 4h16v12H4z"/><path d="M4 4l8 8 8-8"/>
+    </svg>
+  );
+}
 
 export default function Sidebar() {
   const { t } = useTranslation();
   const child = useSelectedChild();
   const { sidebarOpen, setSidebarOpen } = useUiStore();
   const { signOut } = useAuth();
+  const { pendingCount } = useInbox();
   const childId = child?.id;
 
   const navItems = [
@@ -22,6 +32,7 @@ export default function Sidebar() {
       { to: `/child/${childId}/health`,        icon: HealthIcon,    label: t('nav.health') },
       { to: `/child/${childId}/vaccinations`, icon: VaccineIcon,   label: t('nav.vaccines') },
     ] : []),
+    { to: '/inbox',     icon: InboxIcon,     label: 'Doctor Inbox', badge: pendingCount > 0 ? pendingCount : null },
     { to: '/guides',    icon: BookIcon,      label: t('nav.guides') },
     { to: '/ask',       icon: ChatIcon,      label: t('nav.askAi') },
     { to: '/emergency', icon: EmergencyIcon, label: t('emergency.nav'), emergency: true },
@@ -112,7 +123,18 @@ export default function Sidebar() {
                     <div className={`transition-colors ${isActive ? '' : 'group-hover:text-gray-600'}`}>
                       <item.icon className="w-[18px] h-[18px]" />
                     </div>
-                    {item.label}
+                    <span style={{ flex: 1 }}>{item.label}</span>
+                    {item.badge && (
+                      <span style={{
+                        minWidth: 20, height: 20, borderRadius: 999,
+                        background: '#F59E0B', color: '#fff',
+                        fontSize: 11, fontWeight: 700,
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        padding: '0 6px',
+                      }}>
+                        {item.badge}
+                      </span>
+                    )}
                   </div>
                 );
               }}

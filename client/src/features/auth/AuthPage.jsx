@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import useAuthStore from '../../stores/authStore';
+import { supabase } from '../../lib/supabase';
 import { LogoMark } from '../../components/ui/LogoMark';
 
 const BG = '#0F2318';
@@ -98,14 +98,23 @@ export default function AuthPage() {
     try {
       if (mode === 'signin') {
         await signIn(email, password);
-        const profile = useAuthStore.getState().profile;
+        // Fetch profile fresh — Zustand may not have loaded it yet after login
+        const { data: { session } } = await supabase.auth.getSession();
+        const { data: profile } = session?.user?.id
+          ? await supabase.from('profiles').select('onboarding_complete').eq('id', session.user.id).single()
+          : { data: null };
         navigate(profile?.onboarding_complete ? '/dashboard' : '/onboarding', { replace: true });
       } else {
         await signUp(email, password);
         navigate('/onboarding', { replace: true });
       }
     } catch (err) {
-      setError(err?.message || 'Something went wrong. Please try again.');
+      const msg = err?.message || '';
+      if (msg === 'Load failed' || msg.includes('fetch') || msg.includes('network')) {
+        setError('Connection error. Please check your internet and try again.');
+      } else {
+        setError(msg || 'Something went wrong. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -135,11 +144,6 @@ export default function AuthPage() {
           <LogoMark size={22} />
           <span style={{ color: 'white', fontSize: '15px', fontWeight: 600 }}>ChildBloom</span>
         </div>
-        <button onClick={() => navigate('/dashboard')}
-          style={{ background: 'rgba(255,255,255,0.06)', border: 'none', borderRadius: 10, padding: '6px 12px',
-                   color: 'rgba(255,255,255,0.55)', fontSize: 13, cursor: 'pointer' }}>
-          Continue as guest
-        </button>
       </div>
 
       {/* Content */}
