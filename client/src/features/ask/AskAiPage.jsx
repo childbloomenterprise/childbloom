@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import useAuthStore from '../../stores/authStore';
+import { useAchievements } from '../../hooks/useAchievements';
 
 import { useSelectedChild } from '../../hooks/useChild';
 import { useDrBloom } from '../../hooks/useDrBloom';
@@ -9,6 +10,7 @@ import CBIcon from '../../components/cb/CBIcon';
 import CBLogoMark from '../../components/cb/CBLogoMark';
 import { T, FONTS } from '../../components/cb/tokens';
 import { Card, Chip, AIBubble, UserBubble, Body, Eyebrow, Spacer, HRow } from '../../components/cb/primitives';
+import AiThinkingIndicator from '../../components/ui/AiThinkingIndicator';
 import { differenceInDays } from 'date-fns';
 
 const STORAGE_KEY = 'childbloom_voice_lang';
@@ -61,10 +63,14 @@ export default function AskAiPage() {
     ? differenceInDays(new Date(), new Date(child.date_of_birth))
     : null;
 
+  const navigate = useNavigate();
+
   const {
-    messages, isStreaming, isEmergency, suggestedQuestions, error,
+    messages, isStreaming, isEmergency, suggestedQuestions, error, limitReached,
     sendMessage, clearConversation, sendSuggestedQuestion,
   } = useDrBloom();
+
+  const { tryUnlock, incrementBloomQuestions } = useAchievements();
 
   const scrollToBottom = useCallback((behavior = 'smooth') => {
     messagesEndRef.current?.scrollIntoView({ behavior });
@@ -86,10 +92,24 @@ export default function AskAiPage() {
     return () => container.removeEventListener('scroll', onScroll);
   }, []);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     const q = input.trim();
     if (!q || isStreaming) return;
     setInput('');
+
+    // Track for achievements (fire-and-forget, non-blocking)
+    (async () => {
+      const hour = new Date().getHours();
+      const newCount = await incrementBloomQuestions();
+      if (newCount === 1)  await tryUnlock('first_question');
+      if (newCount === 5)  await tryUnlock('bloom_curious');
+      if (newCount === 10) await tryUnlock('bloom_regular');
+      if (newCount === 25) await tryUnlock('bloom_devoted');
+      if (newCount === 50) await tryUnlock('bloom_expert');
+      if (hour >= 22)      await tryUnlock('night_owl');
+      if (hour < 6)        await tryUnlock('early_bird');
+    })();
+
     sendMessage(q);
   };
 
@@ -276,7 +296,10 @@ export default function AskAiPage() {
           </div>
         )}
 
-        {/* Message list */}
+        {/* Message list (live region for streaming AI responses) */}
+        <div role="log" aria-live="polite" aria-atomic="false" aria-relevant="additions text" className="sr-only">
+          {messages.length > 0 && messages[messages.length - 1]?.content?.slice(0, 200)}
+        </div>
         {messages.map((msg, i) => {
           const msgKey = msg.id ?? `msg-${i}`;
           const isCopied = copiedId === msgKey;
@@ -369,34 +392,11 @@ export default function AskAiPage() {
           );
         })}
 
-        {/* Typing indicator — only when streaming but last message is not yet assistant */}
-        {isStreaming && messages[messages.length - 1]?.role !== 'assistant' && (
-          <div style={{
-            display: 'flex', alignItems: 'flex-end', gap: 8, marginBottom: 12,
-            animation: 'msg-in 0.3s ease-out both',
-          }}>
-            <div style={{
-              width: 30, height: 30, borderRadius: 999, background: T.brandWash,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-              animation: 'bloom-breathe 1.8s ease-in-out infinite',
-            }}>
-              <CBLogoMark size={15} color={T.brand} />
-            </div>
-            <div style={{
-              padding: '14px 18px', borderRadius: '20px 20px 20px 4px',
-              background: T.surface, boxShadow: 'var(--shadow-sm)',
-              display: 'flex', gap: 6, alignItems: 'center',
-            }}>
-              {[0, 1, 2].map(j => (
-                <div
-                  key={j}
-                  className="thinking-dot"
-                  style={{ width: 7, height: 7, borderRadius: '50%', background: T.brandSoft }}
-                />
-              ))}
-            </div>
-          </div>
-        )}
+        {/* AI thinking — brand moment, not a spinner. Shows while streaming
+            but before the first assistant chunk arrives. */}
+        <AiThinkingIndicator
+          visible={isStreaming && messages[messages.length - 1]?.role !== 'assistant'}
+        />
 
         {/* Suggestion chips — only before first user message */}
         {!hasUserMessage && (
@@ -417,6 +417,32 @@ export default function AskAiPage() {
                 {s}
               </Chip>
             ))}
+          </div>
+        )}
+
+        {/* Free limit upgrade prompt */}
+        {limitReached && (
+          <div style={{
+            margin: '8px 0', padding: '16px', borderRadius: 16,
+            background: T.brandTint, border: `0.5px solid ${T.brandSoft}`,
+            animation: 'msg-in 0.3s ease-out both',
+          }}>
+            <div style={{ fontFamily: FONTS.serif, fontSize: 16, color: T.ink900, fontStyle: 'italic', marginBottom: 6 }}>
+              You've used your free chats this week.
+            </div>
+            <div style={{ fontSize: 13, color: T.ink500, marginBottom: 12, lineHeight: 1.5 }}>
+              Upgrade to Premium for unlimited Dr. Bloom, weekly AI insights, and doctor-ready PDFs.
+            </div>
+            <button
+              onClick={() => navigate('/premium')}
+              style={{
+                padding: '10px 20px', borderRadius: 999, border: 'none',
+                background: T.brand, color: '#fff', fontSize: 14, fontWeight: 600,
+                cursor: 'pointer', fontFamily: FONTS.sans,
+              }}
+            >
+              Upgrade — ₹179/mo
+            </button>
           </div>
         )}
 
@@ -473,6 +499,9 @@ export default function AskAiPage() {
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Ask Dr. Bloom anything…"
+              aria-label="Type a question for Dr. Bloom"
+              maxLength={2000}
+              autoComplete="off"
               style={{
                 flex: 1, border: 'none', outline: 'none', fontSize: 14,
                 color: T.ink900, background: 'transparent', letterSpacing: '-0.005em',
@@ -489,7 +518,7 @@ export default function AskAiPage() {
                 {charCount}
               </span>
             )}
-            <button style={{ border: 'none', background: 'transparent', color: T.ink300, cursor: 'pointer', display: 'flex', padding: 0 }}>
+            <button aria-label="Voice input (coming soon)" style={{ border: 'none', background: 'transparent', color: T.ink300, cursor: 'pointer', display: 'flex', padding: 0 }}>
               <CBIcon name="mic" size={18} stroke={1.7} />
             </button>
           </div>
@@ -499,6 +528,7 @@ export default function AskAiPage() {
             <button
               onClick={handleSend}
               disabled={isStreaming}
+              aria-label={isStreaming ? 'Dr. Bloom is responding' : 'Send question to Dr. Bloom'}
               style={{
                 width: 42, height: 42, borderRadius: 999,
                 background: isStreaming ? T.ink200 : T.brand, color: '#fff',

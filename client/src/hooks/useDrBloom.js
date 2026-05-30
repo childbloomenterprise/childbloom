@@ -15,6 +15,7 @@ export function useDrBloom() {
   const [suggestedQuestions, setSuggestedQuestions] = useState([]);
   const [currentIntent, setCurrentIntent] = useState('warm');
   const [error, setError] = useState(null);
+  const [limitReached, setLimitReached] = useState(false);
 
   const abortControllerRef = useRef(null);
 
@@ -28,6 +29,7 @@ export function useDrBloom() {
     setError(null);
     setIsEmergency(false);
     setShowDisclaimerCard(false);
+    setLimitReached(false);
 
     const userMessage = {
       id: Date.now(),
@@ -73,6 +75,14 @@ export function useDrBloom() {
         }),
         signal: abortControllerRef.current.signal,
       });
+
+      // Free weekly limit hit — prompt upgrade (don't throw, just set state)
+      if (response.status === 402) {
+        setLimitReached(true);
+        setIsStreaming(false);
+        setMessages(prev => prev.filter(m => m.id !== assistantMessageId));
+        return;
+      }
 
       if (!response.ok) throw new Error('Dr. Bloom is unavailable right now');
 
@@ -180,6 +190,7 @@ export function useDrBloom() {
     suggestedQuestions,
     currentIntent,
     error,
+    limitReached,
     sendMessage,
     stopStreaming,
     clearConversation,

@@ -1,6 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
 import { FAST_MODEL, corsOrigin } from '../lib/models.js';
+import { checkRateLimit, logUsage, isString, isUuid, sanitizeText } from '../lib/rateLimit.js';
+import { isPremium, consumeFreeQuota } from '../lib/premium.js';
 import {
   isEmergency,
   getEmergencyResponse,
@@ -11,6 +13,16 @@ import {
   getSuggestedQuestions,
   getAgePrecision,
 } from '../lib/drBloomPrompt.js';
+
+const ASK_RATE_TIERS = [
+  { limit: 3,   windowSec: 60,    message: 'Slow down — only 3 questions per minute. Take a breath and try again in a moment.' },
+  { limit: 30,  windowSec: 3600,  message: 'You\'ve reached 30 questions this hour. Please try again in a bit.' },
+  { limit: 100, windowSec: 86400, message: 'You\'ve reached 100 questions today. Please come back tomorrow.' },
+];
+
+const MAX_MESSAGE_CHARS = 2000;
+const MAX_HISTORY_ITEMS = 10;
+const MAX_HISTORY_ITEM_CHARS = 2000;
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -37,37 +49,47 @@ export default async function handler(req, res) {
     { global: { headers: { Authorization: `Bearer ${userToken}` } } }
   );
 
-  const { message, childId, language = 'en', conversationHistory = [] } = req.body;
+  const { message, childId, language = 'en', conversationHistory = [] } = req.body || {};
 
-  if (!message || !childId) {
-    return res.status(400).json({ error: { message: 'message and childId are required' } });
+  // ── Input validation ──
+  if (!isString(message, { min: 1, max: MAX_MESSAGE_CHARS })) {
+    return res.status(400).json({ error: { message: `message must be 1–${MAX_MESSAGE_CHARS} characters` } });
+  }
+  if (!isUuid(childId)) {
+    return res.status(400).json({ error: { message: 'childId must be a valid UUID' } });
+  }
+  if (typeof language !== 'string' || language.length > 8) {
+    return res.status(400).json({ error: { message: 'invalid language' } });
+  }
+  if (!Array.isArray(conversationHistory)) {
+    return res.status(400).json({ error: { message: 'conversationHistory must be an array' } });
   }
 
-  // ── Rate limit: 10 requests per user per hour ──
+  // Truncate + sanitize conversation history before it ever reaches Anthropic.
+  const safeHistory = conversationHistory
+    .slice(-MAX_HISTORY_ITEMS)
+    .filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
+    .map(m => ({ role: m.role, content: sanitizeText(m.content, { maxLen: MAX_HISTORY_ITEM_CHARS }) }));
+
+  const safeMessage = sanitizeText(message, { maxLen: MAX_MESSAGE_CHARS });
+
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) {
     return res.status(401).json({ error: { message: 'Unauthorized' } });
   }
 
-  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-  const { count } = await supabase
-    .from('api_usage')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user.id)
-    .eq('endpoint', 'ask')
-    .gte('created_at', oneHourAgo);
-
-  if (count >= 10) {
-    return res.status(429).json({
-      error: { message: 'You\'ve reached the limit of 10 questions per hour. Please try again later.' }
-    });
+  // ── Multi-tier rate limit: 3/min, 30/hour, 100/day ──
+  const limited = await checkRateLimit(supabase, user.id, 'ask', ASK_RATE_TIERS);
+  if (limited) {
+    res.setHeader('Retry-After', String(limited.retryAfterSec));
+    return res.status(429).json({ error: { message: limited.message } });
   }
 
   // Log this request (fire-and-forget — don't block the response)
-  supabase.from('api_usage').insert({ user_id: user.id, endpoint: 'ask' }).then(() => {});
+  logUsage(supabase, user.id, 'ask');
 
   // ── Emergency check — runs before anything else, bypasses AI ──
-  if (isEmergency(message)) {
+  if (isEmergency(safeMessage)) {
     const { data: child } = await supabase
       .from('children')
       .select('name')
@@ -80,6 +102,19 @@ export default async function handler(req, res) {
       showDisclaimerCard: true,
       isEmergency: true,
     });
+  }
+
+  // ── Premium gate: premium = unlimited; free = 5 Dr. Bloom chats/week ──
+  const premium = await isPremium(user.id);
+  if (!premium) {
+    const quota = await consumeFreeQuota(user.id);
+    if (!quota.allowed) {
+      return res.status(402).json({
+        error: { message: `You've used your ${quota.limit} free Dr. Bloom chats this week.` },
+        upgrade: true,
+        limit: quota.limit,
+      });
+    }
   }
 
   // ── Fetch all child data in one parallel round-trip ──
@@ -165,9 +200,9 @@ export default async function handler(req, res) {
     vaccinations: vaccinations || [],
   });
 
-  const intent = detectIntent(message);
+  const intent = detectIntent(safeMessage);
   const ageInfo = getAgePrecision(child.date_of_birth, child.due_date, child.is_pregnant);
-  const showDisclaimerCard = isMedicalTopic(message);
+  const showDisclaimerCard = isMedicalTopic(safeMessage);
   const suggestedQuestions = getSuggestedQuestions(ageInfo.developmentalStage, child.name);
   const systemPrompt = buildDrBloomSystemPrompt(profileFolder, intent, language);
 
@@ -189,8 +224,8 @@ export default async function handler(req, res) {
   })}\n\n`);
 
   const messages = [
-    ...conversationHistory.slice(-10),
-    { role: 'user', content: message },
+    ...safeHistory,
+    { role: 'user', content: safeMessage },
   ];
 
   try {

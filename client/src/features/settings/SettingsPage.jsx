@@ -1,11 +1,13 @@
 // Settings — profile + family + theme picker (4 palettes × 2 modes) + premium upsell.
 // Mirrors the revamp ProfileScreen; theme picker is the centerpiece for this rebuild.
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
+import { supabase } from '../../lib/supabase';
 import useAuthStore from '../../stores/authStore';
 import useChildStore from '../../stores/childStore';
 import { useAuth } from '../../hooks/useAuth';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
 import useThemeStore from '../../stores/themeStore';
 import { PALETTES, PALETTE_KEYS } from '../../components/cb/theme';
 import { useChildren, useSelectedChild } from '../../hooks/useChild';
@@ -18,6 +20,7 @@ import {
   Avatar, BloomFlower,
 } from '../../components/cb/primitives';
 import { differenceInDays } from 'date-fns';
+import { usePremium } from '../../hooks/usePremium';
 
 function calcAge(dob) {
   if (!dob) return '';
@@ -74,13 +77,29 @@ function PaletteSwatch({ id, name, brand, brandSoft, accent, gold, active, onCli
 }
 
 function SettingsRow({ icon, label, right, onClick, danger = false, last = false }) {
+  const handleKey = (e) => {
+    if (!onClick) return;
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onClick(e);
+    }
+  };
   return (
     <>
-      <HRow gap={12} style={{ padding: '14px 16px', cursor: onClick ? 'pointer' : 'default' }} align="center" onClick={onClick}>
-        {icon && <CBIcon name={icon} size={18} style={{ color: danger ? T.danger : T.ink500 }} />}
+      <HRow
+        gap={12}
+        style={{ padding: '14px 16px', cursor: onClick ? 'pointer' : 'default' }}
+        align="center"
+        onClick={onClick}
+        role={onClick ? 'button' : undefined}
+        tabIndex={onClick ? 0 : undefined}
+        onKeyDown={handleKey}
+        aria-label={onClick ? `${label}${right ? `, ${right}` : ''}${danger ? ' (destructive)' : ''}` : undefined}
+      >
+        {icon && <CBIcon name={icon} size={18} style={{ color: danger ? T.danger : T.ink500 }} aria-hidden="true" />}
         <Body size={14} color={danger ? T.danger : T.ink900} weight={500} style={{ flex: 1 }}>{label}</Body>
         {right && <Mono size={10} color={T.ink400}>{right}</Mono>}
-        {onClick && <CBIcon name="chevron-right" size={14} style={{ color: T.ink300 }} />}
+        {onClick && <CBIcon name="chevron-right" size={14} style={{ color: T.ink300 }} aria-hidden="true" />}
       </HRow>
       {!last && <Divider />}
     </>
@@ -100,10 +119,36 @@ export default function SettingsPage() {
   const setPalette = useThemeStore((s) => s.setPalette);
   const toggleMode = useThemeStore((s) => s.toggleMode);
 
+  const { isPremium: hasPremium } = usePremium();
+
   const logoutMutation = useMutation({
     mutationFn: signOut,
     onSuccess: () => navigate('/auth'),
   });
+
+  // ── Account deletion ──
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deleteError, setDeleteError] = useState('');
+  const deleteDialogRef = useRef(null);
+  useFocusTrap(deleteDialogRef, deleteOpen, () => setDeleteOpen(false));
+
+  const deleteAccountMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.rpc('delete_my_account');
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      // Already deleted server-side. Clean local + sign out.
+      try { localStorage.clear(); } catch {}
+      try { sessionStorage.clear(); } catch {}
+      try { await signOut(); } catch {}
+      navigate('/auth', { replace: true });
+    },
+    onError: (err) => setDeleteError(err?.message || 'Could not delete your account. Try again or contact support.'),
+  });
+
+  const canDelete = deleteConfirmText.trim().toLowerCase() === 'delete';
 
   const parentInitial = user?.user_metadata?.full_name?.[0] || user?.email?.[0]?.toUpperCase() || 'P';
   const parentName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Parent';
@@ -117,7 +162,6 @@ export default function SettingsPage() {
           <Body size={12} color={T.ink400}>Account, family, premium</Body>
           <Display size={26} italic weight={400} lh={1.1}>You</Display>
         </div>
-        <ChromeBtn icon="search" />
       </div>
 
       <div style={{ padding: '0 16px' }}>
@@ -154,15 +198,25 @@ export default function SettingsPage() {
           <div style={{ position: 'absolute', top: -24, right: -24, opacity: 0.3, pointerEvents: 'none' }}>
             <BloomFlower size={140} />
           </div>
-          <Eyebrow color={T.gold}>Premium · Bloom Path</Eyebrow>
+          <Eyebrow color={T.gold}>Bloom Path</Eyebrow>
           <Spacer h={6} />
           <Display size={22} italic weight={400} style={{ maxWidth: 240 }}>
-            Unlock {child?.name || 'your child'}'s personalized journey.
+            {child?.name || 'Your child'}'s developmental journey.
           </Display>
+          <Spacer h={6} />
+          <Body size={12} color={T.ink500} style={{ maxWidth: 260 }}>
+            Gentle, age-aware suggestions across 8 areas of growth.
+          </Body>
           <Spacer h={12} />
           <HRow gap={8}>
-            <Button size="sm" variant="primary" icon="crown" disabled>Coming soon</Button>
-            <Body size={11} color={T.ink500}>₹300/mo</Body>
+            <Button
+              size="sm"
+              variant="primary"
+              icon="sparkle"
+              onClick={() => child?.id ? navigate(`/child/${child.id}/bloom`) : navigate('/onboarding')}
+            >
+              Open Bloom Path
+            </Button>
           </HRow>
         </Card>
 
@@ -267,13 +321,37 @@ export default function SettingsPage() {
           </>
         )}
 
+        {/* Premium */}
+        <SectionLabel title="Subscription" />
+        <Card p={0}>
+          <SettingsRow
+            icon="sparkle"
+            label={hasPremium ? 'Premium — active ✓' : 'Upgrade to Premium'}
+            right={hasPremium ? undefined : '₹179/mo'}
+            onClick={() => navigate('/premium')}
+            last
+          />
+        </Card>
+
+        <Spacer h={20} />
+
+        {/* Quick navigation */}
+        <SectionLabel title="Explore" />
+        <Card p={0}>
+          {child?.id && (
+            <SettingsRow icon="sparkle" label="Bloom Path" right="8 areas" onClick={() => navigate(`/child/${child.id}/bloom`)} />
+          )}
+          <SettingsRow icon="award" label="Achievements" onClick={() => navigate('/achievements')} />
+          <SettingsRow icon="book" label="Guides" onClick={() => navigate('/guides')} />
+          <SettingsRow icon="siren" label="Emergency first-aid" onClick={() => navigate('/emergency')} last />
+        </Card>
+
+        <Spacer h={20} />
+
         {/* Settings */}
         <SectionLabel title="Settings" />
         <Card p={0}>
-          <SettingsRow icon="bell" label="Notifications" right="Smart" onClick={() => {}} />
-          <SettingsRow icon="shield" label="Privacy" onClick={() => navigate('/privacy')} />
-          <SettingsRow icon="globe" label="Language" right="EN" onClick={() => {}} />
-          <SettingsRow icon="book" label="Guides" onClick={() => navigate('/guides')} last />
+          <SettingsRow icon="shield" label="Privacy" onClick={() => navigate('/privacy')} last />
         </Card>
 
         <Spacer h={20} />
@@ -282,9 +360,24 @@ export default function SettingsPage() {
         <SectionLabel title="Account" />
         <Card p={0}>
           <SettingsRow
+            icon="mail"
+            label={user?.email || 'Anonymous session'}
+            right={user?.is_anonymous ? 'Guest' : 'Signed in'}
+          />
+          <SettingsRow
+            icon="message"
+            label="Help & contact"
+            onClick={() => navigate('/help')}
+          />
+          <SettingsRow
             icon="logout"
             label={logoutMutation.isPending ? 'Signing out…' : 'Sign out'}
             onClick={() => !logoutMutation.isPending && logoutMutation.mutate()}
+          />
+          <SettingsRow
+            icon="trash"
+            label="Delete account"
+            onClick={() => { setDeleteConfirmText(''); setDeleteError(''); setDeleteOpen(true); }}
             danger
             last
           />
@@ -292,6 +385,102 @@ export default function SettingsPage() {
 
         <Spacer h={32} />
       </div>
+
+      {/* Delete account modal */}
+      {deleteOpen && (
+        <>
+          <div
+            aria-hidden="true"
+            onClick={() => !deleteAccountMutation.isPending && setDeleteOpen(false)}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(11,23,20,0.5)', zIndex: 300, backdropFilter: 'blur(3px)' }}
+          />
+          <div
+            ref={deleteDialogRef}
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="delete-account-title"
+            tabIndex={-1}
+            style={{
+              position: 'fixed', left: '50%', top: '50%', transform: 'translate(-50%, -50%)',
+              width: 'min(420px, calc(100vw - 32px))', background: T.surface,
+              borderRadius: RADIUS.lg, padding: 24, zIndex: 301,
+              boxShadow: '0 20px 60px rgba(0,0,0,0.32)',
+            }}
+          >
+            <div id="delete-account-title" style={{
+              fontFamily: FONTS.serif, fontSize: 22, fontStyle: 'italic',
+              fontWeight: 500, color: T.danger, letterSpacing: '-0.02em',
+            }}>
+              Delete account?
+            </div>
+            <Spacer h={8} />
+            <Body size={13} color={T.ink900} lh={1.55}>
+              This permanently removes your account and everything in it: children, logs, bloom moments, vaccines, photos. <strong>This can't be undone.</strong>
+            </Body>
+            <Spacer h={14} />
+            <Body size={12} color={T.ink500} lh={1.5}>
+              Type <strong>delete</strong> below to confirm.
+            </Body>
+            <Spacer h={8} />
+            <input
+              type="text"
+              value={deleteConfirmText}
+              onChange={(e) => setDeleteConfirmText(e.target.value)}
+              placeholder="delete"
+              autoFocus
+              aria-label="Type 'delete' to confirm"
+              autoCapitalize="off"
+              autoComplete="off"
+              spellCheck={false}
+              style={{
+                width: '100%', padding: '12px 14px', borderRadius: RADIUS.md,
+                border: `1.5px solid ${T.line}`, fontSize: 15, color: T.ink900,
+                background: 'rgba(0,0,0,0.02)', outline: 'none', boxSizing: 'border-box',
+                fontFamily: FONTS.sans, transition: 'border-color 0.18s',
+              }}
+              onFocus={(e) => e.target.style.borderColor = T.danger}
+              onBlur={(e) => e.target.style.borderColor = T.line}
+            />
+            {deleteError && (
+              <>
+                <Spacer h={10} />
+                <Body size={12} color={T.danger}>{deleteError}</Body>
+              </>
+            )}
+            <Spacer h={18} />
+            <HRow gap={10}>
+              <button
+                onClick={() => !deleteAccountMutation.isPending && setDeleteOpen(false)}
+                disabled={deleteAccountMutation.isPending}
+                style={{
+                  flex: 1, padding: '12px', borderRadius: RADIUS.md,
+                  border: `0.5px solid ${T.line}`, background: T.surface,
+                  color: T.ink900, fontSize: 14, fontWeight: 600,
+                  cursor: deleteAccountMutation.isPending ? 'default' : 'pointer',
+                  fontFamily: FONTS.sans,
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => canDelete && !deleteAccountMutation.isPending && deleteAccountMutation.mutate()}
+                disabled={!canDelete || deleteAccountMutation.isPending}
+                aria-label="Permanently delete account"
+                style={{
+                  flex: 1, padding: '12px', borderRadius: RADIUS.md, border: 'none',
+                  background: canDelete ? T.danger : T.ink200,
+                  color: '#fff', fontSize: 14, fontWeight: 700,
+                  cursor: canDelete && !deleteAccountMutation.isPending ? 'pointer' : 'default',
+                  opacity: deleteAccountMutation.isPending ? 0.7 : 1,
+                  fontFamily: FONTS.sans, transition: 'background 0.18s, opacity 0.18s',
+                }}
+              >
+                {deleteAccountMutation.isPending ? 'Deleting…' : 'Delete forever'}
+              </button>
+            </HRow>
+          </div>
+        </>
+      )}
     </div>
   );
 }

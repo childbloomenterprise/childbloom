@@ -40,6 +40,7 @@ const BloomGardenPage   = lazy(() => import('./features/bloom/BloomGardenPage'))
 const BloomAreaPage     = lazy(() => import('./features/bloom/BloomAreaPage'));
 const HelpPage          = lazy(() => import('./features/help/HelpPage'));
 const InboxPage         = lazy(() => import('./features/inbox/InboxPage'));
+const PremiumPage       = lazy(() => import('./features/premium/PremiumPage'));
 
 function RootRoute() {
   const session   = useAuthStore((s) => s.session);
@@ -146,6 +147,7 @@ export default function App() {
             <Route path="/achievements"               element={<AchievementsPage />} />
             <Route path="/help"                        element={<HelpPage />} />
             <Route path="/inbox"                       element={<InboxPage />} />
+            <Route path="/premium"                     element={<PremiumPage />} />
           </Route>
 
           <Route path="/auth"          element={<AuthPage />} />
