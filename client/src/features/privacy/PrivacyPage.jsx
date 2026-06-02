@@ -53,6 +53,10 @@ export default function PrivacyPage() {
           <Section title="What data we collect">
             <Body size={13} color={T.ink700} lh={1.6}><strong>Account information:</strong> Your email address, used only for authentication.</Body>
             <Body size={13} color={T.ink700} lh={1.6}>
+              <strong>Child profile data:</strong> Child's name and date of birth, entered by you
+              during onboarding to personalise age-appropriate guidance.
+            </Body>
+            <Body size={13} color={T.ink700} lh={1.6}>
               <strong>Child health data:</strong> Height, weight, sleep hours, mood, feeding notes,
               developmental milestones, vaccination records, and any concerns you log. This data is
               voluntarily entered by you.
@@ -103,6 +107,21 @@ export default function PrivacyPage() {
                 </HRow>
               ))}
             </Stack>
+          </Section>
+
+          <Section title="How long we keep your data">
+            <Body size={13} color={T.ink700} lh={1.6}>
+              Your account and child health data is retained for as long as your account is active.
+              If you delete your account, all associated data is permanently erased within <strong>30 days</strong>.
+            </Body>
+            <Body size={13} color={T.ink700} lh={1.6}>
+              AI conversation data sent to Anthropic is not stored on our servers and is subject
+              to Anthropic's own retention policy.
+            </Body>
+            <Body size={13} color={T.ink700} lh={1.6}>
+              Anonymous usage analytics (if collected) are retained for up to <strong>12 months</strong> and
+              contain no personal identifiers.
+            </Body>
           </Section>
 
           <Section title="How to delete your data">
@@ -161,6 +180,20 @@ export default function PrivacyPage() {
               To exercise these rights, contact:{' '}
               <a href="mailto:privacy@childbloom.app" style={{ color: T.brand }}>privacy@childbloom.app</a>
             </Body>
+          </Section>
+
+          <Section title="Grievance Officer (DPDP Act 2023)">
+            <Body size={13} color={T.ink700} lh={1.6}>
+              In accordance with the Digital Personal Data Protection Act, 2023, any complaints
+              or grievances regarding the processing of your personal data may be directed to:
+            </Body>
+            <Stack gap={4} style={{ paddingLeft: 16 }}>
+              <Body size={13} color={T.ink700} lh={1.5}><strong>Name:</strong> ChildBloom Enterprise</Body>
+              <Body size={13} color={T.ink700} lh={1.5}><strong>Email:</strong>{' '}
+                <a href="mailto:privacy@childbloom.app" style={{ color: T.brand }}>privacy@childbloom.app</a>
+              </Body>
+              <Body size={13} color={T.ink700} lh={1.5}><strong>Response time:</strong> We will respond within 30 days of receiving your complaint.</Body>
+            </Stack>
           </Section>
 
           <Section title="Changes to this policy">

@@ -2,6 +2,17 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Strategic / Chess thinking — MANDATORY before every change
+
+Before writing any code, run this mental model:
+
+1. **What piece am I moving?** Name the exact file/table/hook being changed.
+2. **What depends on it?** Callers, subscribers, consumers, the other app (Dr. Bloom ↔ ChildBloom), RLS, realtime publications, FK constraints.
+3. **What breaks if I change it?** Second-order effects — env vars, UI state, migration order, other consumers of the same table.
+4. **What do I need to fix alongside it?** Never ship a half-move. Fix every downstream break in the same commit.
+
+This project is a two-app closed ecosystem. A change in ChildBloom DB schema or realtime config immediately affects Dr. Bloom's API, and vice versa. Always trace both directions.
+
 ## Commands
 
 ```bash

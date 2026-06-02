@@ -21,6 +21,7 @@ import {
 } from '../../components/cb/primitives';
 import { differenceInDays } from 'date-fns';
 import { usePremium } from '../../hooks/usePremium';
+import { useInstallPrompt, isStandalone } from '../../hooks/useInstallPrompt';
 
 function calcAge(dob) {
   if (!dob) return '';
@@ -120,6 +121,8 @@ export default function SettingsPage() {
   const toggleMode = useThemeStore((s) => s.toggleMode);
 
   const { isPremium: hasPremium } = usePremium();
+  const { canInstall, isIOS: ios, triggerInstall } = useInstallPrompt();
+  const installed = isStandalone();
 
   const logoutMutation = useMutation({
     mutationFn: signOut,
@@ -351,6 +354,23 @@ export default function SettingsPage() {
         {/* Settings */}
         <SectionLabel title="Settings" />
         <Card p={0}>
+          {!installed && (canInstall || ios) && (
+            <>
+              <SettingsRow
+                icon="download"
+                label={ios ? 'Add to Home Screen (Safari)' : 'Install App'}
+                right={ios ? 'iOS guide' : undefined}
+                onClick={ios ? undefined : triggerInstall}
+              />
+              <Divider />
+            </>
+          )}
+          {installed && (
+            <>
+              <SettingsRow icon="smartphone" label="App installed ✓" />
+              <Divider />
+            </>
+          )}
           <SettingsRow icon="shield" label="Privacy" onClick={() => navigate('/privacy')} last />
         </Card>
 

@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import { useChildById } from '../../hooks/useChild';
@@ -10,6 +11,7 @@ import {
   Stack, HRow, Spacer, Divider, SectionLabel, ProgressBar, BloomFlower,
 } from '../../components/cb/primitives';
 import { differenceInDays, format } from 'date-fns';
+import { useAchievements } from '../../hooks/useAchievements';
 
 const IAP_SCHEDULE = [
   { name: 'BCG', weeks: 0 },
@@ -72,6 +74,9 @@ export default function VaccinationPage() {
   const [selectedVaccine, setSelectedVaccine] = useState(null);
   const [dateGiven, setDateGiven] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [notes, setNotes] = useState('');
+  const { tryUnlock } = useAchievements();
+  const modalRef = useRef(null);
+  useFocusTrap(modalRef, !!selectedVaccine, () => setSelectedVaccine(null));
 
   const ageInDays = child?.date_of_birth
     ? differenceInDays(new Date(), new Date(child.date_of_birth))
@@ -103,6 +108,15 @@ export default function VaccinationPage() {
       queryClient.invalidateQueries({ queryKey: ['vaccinations', childId] });
       setSelectedVaccine(null);
       setNotes('');
+      // Count newly-done vaccines after invalidation settles
+      setTimeout(async () => {
+        const { data } = await supabase
+          .from('vaccinations').select('id').eq('child_id', childId).not('date_given', 'is', null);
+        const done = (data || []).length;
+        if (done >= 1)  tryUnlock('first_vaccine');
+        if (done >= 5)  tryUnlock('vaccine_5');
+        if (done >= Math.floor(38 * 0.5)) tryUnlock('vaccine_half');
+      }, 600);
     },
   });
 
@@ -212,6 +226,10 @@ export default function VaccinationPage() {
                   return (
                     <div key={it.name}>
                       <HRow gap={10} style={{ padding: '12px 14px', cursor: isDone ? 'default' : 'pointer' }} align="center"
+                        role={isDone ? undefined : 'button'}
+                        tabIndex={isDone ? undefined : 0}
+                        aria-label={isDone ? `${it.name} — completed` : `Mark ${it.name} as given. Status: ${status}.`}
+                        onKeyDown={(e) => { if (!isDone && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); setSelectedVaccine(it); } }}
                         onClick={() => !isDone && setSelectedVaccine(it)}>
                         <div style={{
                           width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
@@ -241,8 +259,8 @@ export default function VaccinationPage() {
       {/* Mark as given modal */}
       {selectedVaccine && (
         <>
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200 }} onClick={() => setSelectedVaccine(null)} />
-          <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: T.surface, borderRadius: '20px 20px 0 0', padding: '24px 20px 40px', zIndex: 201, boxShadow: '0 -8px 40px rgba(0,0,0,0.15)' }}>
+          <div aria-hidden="true" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200 }} onClick={() => setSelectedVaccine(null)} />
+          <div ref={modalRef} role="dialog" aria-modal="true" aria-label={`Mark ${selectedVaccine.name} as given`} tabIndex={-1} style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: T.surface, borderRadius: '20px 20px 0 0', padding: '24px 20px 40px', zIndex: 201, boxShadow: '0 -8px 40px rgba(0,0,0,0.15)' }}>
             <div style={{ width: 36, height: 4, borderRadius: 2, background: T.line, margin: '0 auto 20px' }} />
             <Display size={22} italic weight={600} style={{ marginBottom: 6 }}>Mark as given</Display>
             <Body size={15} color={T.ink500} style={{ marginBottom: 20 }}>{selectedVaccine.name}</Body>

@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useSelectedChild } from '../../hooks/useChild';
-import { LayoutDashboard, TrendingUp, MessageCircle, MoreHorizontal, Plus, Clipboard, Apple, HeartPulse, X } from 'lucide-react';
+import { useInbox } from '../../hooks/useInbox';
+import { LayoutDashboard, TrendingUp, MessageCircle, MoreHorizontal, Plus, Clipboard, Apple, HeartPulse, X, Inbox } from 'lucide-react';
 
 export default function MobileNav() {
   const { t } = useTranslation();
@@ -10,6 +11,7 @@ export default function MobileNav() {
   const navigate = useNavigate();
   const [logDrawerOpen, setLogDrawerOpen] = useState(false);
   const [moreDrawerOpen, setMoreDrawerOpen] = useState(false);
+  const { pendingCount } = useInbox();
 
   const childId = child?.id;
 
@@ -29,6 +31,7 @@ export default function MobileNav() {
   ];
 
   const moreActions = [
+    { label: 'Doctor requests',      path: '/inbox',                          badge: pendingCount > 0 ? pendingCount : null },
     { label: 'Development Index',    path: `/child/${childId}/development` },
     { label: t('nav.guides'),        path: '/guides' },
     { label: 'Health records',       path: `/child/${childId}/health` },
@@ -91,12 +94,23 @@ export default function MobileNav() {
               <button
                 key={action.label}
                 onClick={() => { closeAll(); navigate(action.path); }}
-                className="w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium transition-colors"
+                className="w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center justify-between"
                 style={action.emergency
                   ? { color: '#DC2626', background: 'rgba(220,38,38,0.06)' }
                   : { color: '#2D4A39' }}
               >
-                {action.label}
+                <span>{action.label}</span>
+                {action.badge && (
+                  <span style={{
+                    minWidth: 20, height: 20, borderRadius: 999,
+                    background: '#F59E0B', color: '#fff',
+                    fontSize: 11, fontWeight: 700,
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    padding: '0 6px',
+                  }}>
+                    {action.badge}
+                  </span>
+                )}
               </button>
             ))}
           </div>

@@ -62,3 +62,4 @@ This covers approximately 50,000 voice responses per month at no cost.
 - **Voice input**: Web Speech API (Chrome/Edge/Android)
 - **Voice output**: Google Cloud TTS (WaveNet) with browser SpeechSynthesis fallback
 - **i18n**: i18next — English, Hindi, Malayalam, Tamil, Telugu, Punjabi
+

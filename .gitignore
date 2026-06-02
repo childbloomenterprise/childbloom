@@ -1,22 +1,68 @@
 node_modules/
 dist/
-.env
-.env.local
 *.log
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
 coverage/
-.vercel/
 .claude/
-.vercel
+
+# All environment variable files — NEVER commit any of these
+.env
+.env.local
+.env.development
+.env.production
+.env.staging
+.env.test
 .env*.local
+.env.*.local
+client/.env
+client/.env.*
+server/.env
+server/.env.*
+
+# Vercel local files (contain real production secrets from vercel env pull)
+.vercel/
+.vercel
 
 # Android signing — NEVER commit these
 android-keystore.jks
 *.jks
 *.keystore
+google-services.json
 
 # Lighthouse report
 lighthouse-report.json
+
+# Service account / credential files
+*.pem
+*.p12
+*.pfx
+service-account*.json
+credentials*.json
+secrets*.json
+.gstack/
+
+# Local MCP config + secret rotation notes — NEVER commit (contain live tokens)
+.mcp.json
+SECRETS_ROTATION.md
+.claude-flow/
+
+# Large media / screen recordings — keep out of the repo
+*.mp4
+*.mov
+*.webm
+
+# Local dev helper scripts (one-off push/fix utilities)
+*.bat
+push-*.ps1
+push-log.txt
+
+# Android TWA — build artifacts + fastlane secrets (not part of Vercel deploy)
+android-twa/.gradle/
+android-twa/build/
+android-twa/app/build/
+android-twa/.env.fastlane
+android-twa/**/*.jks
+android-twa/**/play*.json

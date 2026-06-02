@@ -8,3 +8,4 @@ export * from './media';
 export * from './charts';
 export * from './chat';
 export * from './nav';
+export * from './inputs';

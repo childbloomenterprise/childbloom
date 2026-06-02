@@ -2,9 +2,35 @@ import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
 import { DEFAULT_MODEL, corsOrigin } from '../lib/models.js';
 import { DR_BLOOM_SYSTEM_PROMPT, WEEKLY_INSIGHT_ADDENDUM } from '../lib/drBloomPrompt.js';
+import { checkRateLimit, logUsage, sanitizeText } from '../lib/rateLimit.js';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+
+const WEEKLY_RATE_TIERS = [
+  { limit: 5,  windowSec: 3600,  message: 'You\'ve generated 5 insights this hour. Please try again later.' },
+  { limit: 20, windowSec: 86400, message: 'Daily insight limit reached.' },
+];
+
+const MAX_FIELD_CHARS = 500;
+
+function safeBody(body) {
+  return {
+    language: typeof body.language === 'string' ? body.language.slice(0, 8) : 'en',
+    parent_name: sanitizeText(body.parent_name, { maxLen: 80 }),
+    child_name: sanitizeText(body.child_name, { maxLen: 80 }),
+    age_in_days: Number.isFinite(body.age_in_days) ? Math.max(0, Math.min(10000, body.age_in_days)) : null,
+    weight_kg: Number.isFinite(body.weight_kg) ? body.weight_kg : null,
+    height_cm: Number.isFinite(body.height_cm) ? body.height_cm : null,
+    mood: sanitizeText(body.mood, { maxLen: 40 }),
+    sleep_hours: Number.isFinite(body.sleep_hours) ? body.sleep_hours : null,
+    sleep_quality: sanitizeText(body.sleep_quality, { maxLen: 40 }),
+    motor_milestone: sanitizeText(body.motor_milestone, { maxLen: MAX_FIELD_CHARS }),
+    new_skills: sanitizeText(body.new_skills, { maxLen: MAX_FIELD_CHARS }),
+    feeding_notes: sanitizeText(body.feeding_notes, { maxLen: MAX_FIELD_CHARS }),
+    concerns: sanitizeText(body.concerns, { maxLen: MAX_FIELD_CHARS }),
+  };
+}
 
 async function authenticate(req) {
   const auth = req.headers.authorization;
@@ -59,8 +85,20 @@ export default async function handler(req, res) {
   const user = await authenticate(req);
   if (!user) return res.status(401).json({ error: { message: 'Unauthorized' } });
 
+  if (!req.body || typeof req.body !== 'object') {
+    return res.status(400).json({ error: { message: 'Invalid body' } });
+  }
+
+  // Rate limit
+  const limited = await checkRateLimit(supabase, user.id, 'weekly-insight', WEEKLY_RATE_TIERS);
+  if (limited) {
+    res.setHeader('Retry-After', String(limited.retryAfterSec));
+    return res.status(429).json({ error: { message: limited.message } });
+  }
+  logUsage(supabase, user.id, 'weekly-insight');
+
   try {
-    const prompt = buildPrompt(req.body);
+    const prompt = buildPrompt(safeBody(req.body));
     const message = await anthropic.messages.create({
       model: DEFAULT_MODEL,
       max_tokens: 600,

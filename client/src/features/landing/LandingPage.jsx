@@ -3,8 +3,9 @@
 // All styles are scoped under .cb-landing to avoid clashing with the
 // theme-system CSS variables (which use the same `--brand`/`--ink` names).
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
 
 const LANDING_CSS = `
 .cb-landing { --lbrand:#0F3D2E; --lbrand-deep:#0A2920; --lbrand-soft:#5FB48A;
@@ -46,8 +47,10 @@ const LANDING_CSS = `
 .cb-landing .nav-links { display:flex; gap:30px; list-style:none; }
 .cb-landing .nav-links a { font-size:14px; font-weight:500; color:var(--link-500); transition:color .15s; cursor:pointer; }
 .cb-landing .nav-links a:hover { color:var(--lbrand); }
-.cb-landing .nav-cta { height:40px; padding:0 18px; border-radius:var(--lr-pill); background:var(--lbrand); color:#fff; font-size:14px; font-weight:700; letter-spacing:-.01em; transition:box-shadow .2s, transform .2s; }
-.cb-landing .nav-cta:hover { transform:translateY(-1px); box-shadow:0 6px 20px rgba(15,61,46,.32); }
+.cb-landing .nav-cta { display:inline-flex; align-items:center; gap:8px; height:40px; padding:0 16px 0 14px; border-radius:var(--lr-pill); background:#fff; color:var(--link); font-size:13px; font-weight:600; letter-spacing:-.01em; box-shadow:0 1px 2px rgba(11,23,20,.06), 0 4px 14px rgba(11,23,20,.10), inset 0 0 0 1px rgba(11,23,20,.08); transition:box-shadow .2s, transform .2s; }
+.cb-landing .nav-cta:hover { transform:translateY(-1px); box-shadow:0 2px 6px rgba(11,23,20,.08), 0 10px 26px rgba(11,23,20,.14), inset 0 0 0 1px rgba(11,23,20,.10); }
+.cb-landing .nav-cta:disabled { opacity:.7; cursor:default; }
+.cb-landing .nav-cta-g { width:16px; height:16px; flex-shrink:0; }
 .cb-landing .hero { padding:80px 0 72px; position:relative; overflow:hidden; }
 .cb-landing .hero-flower { position:absolute; right:-160px; top:-160px; opacity:.45; pointer-events:none; z-index:0; }
 .cb-landing .hero-inner { position:relative; z-index:1; display:grid; grid-template-columns:1.05fr 0.95fr; gap:40px; align-items:center; }
@@ -63,10 +66,11 @@ const LANDING_CSS = `
 .cb-landing .stars svg { width:14px; height:14px; fill:var(--lgold); }
 .cb-landing .trust-text { font-size:13px; color:var(--link-400); }
 .cb-landing .trust-text strong { color:var(--link-700); font-weight:600; }
-.cb-landing .phones { position:relative; height:620px; display:flex; align-items:center; justify-content:center; }
-.cb-landing .pw { position:absolute; filter:drop-shadow(0 40px 80px rgba(0,0,0,.36)); }
-.cb-landing .pw-1 { transform:rotate(-5deg) translate(-24px,-16px); z-index:2; }
-.cb-landing .pw-2 { transform:rotate(6deg) translate(136px,28px); z-index:1; opacity:.86; }
+.cb-landing .phones { position:relative; height:620px; display:flex; align-items:center; justify-content:center; isolation:isolate; }
+.cb-landing .pw { position:absolute; will-change:transform; transform-origin:50% 50%; }
+.cb-landing .pw .pf { box-shadow:0 24px 56px -16px rgba(0,0,0,.34), 0 8px 20px -6px rgba(0,0,0,.18); }
+.cb-landing .pw-1 { transform:translate(-58px,-12px) rotate(-4deg); z-index:2; }
+.cb-landing .pw-2 { transform:translate(78px,32px) rotate(5deg); z-index:1; opacity:.92; }
 .cb-landing .pf { width:262px; background:#1c1c1e; border-radius:50px; padding:10px; position:relative; border:1px solid rgba(255,255,255,.12); }
 .cb-landing .p-island { position:absolute; top:10px; left:50%; transform:translateX(-50%); width:108px; height:31px; background:#1c1c1e; border-radius:16px; z-index:6; }
 .cb-landing .ps { border-radius:42px; overflow:hidden; height:548px; position:relative; background:var(--lbg); }
@@ -265,8 +269,32 @@ const BloomLogoSVG = () => (
 
 const Star = () => <svg viewBox="0 0 14 14"><path d="M7 1l1.6 3.4L12 5l-2.5 2.5.6 3.5L7 9.3l-3.1 1.7.6-3.5L2 5l3.4-.6L7 1z"/></svg>;
 
+const GoogleIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+    <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/>
+    <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/>
+    <path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+    <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+  </svg>
+);
+
 export default function LandingPage() {
   const navigate = useNavigate();
+  const { signInWithGoogle } = useAuth();
+  const [authError, setAuthError] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+
+  const handleGoogle = async () => {
+    if (authLoading) return;
+    setAuthError('');
+    setAuthLoading(true);
+    try {
+      await signInWithGoogle();
+    } catch (err) {
+      setAuthError(err?.message || 'Google sign-in failed. Please try again.');
+      setAuthLoading(false);
+    }
+  };
 
   // Scroll-reveal observer
   useEffect(() => {
@@ -295,16 +323,13 @@ export default function LandingPage() {
     if (el) el.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const startApp = () => navigate('/onboarding');
-  const enterApp = () => navigate('/dashboard');
-
   return (
     <div className="cb-landing">
       <style>{LANDING_CSS}</style>
 
       {/* NAV */}
       <nav className="cbl-nav">
-        <a className="nav-logo" onClick={enterApp} style={{ cursor: 'pointer' }}>
+        <a className="nav-logo" onClick={() => scrollTo('home')} style={{ cursor: 'pointer' }}>
           <div className="nav-mark"><BloomLogoSVG /></div>
           ChildBloom
         </a>
@@ -314,7 +339,10 @@ export default function LandingPage() {
           <li><a onClick={() => scrollTo('ai')}>Bloom AI</a></li>
           <li><a onClick={() => scrollTo('premium')}>Premium</a></li>
         </ul>
-        <button className="nav-cta" onClick={startApp}>Get Bloom free →</button>
+        <button className="nav-cta" onClick={handleGoogle} disabled={authLoading} aria-label="Continue with Google">
+          <span className="nav-cta-g"><GoogleIcon /></span>
+          {authLoading ? 'Signing in…' : 'Continue with Google'}
+        </button>
       </nav>
 
       {/* HERO */}
@@ -346,12 +374,16 @@ export default function LandingPage() {
                 Bloom watches what you log — feeds, sleep, moods, milestones — and gently turns it into rhythms, reassurance, and guidance you can actually use.
               </p>
               <div className="hero-actions">
-                <button className="btn btn-p" onClick={startApp}>
-                  <BloomLogoSVG />
-                  Get started free
+                <button className="btn btn-p" onClick={handleGoogle} disabled={authLoading}
+                  style={{ background: 'white', color: '#1a1a1a', gap: 10 }}>
+                  <GoogleIcon />
+                  {authLoading ? 'Signing in…' : 'Continue with Google'}
                 </button>
                 <button className="btn btn-s" onClick={() => scrollTo('how')}>See how it works →</button>
               </div>
+              {authError && (
+                <p style={{ marginTop: 10, fontSize: 13, color: '#ef4444' }}>{authError}</p>
+              )}
               <div className="hero-trust">
                 <div className="stars"><Star /><Star /><Star /><Star /><Star /></div>
                 <p className="trust-text"><strong>Loved by early parents</strong> · Free forever for the basics</p>
@@ -740,12 +772,10 @@ export default function LandingPage() {
               ))}
             </div>
             <div className="cta-actions">
-              <button className="btn btn-w" onClick={startApp}>
-                <BloomLogoSVG />
-                Get started — it's free
-              </button>
-              <button className="btn" style={{ background: 'rgba(255,255,255,.12)', color: '#fff', border: '1px solid rgba(255,255,255,.22)' }} onClick={() => navigate('/auth')}>
-                I already have an account
+              <button className="btn btn-w" onClick={handleGoogle} disabled={authLoading}
+                style={{ gap: 10 }}>
+                <GoogleIcon />
+                {authLoading ? 'Signing in…' : 'Continue with Google — it\'s free'}
               </button>
             </div>
             <p className="cta-price">FREE FOREVER FOR BASICS · NO CARD REQUIRED · CANCEL ANYTIME</p>
@@ -765,7 +795,7 @@ export default function LandingPage() {
             <a onClick={() => scrollTo('ai')}>Dr. Bloom</a>
             <a onClick={() => navigate('/privacy')}>Privacy</a>
             <a onClick={() => navigate('/emergency')}>Emergency</a>
-            <a onClick={enterApp}>Open app</a>
+            <a onClick={handleGoogle} style={{ cursor: 'pointer' }}>Sign in</a>
           </nav>
           <p className="footer-right">© 2026 CHILDBLOOM · BUILT WITH CARE</p>
         </div>

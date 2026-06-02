@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
@@ -35,6 +36,8 @@ export default function HealthRecordsPage() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('all');
   const [showForm, setShowForm] = useState(false);
+  const sheetRef = useRef(null);
+  useFocusTrap(sheetRef, showForm, () => setShowForm(false));
   const [vaccineTip, setVaccineTip] = useState(null);
   const [formData, setFormData] = useState({
     record_date: new Date().toISOString().split('T')[0],
@@ -199,8 +202,9 @@ export default function HealthRecordsPage() {
                       )}
                     </Stack>
                     <button onClick={() => deleteMutation.mutate(record.id)}
+                      aria-label={`Delete record: ${record.title}`}
                       style={{ padding: 6, borderRadius: RADIUS.sm, background: 'transparent', border: 'none', cursor: 'pointer', color: T.ink300, flexShrink: 0, lineHeight: 1 }}>
-                      <CBIcon name="trash" size={16} />
+                      <CBIcon name="trash" size={16} aria-hidden="true" />
                     </button>
                   </HRow>
                   {i < filtered.length - 1 && <Divider />}
@@ -216,8 +220,8 @@ export default function HealthRecordsPage() {
       {/* Add record sheet */}
       {showForm && (
         <>
-          <div onClick={() => setShowForm(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200 }} />
-          <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: T.surface, borderRadius: '24px 24px 0 0', padding: '20px 20px max(calc(env(safe-area-inset-bottom) + 24px), 36px)', zIndex: 201, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 -8px 40px rgba(0,0,0,0.12)' }}>
+          <div aria-hidden="true" onClick={() => setShowForm(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200 }} />
+          <div ref={sheetRef} role="dialog" aria-modal="true" aria-label="Add a health record" tabIndex={-1} style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: T.surface, borderRadius: '24px 24px 0 0', padding: '20px 20px max(calc(env(safe-area-inset-bottom) + 24px), 36px)', zIndex: 201, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 -8px 40px rgba(0,0,0,0.12)' }}>
             <div style={{ width: 36, height: 4, borderRadius: 2, background: T.line, margin: '0 auto 20px' }} />
             <Display size={20} italic weight={600} style={{ marginBottom: 20 }}>Something happened — let's note it</Display>
 
@@ -230,6 +234,9 @@ export default function HealthRecordsPage() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
               {RECORD_TYPES.map(type => (
                 <button key={type.value}
+                  type="button"
+                  aria-pressed={formData.record_type === type.value}
+                  aria-label={`Record type: ${type.label}`}
                   onClick={() => setFormData({ ...formData, record_type: type.value })}
                   style={{
                     padding: '10px 12px', borderRadius: RADIUS.md, fontSize: 13, fontWeight: 500,
@@ -252,6 +259,8 @@ export default function HealthRecordsPage() {
               <div key={f.key}>
                 <Mono size={11} color={T.ink400} style={{ textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 6 }}>{f.label}</Mono>
                 <input type="text" value={formData[f.key]} placeholder={f.placeholder}
+                  aria-label={f.label}
+                  maxLength={f.key === 'notes' ? 500 : 200}
                   onChange={e => setFormData({ ...formData, [f.key]: e.target.value })}
                   style={inputStyle} />
               </div>

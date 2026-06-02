@@ -188,14 +188,6 @@
     <script type="module" src="/src/main.jsx"></script>
 
     <!-- Service Worker registration -->
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js', { scope: '/' })
-            .then(() => {})
-            .catch(() => {});
-        });
-      }
-    </script>
+    <script src="/register-sw.js"></script>
   </body>
 </html>

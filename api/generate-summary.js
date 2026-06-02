@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
 import { DEFAULT_MODEL } from './lib/models.js';
 import { DR_BLOOM_SYSTEM_PROMPT } from './lib/drBloomPrompt.js';
+import { checkRateLimit, logUsage, isUuid } from './lib/rateLimit.js';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -9,6 +10,13 @@ const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+
+const SUMMARY_RATE_TIERS = [
+  { limit: 5,  windowSec: 3600,  message: 'You\'ve generated 5 summaries this hour. Try again later.' },
+  { limit: 20, windowSec: 86400, message: 'Daily summary limit reached.' },
+];
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 const LANG_INSTRUCTIONS = {
   en: 'Write in warm, conversational English.',
@@ -42,10 +50,26 @@ export default async function handler(req, res) {
     userId = user.id;
   }
 
-  const { childId, weekStartDate, weekEndDate, language = 'en' } = req.body;
+  const { childId, weekStartDate, weekEndDate, language = 'en' } = req.body || {};
 
-  if (!childId || !weekStartDate || !weekEndDate) {
-    return res.status(400).json({ error: 'childId, weekStartDate, and weekEndDate are required' });
+  if (!isUuid(childId)) {
+    return res.status(400).json({ error: 'childId must be a valid UUID' });
+  }
+  if (!DATE_RE.test(weekStartDate) || !DATE_RE.test(weekEndDate)) {
+    return res.status(400).json({ error: 'weekStartDate and weekEndDate must be YYYY-MM-DD' });
+  }
+  if (typeof language !== 'string' || language.length > 8) {
+    return res.status(400).json({ error: 'invalid language' });
+  }
+
+  // Rate limit (only for user-triggered requests; skip for cron)
+  if (!cronSecret) {
+    const limited = await checkRateLimit(supabase, userId, 'generate-summary', SUMMARY_RATE_TIERS);
+    if (limited) {
+      res.setHeader('Retry-After', String(limited.retryAfterSec));
+      return res.status(429).json({ error: limited.message });
+    }
+    logUsage(supabase, userId, 'generate-summary');
   }
 
   try {

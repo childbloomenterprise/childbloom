@@ -49,7 +49,7 @@ export function useChildById(childId) {
         .from('children')
         .select('*')
         .eq('id', childId)
-        .single();
+        .maybeSingle();
       if (error) throw error;
       return data;
     },

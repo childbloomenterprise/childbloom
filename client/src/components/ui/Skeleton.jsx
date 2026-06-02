@@ -1,3 +1,5 @@
+import { motion } from 'framer-motion';
+
 export default function Skeleton({ className = '', variant = 'rect' }) {
   const variants = {
     rect: 'rounded-xl',
@@ -7,6 +9,22 @@ export default function Skeleton({ className = '', variant = 'rect' }) {
 
   return (
     <div className={`skeleton ${variants[variant]} ${className}`} aria-hidden="true" />
+  );
+}
+
+// Drop-in wrapper used after real data replaces a skeleton — Apple-style
+// spring fade-in so content settles in instead of snapping.
+export function FadeInContent({ children, delay = 0, style, className }) {
+  return (
+    <motion.div
+      className={className}
+      style={{ willChange: 'transform, opacity', ...style }}
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ type: 'spring', stiffness: 340, damping: 28, delay }}
+    >
+      {children}
+    </motion.div>
   );
 }
 

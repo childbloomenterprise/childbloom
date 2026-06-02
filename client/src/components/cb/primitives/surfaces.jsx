@@ -1,6 +1,19 @@
 // Surface primitives — Card, Chip, Button, ProgressBar.
 import { T, FONTS, RADIUS } from '../tokens';
 import CBIcon from '../CBIcon';
+import { motion, useSpring } from 'framer-motion';
+
+async function triggerHaptic(intensity = 'LIGHT') {
+  try {
+    const { Haptics, ImpactStyle } = await import('@capacitor/haptics');
+    const style = intensity === 'HEAVY' ? ImpactStyle.Heavy
+                : intensity === 'MEDIUM' ? ImpactStyle.Medium
+                : ImpactStyle.Light;
+    await Haptics.impact({ style });
+  } catch { /* web fallback */ }
+}
+
+const PRESS_SPRING = { stiffness: 500, damping: 28, mass: 0.6 };
 
 const RADIUS_KEY = { xs: RADIUS.xs, sm: RADIUS.sm, md: RADIUS.md, lg: RADIUS.lg, xl: RADIUS.xl };
 
@@ -81,8 +94,10 @@ const BUTTON_SIZES = {
   lg: { h: 56, fs: 16, pad: 22 },
 };
 
-export function Button({ children, variant = 'primary', size = 'md', icon, trailingIcon, onClick, full, disabled, type = 'button', style }) {
+export function Button({ children, variant = 'primary', size = 'md', icon, trailingIcon, onClick, full, disabled, type = 'button', style, haptic = 'LIGHT' }) {
   const s = BUTTON_SIZES[size] || BUTTON_SIZES.md;
+  const scaleSpring = useSpring(1, PRESS_SPRING);
+
   const variantStyle =
     variant === 'primary'   ? { background: T.brand, color: '#fff', border: 'none' } :
     variant === 'accent'    ? { background: T.accent, color: '#fff', border: 'none' } :
@@ -91,11 +106,28 @@ export function Button({ children, variant = 'primary', size = 'md', icon, trail
     variant === 'danger'    ? { background: T.danger, color: '#fff', border: 'none' } :
     { background: T.brand, color: '#fff', border: 'none' };
 
+  const onDown = () => { if (!disabled) scaleSpring.set(0.96); };
+  const onUp   = () => {
+    if (disabled) return;
+    scaleSpring.set(1.02);
+    setTimeout(() => scaleSpring.set(1), 80);
+  };
+
+  const handleClick = (e) => {
+    if (disabled) return;
+    triggerHaptic(haptic);
+    onClick?.(e);
+  };
+
   return (
-    <button
+    <motion.button
       type={type}
-      onClick={onClick}
+      onClick={handleClick}
       disabled={disabled}
+      onPointerDown={onDown}
+      onPointerUp={onUp}
+      onPointerLeave={onUp}
+      onPointerCancel={onUp}
       style={{
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
         height: s.h, padding: `0 ${s.pad}px`, borderRadius: RADIUS.pill,
@@ -103,19 +135,16 @@ export function Button({ children, variant = 'primary', size = 'md', icon, trail
         cursor: disabled ? 'not-allowed' : 'pointer',
         width: full ? '100%' : 'auto', flexShrink: 0,
         opacity: disabled ? 0.6 : 1,
-        transition: 'opacity 0.2s, transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1)',
         WebkitTapHighlightColor: 'transparent',
+        willChange: 'transform',
+        scale: scaleSpring,
         ...variantStyle, ...style,
       }}
-      onTouchStart={!disabled ? (e => { e.currentTarget.style.transform = 'scale(0.95)'; }) : undefined}
-      onTouchEnd={!disabled ? (e => { e.currentTarget.style.transform = ''; }) : undefined}
-      onMouseDown={!disabled ? (e => { e.currentTarget.style.transform = 'scale(0.95)'; }) : undefined}
-      onMouseUp={!disabled ? (e => { e.currentTarget.style.transform = ''; }) : undefined}
     >
       {icon && <CBIcon name={icon} size={s.fs + 4} stroke={1.7} />}
       <span>{children}</span>
       {trailingIcon && <CBIcon name={trailingIcon} size={s.fs + 4} stroke={1.7} />}
-    </button>
+    </motion.button>
   );
 }
 

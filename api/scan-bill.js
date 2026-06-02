@@ -1,8 +1,16 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
 import { DEFAULT_MODEL } from './lib/models.js';
+import { checkRateLimit, logUsage } from './lib/rateLimit.js';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+const MAX_IMAGE_BYTES = 6 * 1024 * 1024; // 6 MB after base64 → raw decode
+
+const SCAN_RATE_TIERS = [
+  { limit: 3,  windowSec: 60,    message: 'Slow down — only 3 scans per minute.' },
+  { limit: 10, windowSec: 86400, message: 'You have reached the limit of 10 bill scans per day.' },
+];
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -63,27 +71,28 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Invalid token' });
   }
 
-  const { imageBase64, childId, childName, childAgeMonths } = req.body;
+  const { imageBase64, childId, childName, childAgeMonths } = req.body || {};
 
-  if (!imageBase64) {
+  if (!imageBase64 || typeof imageBase64 !== 'string') {
     return res.status(400).json({ error: 'No image provided' });
   }
 
-  try {
-    // Rate limit: max 10 scans per user per day (count today's medical_bills)
-    const today = new Date().toISOString().split('T')[0];
-    const { count } = await supabase
-      .from('medical_bills')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .gte('created_at', today + 'T00:00:00Z');
+  // Size guard — base64 inflates ~4/3, so cap at MAX_IMAGE_BYTES * 4/3 raw chars.
+  if (imageBase64.length > MAX_IMAGE_BYTES * 1.4) {
+    return res.status(413).json({
+      error: 'image_too_large',
+      message: 'Image is too large. Please use a smaller photo (under 6 MB).',
+    });
+  }
 
-    if (count >= 10) {
-      return res.status(429).json({
-        error: 'rate_limit',
-        message: 'You have reached the limit of 10 bill scans per day.',
-      });
+  try {
+    // Multi-tier rate limit (3/min burst + 10/day cap)
+    const limited = await checkRateLimit(supabase, user.id, 'scan-bill', SCAN_RATE_TIERS);
+    if (limited) {
+      res.setHeader('Retry-After', String(limited.retryAfterSec));
+      return res.status(429).json({ error: 'rate_limit', message: limited.message });
     }
+    logUsage(supabase, user.id, 'scan-bill');
 
     // Detect media type and strip data URL prefix
     let mediaType = 'image/jpeg';

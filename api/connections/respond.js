@@ -103,5 +103,32 @@ export default async function handler(req, res) {
     .eq('type', 'connection_request')
     .contains('data', { child_id: conn.child_id });
 
+  // Notify doctor in Dr. Bloom when parent approves — so they get a real-time toast.
+  // Uses the internal cross-app endpoint authenticated with the shared service key.
+  if (newStatus === 'active') {
+    const drBloomUrl  = process.env.DRBLOOM_URL || 'https://dr-bloom-git-main-childbloomenterprises-projects.vercel.app';
+    const internalKey = process.env.SUPABASE_SERVICE_ROLE_KEY; // shared key — Dr. Bloom verifies CHILDBLOOM_SERVICE_ROLE_KEY
+
+    // Fetch child name for the notification title
+    const { data: childData } = await admin
+      .from('children')
+      .select('name, first_name')
+      .eq('id', conn.child_id)
+      .single();
+    const childName = childData?.first_name || childData?.name || 'your patient';
+
+    fetch(`${drBloomUrl}/api/notifications/internal`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'x-internal-key': internalKey },
+      body:    JSON.stringify({
+        doctor_id:  conn.doctor_id,
+        event_type: 'connection_approved',
+        title:      `Access approved for ${childName}`,
+        body:       'The parent approved your connection request in ChildBloom. You can now view their health data.',
+      }),
+    }).catch(err => console.error('[respond] Dr. Bloom notify failed:', err));
+    // Fire-and-forget — don't block the response on this
+  }
+
   return res.status(200).json({ ok: true, status: newStatus });
 }

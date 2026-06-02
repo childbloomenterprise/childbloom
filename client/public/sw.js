@@ -1,4 +1,4 @@
-const CACHE_NAME = 'childbloom-v4';
+const CACHE_NAME = 'childbloom-v11';
 const OFFLINE_URL = '/offline.html';
 
 const STATIC_ASSETS = [
@@ -22,6 +22,11 @@ self.addEventListener('install', (event) => {
       cache.addAll(STATIC_ASSETS)
     ).then(() => self.skipWaiting())
   );
+});
+
+// ── Message: accept SKIP_WAITING from PWAUpdatePrompt ─────────────────────
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 // ── Activate: delete old caches ───────────────────────────────────────────

@@ -10,13 +10,7 @@ export function useAuth() {
     let cancelled = false;
 
     (async () => {
-      let { data: { session } } = await supabase.auth.getSession();
-
-      // No session — sign in anonymously so every visitor gets a real user ID
-      if (!session) {
-        const { data } = await supabase.auth.signInAnonymously();
-        session = data.session;
-      }
+      const { data: { session } } = await supabase.auth.getSession();
 
       if (cancelled) return;
       setSession(session);
@@ -52,37 +46,42 @@ export function useAuth() {
       .from('profiles')
       .select('*')
       .eq('id', userId)
-      .single();
+      .maybeSingle();
     setProfile(data);
   }
 
   async function signIn(email, password) {
     setLoading(true);
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    let result;
+    try {
+      result = await supabase.auth.signInWithPassword({ email, password });
+    } catch (fetchErr) {
+      // Safari/iOS "Load failed" — retry once after brief delay
+      const msg = fetchErr?.message || '';
+      if (msg === 'Load failed' || msg.includes('fetch') || msg.includes('network')) {
+        await new Promise((r) => setTimeout(r, 500));
+        result = await supabase.auth.signInWithPassword({ email, password });
+      } else {
+        setLoading(false);
+        throw fetchErr;
+      }
+    }
     setLoading(false);
+    const { data, error } = result;
     if (error) throw error;
+    if (data?.user) await fetchProfile(data.user.id);
     return data;
   }
 
   async function signUp(email, password) {
     setLoading(true);
-    const { data: { user: currentUser } } = await supabase.auth.getUser();
-
-    let data, error;
-
-    if (currentUser?.is_anonymous) {
-      // Upgrade anonymous session → keeps all existing child data
-      ({ data, error } = await supabase.auth.updateUser({ email, password }));
-    } else {
-      ({ data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
-      }));
-    }
-
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
     setLoading(false);
     if (error) throw error;
     return data;
@@ -114,7 +113,7 @@ export function useAuth() {
       .update(updates)
       .eq('id', user.id)
       .select()
-      .single();
+      .maybeSingle();
     if (error) throw error;
     setProfile(data);
     return data;

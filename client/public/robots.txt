@@ -1,0 +1,19 @@
+User-agent: *
+Allow: /
+
+# Block authenticated app routes (no value to crawlers)
+Disallow: /dashboard
+Disallow: /child/
+Disallow: /ask
+Disallow: /settings
+Disallow: /onboarding
+Disallow: /auth
+
+# Allow public content that should rank
+Allow: /emergency
+Allow: /emergency/
+Allow: /guides
+Allow: /guides/
+Allow: /privacy
+
+Sitemap: https://childbloom.in/sitemap.xml

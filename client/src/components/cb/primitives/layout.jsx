@@ -57,10 +57,11 @@ export function SectionLabel({ title, trailing, onTrailing, style }) {
   );
 }
 
-export function ChromeBtn({ icon, badge, onClick, style }) {
+export function ChromeBtn({ icon, badge, onClick, style, ...rest }) {
   return (
     <button
       onClick={onClick}
+      {...rest}
       style={{
         width: 38, height: 38, borderRadius: 999,
         background: T.surface, border: 'none', cursor: 'pointer',

@@ -126,7 +126,11 @@ export default function CarePage() {
           <Body size={12} color={T.ink400}>Health, vaccines, doctors</Body>
           <Display size={26} italic weight={400} lh={1.1}>Care</Display>
         </div>
-        <ChromeBtn icon="plus" />
+        <ChromeBtn
+          icon="plus"
+          onClick={() => childId ? navigate(`/child/${childId}/health`) : navigate('/onboarding')}
+          aria-label="Add a health record"
+        />
       </div>
 
       <div style={{ padding: '0 16px' }}>
@@ -205,7 +209,7 @@ export default function CarePage() {
         {/* Records grid */}
         {childId && (
           <>
-            <SectionLabel title="Records" trailing="Doctor PDF" />
+            <SectionLabel title="Records" />
             <div className="stagger-children" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               <RecordTile
                 icon="shield"
@@ -224,16 +228,30 @@ export default function CarePage() {
               <RecordTile
                 icon="pill"
                 label="Health records"
-                sub="View all"
+                sub="Doctor visits, meds"
                 pct={1}
                 onClick={() => navigate(`/child/${childId}/health`)}
               />
               <RecordTile
-                icon="thermometer"
-                label="Symptoms"
-                sub="Log via check-in"
+                icon="sparkle"
+                label="Bloom Path"
+                sub="Developmental journey"
+                pct={0.5}
+                onClick={() => navigate(`/child/${childId}/bloom`)}
+              />
+              <RecordTile
+                icon="clipboard"
+                label="Daily check-in"
+                sub="Mood, sleep, notes"
                 pct={0}
                 onClick={() => navigate(`/child/${childId}/weekly-update`)}
+              />
+              <RecordTile
+                icon="award"
+                label="Achievements"
+                sub="Your milestones"
+                pct={0}
+                onClick={() => navigate('/achievements')}
               />
             </div>
             <Spacer h={20} />

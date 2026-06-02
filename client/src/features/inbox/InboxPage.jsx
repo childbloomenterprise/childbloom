@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatDistanceToNow } from 'date-fns';
@@ -42,15 +42,34 @@ function ChildName({ childId, children }) {
   return child?.name ?? 'your child';
 }
 
-function ConnectionCard({ request, children, onApprove, onDecline }) {
+function ConnectionCard({ request, children, onApprove, onDecline, onSaveNotes }) {
   const [submitting, setSubmitting] = useState(null);
   const [toast, setToast] = useState(null);
+  // Pre-visit notes (active connections only)
+  const [notesOpen,   setNotesOpen]   = useState(false);
+  const [notesText,   setNotesText]   = useState(request.pre_visit_notes ?? '');
+  const [notesSaving, setNotesSaving] = useState(false);
 
   const doctorName = request.doctor_display_name || 'A doctor';
   const specialty  = request.doctor_specialty;
   const childName  = children.find((c) => c.id === request.child_id)?.name ?? 'your child';
   const timeAgo    = formatDistanceToNow(new Date(request.created_at), { addSuffix: true });
   const isPending  = request.status === 'pending';
+  const isActive   = request.status === 'active';
+
+  const handleSaveNotes = async () => {
+    setNotesSaving(true);
+    try {
+      await onSaveNotes(request.id, notesText);
+      setToast('Notes saved — Dr. ' + doctorName + ' will see these');
+      setNotesOpen(false);
+    } catch (e) {
+      setToast('Error: ' + e.message);
+    } finally {
+      setNotesSaving(false);
+      setTimeout(() => setToast(null), 3500);
+    }
+  };
 
   const handle = async (action) => {
     setSubmitting(action);
@@ -211,28 +230,108 @@ function ConnectionCard({ request, children, onApprove, onDecline }) {
           </div>
         )}
 
-        {/* Approved — show revoke option */}
-        {request.status === 'active' && (
-          <div style={{
-            padding: '10px 18px 14px',
-            borderTop: `1px solid ${T.line}`,
-          }}>
-            <Body size={12} color={T.ink400}>
-              Granted{request.consent_signed_at
-                ? ` on ${new Date(request.consent_signed_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`
-                : ''}.
-              {' '}
+        {/* Approved — pre-visit notes + revoke */}
+        {isActive && (
+          <div style={{ borderTop: `1px solid ${T.line}` }}>
+            {/* Pre-visit notes row */}
+            <div style={{ padding: '12px 18px 0' }}>
               <button
-                onClick={() => handle('decline')}
+                onClick={() => setNotesOpen(o => !o)}
                 style={{
-                  background: 'none', border: 'none', padding: 0,
-                  color: '#DC2626', fontSize: 12, fontWeight: 600,
-                  cursor: 'pointer', fontFamily: FONTS.sans,
+                  display: 'flex', alignItems: 'center', gap: 7,
+                  background: notesOpen ? T.brandWash : T.surfaceDim,
+                  border: 'none', borderRadius: RADIUS.sm,
+                  padding: '8px 14px', cursor: 'pointer',
+                  fontFamily: FONTS.sans, fontSize: 12.5, fontWeight: 600,
+                  color: notesOpen ? T.brand : T.ink600,
+                  transition: 'background 0.15s, color 0.15s',
+                  width: '100%', textAlign: 'left',
                 }}
               >
-                Revoke access
+                <CBIcon name="note" size={14} stroke={1.7} />
+                {request.pre_visit_notes
+                  ? `Edit pre-visit notes for Dr. ${doctorName}`
+                  : `Add pre-visit notes for Dr. ${doctorName}`}
+                {request.pre_visit_notes && (
+                  <span style={{ marginLeft: 'auto', fontSize: 10, color: T.brand, fontWeight: 500 }}>Saved</span>
+                )}
               </button>
-            </Body>
+
+              <AnimatePresence>
+                {notesOpen && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    style={{ overflow: 'hidden' }}
+                  >
+                    <div style={{ paddingTop: 10 }}>
+                      <textarea
+                        value={notesText}
+                        onChange={e => setNotesText(e.target.value)}
+                        placeholder={`E.g. "Vishnu has been coughing for 3 days. Also concerned about slow weight gain."`}
+                        rows={4}
+                        style={{
+                          width: '100%', padding: '10px 12px',
+                          borderRadius: RADIUS.sm, border: `1px solid ${T.line}`,
+                          background: T.surface, fontFamily: FONTS.sans,
+                          fontSize: 13.5, color: T.ink900, resize: 'vertical',
+                          lineHeight: 1.5, outline: 'none', boxSizing: 'border-box',
+                        }}
+                      />
+                      <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                        <motion.button
+                          whileTap={{ scale: 0.97 }}
+                          onClick={handleSaveNotes}
+                          disabled={notesSaving}
+                          style={{
+                            flex: 1, height: 38, borderRadius: RADIUS.pill, border: 'none',
+                            background: 'linear-gradient(135deg, #1D6A47, #0f4a32)',
+                            color: '#fff', fontFamily: FONTS.sans, fontSize: 13, fontWeight: 600,
+                            cursor: notesSaving ? 'wait' : 'pointer', opacity: notesSaving ? 0.6 : 1,
+                          }}
+                        >
+                          {notesSaving ? 'Saving…' : 'Save notes'}
+                        </motion.button>
+                        <motion.button
+                          whileTap={{ scale: 0.97 }}
+                          onClick={() => setNotesOpen(false)}
+                          style={{
+                            height: 38, padding: '0 16px', borderRadius: RADIUS.pill,
+                            border: `1px solid ${T.line}`, background: T.surface,
+                            fontFamily: FONTS.sans, fontSize: 13, fontWeight: 500,
+                            color: T.ink600, cursor: 'pointer',
+                          }}
+                        >
+                          Cancel
+                        </motion.button>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Revoke row */}
+            <div style={{ padding: '10px 18px 14px' }}>
+              <Body size={12} color={T.ink400}>
+                Granted{request.consent_signed_at
+                  ? ` on ${new Date(request.consent_signed_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`
+                  : ''}.
+                {' '}
+                <button
+                  onClick={() => handle('decline')}
+                  style={{
+                    background: 'none', border: 'none', padding: 0,
+                    color: '#DC2626', fontSize: 12, fontWeight: 600,
+                    cursor: 'pointer', fontFamily: FONTS.sans,
+                  }}
+                >
+                  Revoke access
+                </button>
+              </Body>
+            </div>
           </div>
         )}
 
@@ -275,9 +374,10 @@ function Spinner({ dark = false }) {
 
 function EmptyState({ filter }) {
   const messages = {
-    all:      { icon: 'bell',  title: 'No connection requests yet', sub: 'When a doctor requests access to your child\'s records, it will appear here.' },
-    pending:  { icon: 'clock', title: 'No pending requests',        sub: 'You\'re all caught up.' },
-    approved: { icon: 'check', title: 'No approved connections',    sub: 'Approve a doctor\'s request to see them here.' },
+    all:      { icon: 'bell',    title: 'No connection requests yet', sub: 'When a doctor requests access to your child\'s records, it will appear here.' },
+    pending:  { icon: 'clock',   title: 'No pending requests',        sub: 'You\'re all caught up.' },
+    approved: { icon: 'check',   title: 'No approved connections',    sub: 'Approve a doctor\'s request to see them here.' },
+    messages: { icon: 'doctor',  title: 'No messages yet',            sub: 'When a connected doctor sends you a note, it will appear here.' },
   };
   const m = messages[filter] || messages.all;
   return (
@@ -299,20 +399,23 @@ function EmptyState({ filter }) {
 
 export default function InboxPage() {
   const navigate = useNavigate();
-  const { requests, loading, pendingCount, respond } = useInbox();
+  const { requests, doctorMessages, loading, pendingCount, respond, saveNotes } = useInbox();
   const { data: children = [] } = useChildren();
   const [filter, setFilter] = useState('all');
 
-  const filtered = requests.filter((r) => {
-    if (filter === 'pending')  return r.status === 'pending';
-    if (filter === 'approved') return r.status === 'active';
-    return true;
-  });
+  const filtered = filter === 'messages'
+    ? []
+    : requests.filter((r) => {
+        if (filter === 'pending')  return r.status === 'pending';
+        if (filter === 'approved') return r.status === 'active';
+        return true;
+      });
 
   const tabs = [
     { id: 'all',      label: 'All',      count: requests.length },
     { id: 'pending',  label: 'Pending',  count: requests.filter(r => r.status === 'pending').length },
     { id: 'approved', label: 'Approved', count: requests.filter(r => r.status === 'active').length },
+    { id: 'messages', label: 'Messages', count: doctorMessages.length },
   ];
 
   return (
@@ -390,7 +493,49 @@ export default function InboxPage() {
 
       {/* Content */}
       <div style={{ padding: '0 16px' }}>
-        {loading ? (
+        {filter === 'messages' ? (
+          /* Doctor messages tab */
+          loading ? <LoadingState /> :
+          doctorMessages.length === 0 ? (
+            <Card p={0}><EmptyState filter="messages" /></Card>
+          ) : (
+            <AnimatePresence mode="popLayout">
+              <Stack gap={10}>
+                {doctorMessages.map((msg, i) => (
+                  <motion.div
+                    key={msg.id}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.04 }}
+                  >
+                    <Card p={0} style={{ overflow: 'hidden' }}>
+                      <div style={{ padding: '14px 18px', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                        <div style={{
+                          width: 40, height: 40, borderRadius: RADIUS.md,
+                          background: 'linear-gradient(135deg, #1D6A47, #0f4a32)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                        }}>
+                          <CBIcon name="doctor" size={18} stroke={1.5} style={{ color: '#fff' }} />
+                        </div>
+                        <Stack gap={3} style={{ flex: 1, minWidth: 0 }}>
+                          <HRow gap={6} style={{ alignItems: 'center', flexWrap: 'wrap' }}>
+                            <Body size={13.5} weight={700} color={T.ink900}>
+                              Dr. {msg.sender_name ?? 'Your doctor'}
+                            </Body>
+                            <Mono size={10} color={T.ink400}>
+                              {formatDistanceToNow(new Date(msg.created_at), { addSuffix: true })}
+                            </Mono>
+                          </HRow>
+                          <Body size={13.5} color={T.ink700} lh={1.55}>{msg.body}</Body>
+                        </Stack>
+                      </div>
+                    </Card>
+                  </motion.div>
+                ))}
+              </Stack>
+            </AnimatePresence>
+          )
+        ) : loading ? (
           <LoadingState />
         ) : filtered.length === 0 ? (
           <Card p={0}>
@@ -406,6 +551,7 @@ export default function InboxPage() {
                   children={children}
                   onApprove={(id) => respond(id, 'approve')}
                   onDecline={(id) => respond(id, 'decline')}
+                  onSaveNotes={saveNotes}
                 />
               ))}
             </Stack>

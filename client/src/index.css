@@ -509,7 +509,32 @@ html { overscroll-behavior: none; }
 .animate-fab-pop        { animation: fab-pop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
 .animate-badge-pulse    { animation: badge-pulse 1.8s ease-in-out infinite; }
 .stagger-7 { animation-delay: 470ms; }
+
+/* Pulse dot — used for live timer indicators in SleepQuickSheet + FoodTrackerPage */
+@keyframes cb-pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.55; transform: scale(0.82); }
+}
 .stagger-8 { animation-delay: 540ms; }
+
+/* ── Achievement celebrations ── */
+@keyframes confetti-fall {
+  0%   { transform: translateY(0) translateX(0) rotate(0deg); opacity: 1; }
+  70%  { opacity: 1; }
+  100% { transform: translateY(110vh) translateX(var(--fall-x, 0)) rotate(var(--fall-rotate, 360deg)); opacity: 0; }
+}
+@keyframes achievement-card-in {
+  from { opacity: 0; transform: scale(0.72) translateY(24px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes achievement-badge-in {
+  from { opacity: 0; transform: scale(0.4) rotate(-15deg); }
+  to   { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+@keyframes achievement-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(29,158,117,0); }
+  50%       { box-shadow: 0 0 0 8px rgba(29,158,117,0.2); }
+}
 
 /* ── Universal Button Micro-animations ──────────────────── */
 
@@ -893,3 +918,83 @@ button:focus-visible {
 }
 .chip-in { animation: chip-in 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Night-dim layer — auto-applied 21:00–06:00 local time via useNightDim.
+   Sits on TOP of whatever palette is active. Softens whites, mutes brand,
+   slows animations, reduces saturation. The goal: peaceful at 2 AM.
+   Manual override: localStorage.setItem('cb_night_dim','off').
+   ─────────────────────────────────────────────────────────────────────────*/
+html[data-night-dim="on"] {
+  /* Dim the whole canvas */
+  filter: brightness(0.88) saturate(0.85);
+  transition: filter 1.2s ease;
+}
+html[data-night-dim="on"] body {
+  /* Slow down ambient animations so the screen feels still */
+  --bloom-anim-scale: 0.5;
+}
+html[data-night-dim="on"] *,
+html[data-night-dim="on"] *::before,
+html[data-night-dim="on"] *::after {
+  /* Slow every animation by 1.6x — feels like the room is winding down */
+  animation-duration: calc(var(--orig-dur, 1s) * 1.6) !important;
+}
+html[data-night-dim="on"] [data-theme-root] {
+  background: #15201A !important; /* warmer dark than #F7F4EF cream */
+}
+/* Card surfaces become a hair darker so eye doesn't catch on bright edges */
+html[data-night-dim="on"] [data-theme-root] [class*="Card"],
+html[data-night-dim="on"] [data-theme-root] [style*="background: #FFFFFF"],
+html[data-night-dim="on"] [data-theme-root] [style*="background: #fff"],
+html[data-night-dim="on"] [data-theme-root] [style*="background:#FFFFFF"],
+html[data-night-dim="on"] [data-theme-root] [style*="background:#fff"] {
+  background-color: #1E2A23 !important;
+  color: #E8E6E1 !important;
+}
+/* The bloom-breathe animation gets quieter at night */
+html[data-night-dim="on"] [style*="animation: bloom-breathe"],
+html[data-night-dim="on"] [style*="animation:bloom-breathe"] {
+  opacity: 0.25 !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Accessibility — focus rings (keyboard only) + screen reader utility.
+   :focus-visible appears only when the user navigates via keyboard,
+   so it never shows on touch/mouse taps.
+   ─────────────────────────────────────────────────────────────────────────*/
+*:focus-visible {
+  outline: 2px solid var(--brand, #1D9E75);
+  outline-offset: 2px;
+  border-radius: 4px;
+  transition: outline-offset 0.12s ease;
+}
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--brand, #1D9E75);
+  outline-offset: 3px;
+}
+/* Suppress default browser outlines on tap; rely on :focus-visible */
+*:focus:not(:focus-visible) { outline: none; }
+
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Honor user's reduced-motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

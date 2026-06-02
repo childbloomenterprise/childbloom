@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import { useChildById } from '../../hooks/useChild';
 import useAuthStore from '../../stores/authStore';
+import { useAchievements } from '../../hooks/useAchievements';
 import CBIcon from '../../components/cb/CBIcon';
 import { T, FONTS, RADIUS } from '../../components/cb/tokens';
 import {
@@ -36,6 +37,7 @@ export default function GrowthPage() {
   const { data: child } = useChildById(childId);
   const user = useAuthStore((s) => s.user);
   const queryClient = useQueryClient();
+  const { tryUnlock } = useAchievements();
   const [metric, setMetric] = useState('weight');
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
@@ -72,6 +74,9 @@ export default function GrowthPage() {
       queryClient.invalidateQueries({ queryKey: ['growth-records', childId] });
       setShowForm(false);
       setFormData({ record_date: format(new Date(), 'yyyy-MM-dd'), weight_kg: '', height_cm: '', head_circumference_cm: '' });
+      const newTotal = records.length + 1;
+      if (newTotal === 1) tryUnlock('first_measurement');
+      if (newTotal >= 5)  tryUnlock('growth_5');
     },
   });
 
@@ -112,6 +117,8 @@ export default function GrowthPage() {
             <Display size={34} italic weight={600} lh={1.05}>Growth</Display>
           </div>
           <button onClick={() => setShowForm(!showForm)}
+            aria-label={showForm ? 'Close add measurement form' : 'Add a measurement'}
+            aria-expanded={showForm}
             style={{ width: 36, height: 36, borderRadius: '50%', background: T.surface, border: 'none', cursor: 'pointer', color: T.brand, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
             <CBIcon name="plus" size={18} />
           </button>
@@ -125,11 +132,13 @@ export default function GrowthPage() {
           <Card p={16} style={{ marginBottom: 16 }}>
             <Mono size={13} color={T.ink500} style={{ marginBottom: 12, display: 'block' }}>Log measurement</Mono>
             <input type="date" value={formData.record_date}
+              aria-label="Measurement date"
               onChange={e => setFormData(f => ({ ...f, record_date: e.target.value }))}
               style={{ ...inputStyle, width: '100%', marginBottom: 8 }} />
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
               {[{ k: 'weight_kg', l: 'Weight (kg)' }, { k: 'height_cm', l: 'Height (cm)' }, { k: 'head_circumference_cm', l: 'Head (cm)' }].map(f => (
                 <input key={f.k} type="number" step="0.1" placeholder={f.l}
+                  aria-label={f.l}
                   value={formData[f.k]}
                   onChange={e => setFormData(prev => ({ ...prev, [f.k]: e.target.value }))}
                   style={inputStyle} />

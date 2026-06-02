@@ -110,3 +110,24 @@ export const FONTS = {
 export const RADIUS = {
   xs: 6, sm: 10, md: 16, lg: 22, xl: 28, pill: 999,
 };
+
+// ── Animation tokens (Apple-standard spring physics) ──
+// Use across all motion in the app so every interaction shares one feel.
+export const SPRING = {
+  // Micro-interactions: button press, chip tap, send button pop
+  micro:  { type: 'spring', stiffness: 500, damping: 28, mass: 0.6 },
+  // Content entry: cards, list items, bubbles
+  entry:  { type: 'spring', stiffness: 380, damping: 28, mass: 0.8 },
+  // Page transitions
+  page:   { type: 'spring', stiffness: 380, damping: 32, mass: 0.9 },
+  // Gentle / ambient: breathing orbs, background elements
+  gentle: { type: 'spring', stiffness: 200, damping: 22, mass: 1.0 },
+};
+
+// Duration overrides for non-spring animations (fade only).
+export const EASE = {
+  // Standard Apple ease-out (use for exit transitions only)
+  out: [0.4, 0, 0.2, 1],
+  // Fast exit
+  fastOut: [0.4, 0, 1, 1],
+};
