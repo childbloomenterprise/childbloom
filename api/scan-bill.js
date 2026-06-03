@@ -1,7 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
-import { DEFAULT_MODEL } from './lib/models.js';
+import { DEFAULT_MODEL, corsOrigin } from './lib/models.js';
 import { checkRateLimit, logUsage } from './lib/rateLimit.js';
+import { track } from './lib/posthog.js';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -11,11 +12,6 @@ const SCAN_RATE_TIERS = [
   { limit: 3,  windowSec: 60,    message: 'Slow down — only 3 scans per minute.' },
   { limit: 10, windowSec: 86400, message: 'You have reached the limit of 10 bill scans per day.' },
 ];
-
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
 
 const SYSTEM_PROMPT = `You are a medical bill extraction assistant for ChildBloom, an Indian child development app. You extract information from Indian hospital bills, pharmacy receipts, and doctor consultation receipts.
 
@@ -57,6 +53,12 @@ Return this exact JSON structure:
 }`;
 
 export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', corsOrigin());
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Vary', 'Origin');
+
+  if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -66,7 +68,15 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   const token = authHeader.split(' ')[1];
-  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+  // User-scoped client for RLS-enforced rate limiting (matching api/ai/ask.js pattern)
+  const supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_ANON_KEY,
+    { global: { headers: { Authorization: `Bearer ${token}` } } }
+  );
+
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) {
     return res.status(401).json({ error: 'Invalid token' });
   }
@@ -86,7 +96,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Multi-tier rate limit (3/min burst + 10/day cap)
+    // Multi-tier rate limit (3/min burst + 10/day cap) — user-scoped, RLS-enforced
     const limited = await checkRateLimit(supabase, user.id, 'scan-bill', SCAN_RATE_TIERS);
     if (limited) {
       res.setHeader('Retry-After', String(limited.retryAfterSec));
@@ -154,6 +164,13 @@ export default async function handler(req, res) {
         message: 'This does not appear to be a medical bill.',
       });
     }
+
+    track(user.id, 'bill_scanned', {
+      visit_type: extracted.visit_type,
+      confidence: extracted.confidence,
+      has_medicines: (extracted.medicines || []).length > 0,
+      has_tests: (extracted.tests_done || []).length > 0,
+    });
 
     return res.status(200).json(extracted);
   } catch (err) {

@@ -6,6 +6,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { track } from '../../lib/analytics';
 
 const LANDING_CSS = `
 .cb-landing { --lbrand:#0F3D2E; --lbrand-deep:#0A2920; --lbrand-soft:#5FB48A;
@@ -288,6 +289,7 @@ export default function LandingPage() {
     if (authLoading) return;
     setAuthError('');
     setAuthLoading(true);
+    track('signup_started', { method: 'google' });
     try {
       await signInWithGoogle();
     } catch (err) {

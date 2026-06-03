@@ -10,6 +10,7 @@ import { supabase } from '../../lib/supabase';
 import i18n, { LANGUAGES } from '../../i18n';
 import useAuthStore from '../../stores/authStore';
 import useChildStore from '../../stores/childStore';
+import { track } from '../../lib/analytics';
 import { T, FONTS, RADIUS } from '../../components/cb/tokens';
 import {
   Card, Button, Body, Mono, Eyebrow, Display, Spacer, Stack, HRow, Divider,
@@ -751,6 +752,7 @@ export default function OnboardingPage() {
       await queryClient.invalidateQueries({ queryKey: ['children'] });
 
       if (childRes.data?.[0]) {
+        track('child_added', { child_name: form.babyName.trim() });
         useChildStore.getState().setChildren([childRes.data[0]]);
         useChildStore.getState().setSelectedChildId(childRes.data[0].id);
       }
@@ -769,6 +771,7 @@ export default function OnboardingPage() {
       localStorage.setItem('cb_onboarded', 'true');
       localStorage.setItem('cb_ai_tone', form.aiTone);
 
+      track('onboarding_completed', { language: form.language, ai_tone: form.aiTone });
       navigate('/dashboard', { replace: true });
     } catch (err) {
       const msg = err?.message || err?.details || JSON.stringify(err) || 'Unknown error';

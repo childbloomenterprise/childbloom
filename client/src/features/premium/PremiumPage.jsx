@@ -1,6 +1,8 @@
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../../stores/authStore';
 import { usePremium } from '../../hooks/usePremium';
+import { track } from '../../lib/analytics';
 import {
   PREMIUM_PRICE_INR,
   PREMIUM_BENEFITS,
@@ -17,6 +19,8 @@ export default function PremiumPage() {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const { isPremium, premiumUntil } = usePremium();
+
+  useEffect(() => { track('premium_page_viewed'); }, []);
 
   const email = user?.email;
   const upiUrl = buildUpiUrl();
