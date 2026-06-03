@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { useSelectedChild } from './useChild';
+import { track } from '../lib/analytics';
 
 const STORAGE_KEY = 'childbloom_voice_lang';
 const API_BASE = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? '' : 'http://localhost:3001');
@@ -76,8 +77,11 @@ export function useDrBloom() {
         signal: abortControllerRef.current.signal,
       });
 
+      track('dr_bloom_message_sent', { child_id: selectedChild.id });
+
       // Free weekly limit hit — prompt upgrade (don't throw, just set state)
       if (response.status === 402) {
+        track('premium_wall_hit');
         setLimitReached(true);
         setIsStreaming(false);
         setMessages(prev => prev.filter(m => m.id !== assistantMessageId));

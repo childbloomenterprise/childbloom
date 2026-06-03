@@ -13,6 +13,7 @@ import {
   getSuggestedQuestions,
   getAgePrecision,
 } from '../lib/drBloomPrompt.js';
+import { track } from '../lib/posthog.js';
 
 const ASK_RATE_TIERS = [
   { limit: 3,   windowSec: 60,    message: 'Slow down — only 3 questions per minute. Take a breath and try again in a moment.' },
@@ -95,6 +96,8 @@ export default async function handler(req, res) {
       .select('name')
       .eq('id', childId)
       .single();
+
+    track(user.id, 'dr_bloom_message_sent', { language, is_emergency: true, is_premium: false });
 
     return res.status(200).json({
       type: 'emergency',
@@ -211,6 +214,15 @@ export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-cache, no-transform');
   res.setHeader('Connection', 'keep-alive');
   res.setHeader('X-Accel-Buffering', 'no');
+
+  track(user.id, 'dr_bloom_message_sent', {
+    language,
+    intent,
+    is_premium: premium,
+    is_emergency: false,
+    is_medical_topic: showDisclaimerCard,
+    has_history: safeHistory.length > 0,
+  });
 
   // Send metadata first
   res.write(`data: ${JSON.stringify({

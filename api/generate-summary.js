@@ -1,8 +1,9 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
-import { DEFAULT_MODEL } from './lib/models.js';
+import { DEFAULT_MODEL, corsOrigin } from './lib/models.js';
 import { DR_BLOOM_SYSTEM_PROMPT } from './lib/drBloomPrompt.js';
 import { checkRateLimit, logUsage, isUuid } from './lib/rateLimit.js';
+import { track } from './lib/posthog.js';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -26,6 +27,12 @@ const LANG_INSTRUCTIONS = {
 };
 
 export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', corsOrigin());
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-cron-secret');
+  res.setHeader('Vary', 'Origin');
+
+  if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -64,12 +71,20 @@ export default async function handler(req, res) {
 
   // Rate limit (only for user-triggered requests; skip for cron)
   if (!cronSecret) {
-    const limited = await checkRateLimit(supabase, userId, 'generate-summary', SUMMARY_RATE_TIERS);
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.split(' ')[1];
+    // User-scoped client for RLS-enforced rate limiting (matching api/ai/ask.js pattern)
+    const userSupabase = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_ANON_KEY,
+      { global: { headers: { Authorization: `Bearer ${token}` } } }
+    );
+    const limited = await checkRateLimit(userSupabase, userId, 'generate-summary', SUMMARY_RATE_TIERS);
     if (limited) {
       res.setHeader('Retry-After', String(limited.retryAfterSec));
       return res.status(429).json({ error: limited.message });
     }
-    logUsage(supabase, userId, 'generate-summary');
+    logUsage(userSupabase, userId, 'generate-summary');
   }
 
   try {
@@ -269,6 +284,13 @@ If concerns were logged, address them gently in the "focus next week" section.`;
       )
       .select()
       .single();
+
+    track(userId, 'weekly_summary_generated', {
+      language,
+      age_months: ageMonths,
+      has_data: dataSnapshot.has_data,
+      triggered_by: cronSecret ? 'cron' : 'user',
+    });
 
     return res.status(200).json({
       summary: summaryText,

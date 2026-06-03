@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { DEFAULT_MODEL, corsOrigin } from '../lib/models.js';
 import { DR_BLOOM_SYSTEM_PROMPT, WEEKLY_INSIGHT_ADDENDUM } from '../lib/drBloomPrompt.js';
 import { checkRateLimit, logUsage, sanitizeText } from '../lib/rateLimit.js';
+import { track } from '../lib/posthog.js';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
@@ -107,6 +108,7 @@ export default async function handler(req, res) {
     });
 
     const insight = message.content.filter(b => b.type === 'text').map(b => b.text).join('\n');
+    track(user.id, 'weekly_insight_generated', { language: safeBody(req.body).language });
     res.json({ insight });
   } catch (err) {
     console.error('AI error:', err);
