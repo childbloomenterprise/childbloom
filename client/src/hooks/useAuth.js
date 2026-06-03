@@ -2,6 +2,13 @@ import { useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import useAuthStore from '../stores/authStore';
 import useChildStore from '../stores/childStore';
+import { track, identifyUser, resetAnalytics } from '../lib/analytics';
+
+// Tie analytics to a signed-in (non-anonymous) user, no-op otherwise.
+function identifyFromSession(session) {
+  const user = session?.user;
+  if (user && !user.is_anonymous) identifyUser(user.id, user.email);
+}
 
 export function useAuth() {
   const { setSession, setProfile, clearSession, setLoading } = useAuthStore();
@@ -14,6 +21,7 @@ export function useAuth() {
 
       if (cancelled) return;
       setSession(session);
+      identifyFromSession(session);
       if (session?.access_token) {
         localStorage.setItem('sb-access-token', session.access_token);
       }
@@ -28,6 +36,7 @@ export function useAuth() {
       setSession(session);
       if (session?.user) {
         localStorage.setItem('sb-access-token', session.access_token);
+        identifyFromSession(session);
         fetchProfile(session.user.id);
       } else {
         localStorage.removeItem('sb-access-token');
@@ -84,6 +93,8 @@ export function useAuth() {
     });
     setLoading(false);
     if (error) throw error;
+    track('sign_up', { method: 'email' });
+    if (data?.user) identifyUser(data.user.id, email);
     return data;
   }
 
@@ -103,6 +114,7 @@ export function useAuth() {
     clearSession();
     useChildStore.getState().setChildren([]);
     useChildStore.getState().setSelectedChildId(null);
+    resetAnalytics();   // clear PostHog identity so the next user starts fresh
   }
 
   async function updateProfile(updates) {

@@ -29,8 +29,14 @@ export default defineConfig({
           vendor: ['react', 'react-dom', 'react-router-dom'],
           ui: ['recharts', 'lucide-react'],
           supabase: ['@supabase/supabase-js'],
+          analytics: ['posthog-js'],
         },
       },
     },
+  },
+  // Vitest configuration (read automatically by `vitest`).
+  test: {
+    environment: 'jsdom',
+    globals: true,
   },
 });

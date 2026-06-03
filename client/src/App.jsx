@@ -1,7 +1,8 @@
-import { lazy, Suspense, useState } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { lazy, Suspense, useState, useEffect } from 'react';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { useAuth } from './hooks/useAuth';
+import { capturePageview } from './lib/analytics';
 import { useNightDim } from './hooks/useNightDim';
 import useAuthStore from './stores/authStore';
 import AppLayout from './components/layout/AppLayout';
@@ -109,6 +110,16 @@ function NotFound() {
   );
 }
 
+// Captures a PostHog $pageview on every SPA route change (the app disables
+// PostHog's automatic pageview so navigations between lazy routes are counted).
+function PageviewTracker() {
+  const location = useLocation();
+  useEffect(() => {
+    capturePageview(location.pathname + location.search);
+  }, [location.pathname, location.search]);
+  return null;
+}
+
 export default function App() {
   useAuth();
   useNightDim();
@@ -116,6 +127,7 @@ export default function App() {
 
   return (
     <>
+      <PageviewTracker />
       <AnimatePresence>
         {!splashDone && <SplashScreen onDone={() => setSplashDone(true)} />}
       </AnimatePresence>
