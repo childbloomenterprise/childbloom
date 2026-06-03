@@ -120,6 +120,31 @@ Global animations (splash screen, fade-in, etc.) live in `client/src/index.css`.
 
 `i18next` with 6 languages: English, Hindi, Malayalam, Tamil, Telugu, Punjabi. Translation files are in `client/src/i18n/`. Use `useTranslation()` hook; fallback language is English.
 
+### Analytics (PostHog)
+
+Client analytics is a **bundled module**, not the old inline `<script>` snippet.
+The strict CSP (`script-src 'self' …`, no `unsafe-inline`) silently blocked the
+inline snippet in production — for months **zero events were captured**. The fix:
+
+- **`client/src/lib/analytics.js`** — imports `posthog-js`, exposes `initAnalytics()`,
+  `track(event, props)`, `identifyUser(userId, email)`, `resetAnalytics()`, `capturePageview(path)`.
+  Ships inside our bundle (served from `'self'`) so it runs under the CSP.
+- **`main.jsx`** calls `initAnalytics()` before React mounts.
+- **`App.jsx`** `<PageviewTracker/>` fires a `$pageview` on every SPA route change
+  (`capture_pageview` is disabled in init so navigations are counted exactly once).
+- **`useAuth.js`** identifies the user on login/session-restore and `resetAnalytics()` on sign-out.
+- Disabled cleanly when `VITE_POSTHOG_KEY` is absent (local dev) — never breaks the app.
+
+**CSP requirement** (already in `vercel.json`): `script-src` and `connect-src` must
+include `https://us.i.posthog.com` and `https://us-assets.i.posthog.com`, plus
+`worker-src 'self' blob:` for session replay. If you tighten the CSP, keep these or
+analytics dies silently again.
+
+Events currently fired: `sign_up`, `child_added`, `dr_bloom_message_sent`,
+`premium_wall_hit`, `premium_page_viewed`, plus `$pageview`/`$pageleave`/autocapture.
+Server-side events use `posthog-node` (`api/lib/posthog.js`). Tests: `npm test` (vitest)
+in `client/` — see `src/lib/analytics.test.js`.
+
 ### Database Migrations
 
 SQL files live in `supabase/migrations/` but **are not auto-applied**. Run them manually in the Supabase SQL Editor at https://supabase.com/dashboard/project/qkjwmcmdevtbvcanamjg/sql. Alternatively use the Supabase MCP tool (`mcp__claude_ai_Supabase__apply_migration`, project ID `qkjwmcmdevtbvcanamjg`).
@@ -130,6 +155,8 @@ SQL files live in `supabase/migrations/` but **are not auto-applied**. Run them 
 ```
 VITE_SUPABASE_URL
 VITE_SUPABASE_ANON_KEY
+VITE_POSTHOG_KEY        # PostHog project token (phc_…) — public/write-only, safe to ship
+VITE_POSTHOG_HOST       # optional — defaults to https://us.i.posthog.com
 ```
 
 **`server/.env`** / Vercel dashboard:

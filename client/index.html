@@ -61,6 +61,10 @@
     <meta name="twitter:image" content="https://childbloom.in/og-image.png" />
     <meta name="twitter:image:alt" content="ChildBloom app for Indian parents" />
 
+    <!-- PostHog analytics is initialised in src/lib/analytics.js (bundled module).
+         The old inline snippet was removed because the strict CSP blocks inline
+         scripts; bundling it ships under 'self' and actually runs in production. -->
+
     <!-- Fonts: Fraunces (serif display) + Inter (UI) -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
