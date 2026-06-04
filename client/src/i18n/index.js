@@ -9,6 +9,17 @@ import te from './locales/te.json';
 import ml from './locales/ml.json';
 import pa from './locales/pa.json';
 
+// Phase-1 retention features keep their strings in isolated files so the large
+// base locale files stay untouched. English is the source of truth; every other
+// language inherits the English keys (placeholder) and is overridden as the
+// per-language retention.<lang>.json files get translated (currently TODO).
+import retEn from './locales/retention.en.json';
+import retHi from './locales/retention.hi.json';
+import retTa from './locales/retention.ta.json';
+import retTe from './locales/retention.te.json';
+import retMl from './locales/retention.ml.json';
+import retPa from './locales/retention.pa.json';
+
 export const LANGUAGES = [
   { code: 'en', label: 'English', nativeLabel: 'English' },
   { code: 'hi', label: 'Hindi', nativeLabel: 'हिन्दी' },
@@ -23,12 +34,12 @@ i18n
   .use(initReactI18next)
   .init({
     resources: {
-      en: { translation: en },
-      hi: { translation: hi },
-      ta: { translation: ta },
-      te: { translation: te },
-      ml: { translation: ml },
-      pa: { translation: pa },
+      en: { translation: { ...en, ...retEn } },
+      hi: { translation: { ...hi, ...retEn, ...retHi } },
+      ta: { translation: { ...ta, ...retEn, ...retTa } },
+      te: { translation: { ...te, ...retEn, ...retTe } },
+      ml: { translation: { ...ml, ...retEn, ...retMl } },
+      pa: { translation: { ...pa, ...retEn, ...retPa } },
     },
     fallbackLng: 'en',
     interpolation: { escapeValue: false },

@@ -1,9 +1,12 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 
 const LANG_MAP = {
-  ml: 'ml-IN',
-  ta: 'ta-IN',
   en: 'en-IN',
+  hi: 'hi-IN',
+  ta: 'ta-IN',
+  te: 'te-IN',
+  ml: 'ml-IN',
+  pa: 'pa-IN',
 };
 
 const isSupported =

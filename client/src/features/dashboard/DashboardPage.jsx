@@ -27,6 +27,9 @@ import { useObservation } from '../../hooks/useObservation';
 import { useBloomMoments } from '../../hooks/useBloomMoments';
 import { getDailySuggestion } from '../../lib/bloomAreas';
 import SleepQuickSheet from './SleepQuickSheet';
+import BriefCard from '../brief/BriefCard';
+import SweetSpotCard from '../sleep/SweetSpotCard';
+import QuickLogBar from '../quicklog/QuickLogBar';
 
 // ──────────────────────────────────────────────────────────────────────────
 // Tone palette for the primary observation card.
@@ -392,6 +395,18 @@ export default function DashboardPage() {
     enabled: !!childId,
   });
 
+  const { data: quickLogs = [] } = useQuery({
+    queryKey: ['quick-logs-today', childId],
+    queryFn: async () => {
+      const { data } = await supabase.from('quick_logs').select('*')
+        .eq('child_id', childId)
+        .eq('logged_date', todayStr)
+        .order('logged_at', { ascending: false });
+      return data || [];
+    },
+    enabled: !!childId,
+  });
+
   const { data: vaccines = [] } = useQuery({
     queryKey: ['vaccinations-dash', childId],
     queryFn: async () => {
@@ -524,6 +539,18 @@ export default function DashboardPage() {
       icon: 'clipboard',
       bg: '#FFF1E8', fg: '#C9A35A',
     }] : []),
+    ...quickLogs.map((q) => ({
+      key: `quick-${q.id}`,
+      sortTs: new Date(q.logged_at).getTime(),
+      time: format(new Date(q.logged_at), 'h:mm a'),
+      title: q.type === 'diaper'
+        ? `Diaper${q.data?.kind ? ` · ${q.data.kind}` : ''}`
+        : `${q.data?.name || 'Medicine'}${q.data?.dose ? ` · ${q.data.dose}` : ''}`,
+      sub: q.notes || null,
+      icon: q.type === 'diaper' ? 'diaper' : 'pill',
+      bg: q.type === 'diaper' ? '#EBF4FF' : '#FAF1E2',
+      fg: q.type === 'diaper' ? '#3B5BDB' : '#C9A35A',
+    })),
   ].sort((a, b) => b.sortTs - a.sortTs);
 
   // Repeat last feed
@@ -569,6 +596,13 @@ export default function DashboardPage() {
       </div>
 
       <Spacer h={20} />
+
+      {/* ── Daily Bloom Brief — the morning retention hook (renders only when ready) ── */}
+      {childId && !user?.is_anonymous && (
+        <div style={{ padding: '0 16px 14px' }}>
+          <BriefCard child={child} />
+        </div>
+      )}
 
       {/* ── Primary observation — the one big thing ── */}
       <div style={{ padding: '0 16px' }}>
@@ -625,6 +659,47 @@ export default function DashboardPage() {
             />
           </HRow>
         </div>
+      )}
+
+      {/* ── Sleep SweetSpot — next-nap window predictor ── */}
+      {childId && !user?.is_anonymous && (
+        <>
+          <Spacer h={14} />
+          <div style={{ padding: '0 16px' }}>
+            <SweetSpotCard child={child} sleepLogs={sleepLogs7d} />
+          </div>
+        </>
+      )}
+
+      {/* ── Quick log — voice + one-tap diaper/meds ── */}
+      {childId && !user?.is_anonymous && (
+        <>
+          <Spacer h={14} />
+          <div style={{ padding: '0 16px' }}>
+            <QuickLogBar child={child} />
+          </div>
+        </>
+      )}
+
+      {/* ── "Is this normal?" entry ── */}
+      {childId && (
+        <>
+          <Spacer h={14} />
+          <div style={{ padding: '0 16px' }}>
+            <Card p={14} onClick={() => navigate('/myths')} style={{ cursor: 'pointer' }}>
+              <HRow gap={12} align="center">
+                <div style={{ width: 32, height: 32, borderRadius: 10, background: T.brandWash, color: T.brand, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <CBIcon name="info" size={15} />
+                </div>
+                <Stack gap={1} style={{ flex: 1 }}>
+                  <Body size={13} color={T.ink900} weight={600}>Is this normal?</Body>
+                  <Body size={11} color={T.ink500}>Check advice from relatives — instant answers</Body>
+                </Stack>
+                <CBIcon name="chevron-right" size={14} style={{ color: T.ink300 }} />
+              </HRow>
+            </Card>
+          </div>
+        </>
       )}
 
       {/* ── Repeat last feed — only if there's something to repeat ── */}

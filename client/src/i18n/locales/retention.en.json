@@ -1,0 +1,100 @@
+{
+  "brief": {
+    "aria": "Today's Bloom Brief",
+    "label": "Today with",
+    "expectLabel": "This week",
+    "tipLabel": "Try today",
+    "reassuranceLabel": "Totally normal"
+  },
+  "myths": {
+    "eyebrow": "Is this normal?",
+    "title": "Check the advice you were given",
+    "subtitle": "Heard something from a relative? Get a calm, evidence-based answer.",
+    "placeholder": "e.g. My mother-in-law says I should...",
+    "inputAria": "What advice did you get?",
+    "check": "Check it",
+    "checking": "Checking…",
+    "upgradeTitle": "You've used your 3 free checks this week",
+    "upgradeBody": "Preset examples stay free forever. Upgrade for unlimited free-text checks.",
+    "upgradeCta": "See Premium",
+    "commonLabel": "Common ones — tap for an instant answer",
+    "disclaimer": "Dr. Bloom offers general guidance, not a diagnosis. For anything about your child's health, your pediatrician is the right person to ask.",
+    "saferLabel": "Safer instead",
+    "verdict": {
+      "safe": "Safe",
+      "caution": "Caution",
+      "avoid": "Avoid"
+    }
+  },
+  "sweetspot": {
+    "caption": "General guidance from age-based wake windows, not medical advice.",
+    "eyebrow": "Next nap",
+    "prompt": "When did she last wake up?",
+    "justWoke": "Just woke up",
+    "wokeAgain": "Woke again",
+    "overdue": "Past the ideal window",
+    "nowWindow": "in the window now",
+    "inMins": "in {{m}} min",
+    "inHrsMins": "in {{h}}h {{m}}m",
+    "inHrs": "in {{h}}h",
+    "lastWoke": "woke {{time}}"
+  },
+  "quicklog": {
+    "title": "Quick log",
+    "typeInstead": "Type instead",
+    "speak": "Tap and speak",
+    "stop": "Stop",
+    "listening": "Listening… tap to stop",
+    "understanding": "Understanding…",
+    "example": "e.g. \"fed 10 minutes left side, then slept two hours\"",
+    "typePlaceholder": "Type what happened…",
+    "parse": "Log it",
+    "cancel": "Cancel",
+    "upgrade": "Premium",
+    "voiceCap": "You've used your 5 free voice logs this week. Type it or upgrade.",
+    "parseError": "Could not understand that. Please try again or type it.",
+    "nothingHeard": "Nothing to log yet. Try again or add it manually.",
+    "micDenied": "Microphone blocked. Allow it, or type instead.",
+    "netError": "Voice needs a connection. Type it instead.",
+    "noSpeech": "Didn't catch that. Try again.",
+    "remove": "Remove",
+    "confirmTitle": "Confirm what to log",
+    "confirmSub": "Edit anything before saving. Nothing is saved until you tap Save.",
+    "saveError": "Could not save. Check your connection.",
+    "saving": "Saving…",
+    "saveCount": "Save {{n}}",
+    "type": {
+      "diaper": "Diaper",
+      "meds": "Meds",
+      "feed": "Feed",
+      "sleep": "Sleep"
+    },
+    "feedType": {
+      "bottle": "Bottle",
+      "breast": "Breast",
+      "formula": "Formula",
+      "solid": "Solid"
+    },
+    "side": {
+      "left": "Left",
+      "right": "Right",
+      "both": "Both"
+    },
+    "quality": {
+      "excellent": "Excellent",
+      "good": "Good",
+      "okay": "Okay",
+      "poor": "Poor"
+    },
+    "diaper": {
+      "wet": "Wet",
+      "dirty": "Dirty",
+      "both": "Both"
+    },
+    "amount": "Amount",
+    "duration": "Duration",
+    "hours": "Hours slept",
+    "medName": "Medicine",
+    "dose": "Dose"
+  }
+}
