@@ -6,7 +6,9 @@
     "dev:client": "cd client && npm run dev",
     "dev:server": "cd server && npm run dev",
     "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
-    "build": "cd client && npm run build"
+    "build": "cd client && npm run build",
+    "test": "vitest run",
+    "test:api": "vitest run"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.0",
@@ -15,6 +17,7 @@
     "twitter-api-v2": "^1.19.0"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "vitest": "^2.1.8"
   }
 }
