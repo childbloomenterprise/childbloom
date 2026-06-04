@@ -4,6 +4,9 @@ const LANG_MAP = {
   ml: 'ml-IN',
   ta: 'ta-IN',
   en: 'en-IN',
+  hi: 'hi-IN',
+  te: 'te-IN',
+  pa: 'pa-IN',
 };
 
 export default function useTextToSpeech() {
@@ -42,9 +45,19 @@ export default function useTextToSpeech() {
     window.speechSynthesis.speak(utterance);
   }, []);
 
-  const speak = useCallback(async (text, language = 'en') => {
+  const speak = useCallback(async (text, language = 'en', options = {}) => {
     // Stop anything currently playing
     stop();
+
+    // Offline-first path: in an emergency (or whenever the caller knows the
+    // network is down) skip the /api/tts fetch entirely — waiting for it to
+    // time out would stall the spoken instruction. Go straight to the
+    // browser's built-in speech synthesis, which works fully offline.
+    const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
+    if (options.preferBrowser || offline) {
+      speakWithBrowserTTS(text, language);
+      return;
+    }
 
     try {
       const token = localStorage.getItem('sb-access-token');

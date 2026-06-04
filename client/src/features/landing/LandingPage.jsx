@@ -206,16 +206,6 @@ const LANDING_CSS = `
 .cb-landing .af-icon svg { width:18px; height:18px; stroke:var(--lbrand); fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
 .cb-landing .af-t { font-size:14px; font-weight:600; color:var(--link); margin-bottom:2px; }
 .cb-landing .af-s { font-size:12px; color:var(--link-500); line-height:1.5; }
-.cb-landing .testimonials { background:var(--lwarm); }
-.cb-landing .testi-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; margin-top:48px; }
-.cb-landing .testi-card { background:var(--lsurface); border-radius:var(--lr-xl); padding:28px; box-shadow:var(--lsh-md),var(--lsh-ring); }
-.cb-landing .testi-stars { display:flex; gap:2px; margin-bottom:14px; }
-.cb-landing .testi-stars svg { width:14px; height:14px; fill:var(--lgold); }
-.cb-landing .testi-q { font-family:var(--lserif); font-size:17px; font-style:italic; font-weight:400; letter-spacing:-.01em; line-height:1.4; color:var(--link); margin-bottom:16px; }
-.cb-landing .testi-who { display:flex; align-items:center; gap:10px; }
-.cb-landing .testi-av { width:34px; height:34px; border-radius:50%; background:var(--lbrand-wash); display:flex; align-items:center; justify-content:center; font-family:var(--lserif); font-size:14px; font-style:italic; color:var(--lbrand); }
-.cb-landing .testi-name { font-size:13px; font-weight:600; color:var(--link); margin-bottom:1px; }
-.cb-landing .testi-loc { font-size:11px; color:var(--link-400); }
 .cb-landing .cta-sec { background:var(--lbrand); color:#fff; padding:108px 0; text-align:center; position:relative; overflow:hidden; }
 .cb-landing .cta-bg { position:absolute; right:-160px; bottom:-140px; opacity:.12; pointer-events:none; }
 .cb-landing .cta-inner { position:relative; z-index:1; max-width:680px; margin:0 auto; }
@@ -248,7 +238,6 @@ const LANDING_CSS = `
   .cb-landing .bc-tall { grid-row:auto; }
   .cb-landing .steps { grid-template-columns:1fr; gap:32px; }
   .cb-landing .ai-inner { grid-template-columns:1fr; }
-  .cb-landing .testi-grid { grid-template-columns:1fr; }
   .cb-landing .footer-inner { flex-direction:column; align-items:flex-start; }
 }
 @media(max-width:600px){
@@ -704,35 +693,6 @@ export default function LandingPage() {
                 </div>
               ))}
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* TESTIMONIALS */}
-      <section className="section testimonials">
-        <div className="wrap">
-          <div className="sec-header fu" style={{ textAlign: 'center' }}>
-            <p className="eyebrow sec-eyebrow">What parents say</p>
-            <h2 className="sec-title">Real parents. Real rhythms.</h2>
-          </div>
-          <div className="testi-grid">
-            {[
-              { q: '"Bloom predicted Adoa\'s 4-month sleep regression a week early. The wind-down routine it suggested actually worked the first night."', n: 'Neha R.', loc: 'Mumbai · 4-month-old', a: 'N' },
-              { q: '"I used to dread the \'track everything\' apps. Bloom is the first one that feels like it\'s on my side — not asking me to prove I\'m a good parent."', n: 'Shruti K.', loc: 'Bengaluru · 8-month-old', a: 'S' },
-              { q: '"The family circle changed everything. My partner and I finally stopped asking \'did she eat yet?\' — Bloom just shows us both."', n: 'Arjun M.', loc: 'Delhi · 14-month-old', a: 'A' },
-            ].map((t, i) => (
-              <div key={t.n} className={`testi-card fu d${i + 1}`}>
-                <div className="testi-stars"><Star /><Star /><Star /><Star /><Star /></div>
-                <p className="testi-q">{t.q}</p>
-                <div className="testi-who">
-                  <div className="testi-av">{t.a}</div>
-                  <div>
-                    <div className="testi-name">{t.n}</div>
-                    <div className="testi-loc">{t.loc}</div>
-                  </div>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       </section>

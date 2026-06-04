@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import CBIcon from '../../../components/cb/CBIcon';
 import { T } from '../../../components/cb/tokens';
+import useMetronome from '../../../hooks/useMetronome';
 
 // Live 30-compressions → 2-breaths pacing aid with synced visual demonstrator.
 // `kind` selects the compression cadence:
@@ -324,10 +325,11 @@ function ChildCPRDemo({ pressDepth, isBreathing }) {
 
 // ─── Main component ───────────────────────────────────────────────
 
-export default function CPRRhythmCoach({ kind = 'infant' }) {
+export default function CPRRhythmCoach({ kind = 'infant', autoStart = false, muted = false }) {
   const compressionMs = CADENCE[kind] || CADENCE.infant;
+  const beatBpm = Math.round(60000 / compressionMs);
 
-  const [running, setRunning] = useState(false);
+  const [running, setRunning] = useState(autoStart);
   const [phase, setPhase]     = useState('compress');
   const [count, setCount]     = useState(0);
   const [cycle, setCycle]     = useState(1);
@@ -338,6 +340,11 @@ export default function CPRRhythmCoach({ kind = 'infant' }) {
   const totalStartRef  = useRef(null);
   const lastCountRef   = useRef(0);
   const rafRef         = useRef(null);
+
+  // Audible click + haptic buzz on each compression beat — only while running
+  // and in the compression phase (silent during the 2-breath phase). `muted`
+  // silences the click but keeps the haptic (hands-free cue in a quiet room).
+  useMetronome({ bpm: beatBpm, running: running && phase === 'compress', muted });
 
   function reset() {
     setRunning(false);

@@ -50,6 +50,13 @@
   ],
   "shortcuts": [
     {
+      "name": "Emergency",
+      "short_name": "Emergency",
+      "description": "First-aid: CPR, choking, allergy & more — read aloud",
+      "url": "/emergency",
+      "icons": [{ "src": "/logo96.png", "sizes": "96x96" }]
+    },
+    {
       "name": "Weekly Check-in",
       "short_name": "Check-in",
       "description": "Log this week's update",

@@ -20,6 +20,16 @@ import retTe from './locales/retention.te.json';
 import retMl from './locales/retention.ml.json';
 import retPa from './locales/retention.pa.json';
 
+// Emergency/SOS strings live in their own namespace too (same inherit-English
+// pattern). English is the source of truth; other languages inherit it until
+// the per-language emergency.<lang>.json files are translated (TODO).
+import emEn from './locales/emergency.en.json';
+import emHi from './locales/emergency.hi.json';
+import emTa from './locales/emergency.ta.json';
+import emTe from './locales/emergency.te.json';
+import emMl from './locales/emergency.ml.json';
+import emPa from './locales/emergency.pa.json';
+
 export const LANGUAGES = [
   { code: 'en', label: 'English', nativeLabel: 'English' },
   { code: 'hi', label: 'Hindi', nativeLabel: 'हिन्दी' },
@@ -34,12 +44,12 @@ i18n
   .use(initReactI18next)
   .init({
     resources: {
-      en: { translation: { ...en, ...retEn } },
-      hi: { translation: { ...hi, ...retEn, ...retHi } },
-      ta: { translation: { ...ta, ...retEn, ...retTa } },
-      te: { translation: { ...te, ...retEn, ...retTe } },
-      ml: { translation: { ...ml, ...retEn, ...retMl } },
-      pa: { translation: { ...pa, ...retEn, ...retPa } },
+      en: { translation: { ...en, ...retEn, ...emEn } },
+      hi: { translation: { ...hi, ...retEn, ...retHi, ...emEn, ...emHi } },
+      ta: { translation: { ...ta, ...retEn, ...retTa, ...emEn, ...emTa } },
+      te: { translation: { ...te, ...retEn, ...retTe, ...emEn, ...emTe } },
+      ml: { translation: { ...ml, ...retEn, ...retMl, ...emEn, ...emMl } },
+      pa: { translation: { ...pa, ...retEn, ...retPa, ...emEn, ...emPa } },
     },
     fallbackLng: 'en',
     interpolation: { escapeValue: false },
