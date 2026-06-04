@@ -30,6 +30,7 @@ const SettingsPage      = lazy(() => import('./features/settings/SettingsPage'))
 const PrivacyPage       = lazy(() => import('./features/privacy/PrivacyPage'));
 const EmergencyGuidePage  = lazy(() => import('./features/emergency/EmergencyGuidePage'));
 const EmergencyTopicPage  = lazy(() => import('./features/emergency/EmergencyTopicPage'));
+const GuidedActionMode    = lazy(() => import('./features/emergency/GuidedActionMode'));
 const CarePage          = lazy(() => import('./features/care/CarePage'));
 const FamilyPage        = lazy(() => import('./features/family/FamilyPage'));
 const AuthPage          = lazy(() => import('./features/auth/AuthPage'));
@@ -163,6 +164,9 @@ export default function App() {
             <Route path="/premium"                     element={<PremiumPage />} />
             <Route path="/myths"                       element={<MythsPage />} />
           </Route>
+
+          {/* Guided Action Mode — full-screen, immersive (no tab bar) */}
+          <Route path="/emergency/:topic/guided" element={<GuidedActionMode />} />
 
           <Route path="/auth"          element={<AuthPage />} />
           <Route path="/auth/callback" element={<AuthCallback />} />

@@ -1,0 +1,28 @@
+{
+  "sos": {
+    "fab": "SOS",
+    "fabAria": "Open emergency first-aid",
+    "triage": {
+      "title": "What's happening?",
+      "subtitle": "Tap what you see. We'll talk you through it, out loud, one step at a time.",
+      "more": "More first-aid guides",
+      "pinned": "{{name}} has an allergy on file — tap here first",
+      "disclaimer": "For first-aid reference only. If your child is in immediate danger, contact your local emergency number."
+    },
+    "guided": {
+      "stepOf": "Step {{n}} of {{total}}",
+      "next": "Done → Next",
+      "back": "Back",
+      "finish": "Finish",
+      "call": "Call {{number}}",
+      "mute": "Mute voice",
+      "unmute": "Turn voice on",
+      "readAll": "Read all steps",
+      "completeTitle": "Stay with your child",
+      "completeBody": "Keep going until help arrives or your child recovers and is breathing normally.",
+      "startOver": "Start over",
+      "close": "Close",
+      "reviewed": "Source: {{source}} · reviewed {{date}}"
+    }
+  }
+}

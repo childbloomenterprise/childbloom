@@ -1,5 +1,6 @@
 import { Outlet } from 'react-router-dom';
 import CBTabBar from '../cb/CBTabBar';
+import SosButton from '../cb/SosButton';
 import { useChildren } from '../../hooks/useChild';
 import ErrorBoundary from '../shared/ErrorBoundary';
 import { T, FONTS } from '../cb/tokens';
@@ -23,6 +24,7 @@ export default function AppLayout() {
         </ErrorBoundary>
       </main>
       <CBTabBar />
+      <SosButton />
       <AchievementCelebration />
     </div>
   );

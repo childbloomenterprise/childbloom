@@ -59,6 +59,21 @@ export default function EmergencyTopicPage() {
             {data.subtitle}
           </div>
         )}
+
+        {/* Hands-free guided mode CTA */}
+        <button
+          onClick={() => navigate(`/emergency/${data.id}/guided`)}
+          style={{
+            marginTop: 14, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+            padding: '15px 16px', borderRadius: 16, border: 'none', cursor: 'pointer',
+            background: sev.color, color: '#fff', fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em',
+            fontFamily: "-apple-system, 'Inter', system-ui, sans-serif",
+            boxShadow: `0 6px 18px ${sev.color}44`,
+          }}
+        >
+          <CBIcon name="play" size={18} stroke={2.4} />
+          Start guided mode — read aloud, step by step
+        </button>
       </div>
 
       {/* Critical first call-out */}
@@ -162,6 +177,11 @@ export default function EmergencyTopicPage() {
           textAlign: 'center', lineHeight: 1.5,
         }}>
           For first-aid reference only. Always follow the advice of your child's doctor and local emergency services. If your child is in immediate danger, contact your local emergency number.
+          {data.source && (
+            <div style={{ marginTop: 6, fontWeight: 600 }}>
+              Source: {data.source} · Reviewed {data.lastReviewed}
+            </div>
+          )}
         </div>
       </div>
 
