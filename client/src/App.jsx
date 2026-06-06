@@ -44,6 +44,7 @@ const HelpPage          = lazy(() => import('./features/help/HelpPage'));
 const InboxPage         = lazy(() => import('./features/inbox/InboxPage'));
 const PremiumPage       = lazy(() => import('./features/premium/PremiumPage'));
 const MythsPage         = lazy(() => import('./features/myths/MythsPage'));
+const JoinPage          = lazy(() => import('./features/install/JoinPage'));
 
 function RootRoute() {
   const session   = useAuthStore((s) => s.session);
@@ -172,6 +173,7 @@ export default function App() {
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/onboarding"    element={<OnboardingPage />} />
           <Route path="/privacy"       element={<PrivacyPage />} />
+          <Route path="/join"          element={<JoinPage />} />
           <Route path="*"              element={<NotFound />} />
         </Routes>
       </Suspense>
