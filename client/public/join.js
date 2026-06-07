@@ -142,11 +142,26 @@
       banner.innerHTML = icon('check') +
         "<div>You're on Android — perfect. Just follow the three steps below.</div>";
     } else if (d === 'ios') {
+      // Hide the Android-only step flow and show a direct web CTA instead.
+      var stepsArea = document.querySelector('.progress-head');
+      var barArea = document.querySelector('.bar');
+      ['step-1','step-2','step-3','celebrate'].forEach(function(id) {
+        var el = $(id); if (el) el.style.display = 'none';
+      });
+      if (stepsArea) stepsArea.style.display = 'none';
+      if (barArea) barArea.style.display = 'none';
+      var resetBtn = $('reset-btn'); if (resetBtn) resetBtn.style.display = 'none';
+
       banner.className = 'banner warn';
       banner.innerHTML = icon('alert') +
-        "<div><b>The test app is Android-only right now.</b> On iPhone you can still use ChildBloom free in your browser at " +
-        "<a href='https://childbloom.in' target='_blank' rel='noopener'>childbloom.in</a>. " +
-        "If you have an Android phone, open this page there instead.</div>";
+        "<div><b>The app is Android-only right now.</b> On iPhone, use ChildBloom free in Safari — " +
+        "it works just as well as the native app.<br><br>" +
+        "<a class='btn btn-primary' href='https://childbloom.in' style='display:inline-flex;margin-top:4px;text-decoration:none;" +
+        "padding:12px 20px;border-radius:12px;background:linear-gradient(180deg,#40916C,#2D6A4F);color:#fff;" +
+        "font-weight:600;font-size:15px;gap:8px;align-items:center;'>" +
+        icon('check') + "Open ChildBloom</a>" +
+        "<br><br><span style='font-size:13px;'>Have an Android phone? <a href='https://childbloom.in/join' " +
+        "style='font-weight:600;'>Open this page there</a> to install the app.</span></div>";
     } else {
       // desktop / other — surface the QR card to move onto a phone
       banner.className = 'banner info';
