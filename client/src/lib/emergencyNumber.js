@@ -1,6 +1,5 @@
 // Region-aware emergency phone number — fully offline (no IP geolocation).
-// ChildBloom is India-first, and 112 is also the GSM/EU universal emergency
-// number, so it is the safe global fallback when the region is unknown.
+// 112 is the GSM/EU universal emergency number and a safe global fallback.
 //
 // Detection order: region subtag of the browser locale (navigator.language)
 // → IANA timezone heuristic → fallback 112. Every input is injectable so the
@@ -11,7 +10,7 @@ const REGION_NUMBERS = {
   GB: '999', IE: '112',
   AU: '000', NZ: '111',
   JP: '119',
-  // India + EU + most of the world resolve to 112 via numberForRegion's default.
+  // EU + most of the world resolve to 112 via numberForRegion's default.
 };
 
 // Minimal IANA timezone → ISO region map. Prefix entries (ending in '/') match

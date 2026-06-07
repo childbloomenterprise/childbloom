@@ -152,27 +152,27 @@ ChildBloom — Child Development
 
 ### Short description (80 chars max)
 ```
-AI-powered child development companion for Indian parents
+AI-powered child development companion for parents everywhere
 ```
 
 ### Full description
 ```
-ChildBloom helps Indian parents guide their child's development from pregnancy through age 7.
+ChildBloom helps parents guide their child's development from pregnancy through age 7.
 
 🌱 Dr. Bloom — Your AI Pediatric Advisor
-Get personalized insights after every weekly check-in, ask any parenting question in Malayalam, Tamil, or English, and receive warm guidance backed by WHO, AAP, and IAP research.
+Get personalized insights after every weekly check-in, ask any parenting question in 6 languages, and receive warm guidance backed by WHO, AAP, and IAP research.
 
 📊 Weekly Development Tracking
 Log your child's height, weight, mood, milestones, and feeding every week. Watch their growth curve compared to WHO standards in real time.
 
-🍚 Indian Food Tracker
-Track meals with an Indian food database — ragi, dal, idli, Nendran banana, and 50+ more foods your baby actually eats.
+🍽️ Baby Food Tracker
+Log meals and track your baby's solid food journey — one new food at a time.
 
 💉 Vaccination Schedule
-India's complete IAP 2024 vaccination schedule so you never miss a dose.
+Personalised vaccination schedule based on your child's date of birth so you never miss a dose.
 
-🌐 Works in Malayalam, Tamil, Hindi, and English
-Built specifically for Indian parents, with deep Kerala and South Indian cultural context.
+🌐 Works in 6 languages
+English, Hindi, Malayalam, Tamil, Telugu, and Punjabi.
 
 From the moment you discover you're pregnant to your child's 7th birthday — ChildBloom grows with you.
 

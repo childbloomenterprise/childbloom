@@ -28,13 +28,14 @@ export function isEmergency(message) {
   return EMERGENCY_KEYWORDS.some(keyword => lower.includes(keyword.toLowerCase()));
 }
 
-export function getEmergencyResponse(childName, language = 'en') {
+export function getEmergencyResponse(childName, language = 'en', emergencyNumber = '112') {
   const name = childName || 'your child';
+  const num = emergencyNumber;
   const responses = {
-    en: `🚨 **This sounds like a medical emergency.**\n\n**Call emergency services immediately: 112**\n\nWhile you wait:\n- Keep ${name} calm and still\n- Do not give any food or water\n- If unconscious and breathing: place on their side\n- If not breathing: begin CPR if you know how\n\n**Go to your nearest hospital emergency room right now.**\n\nI am an AI and cannot assess emergencies. Please call a doctor or 112 immediately.`,
-    ml: `🚨 **ഇത് ഒരു മെഡിക്കൽ അടിയന്തരാവസ്ഥ ആണ്.**\n\n**ഉടൻ 112 വിളിക്കൂ**\n\n${name}-നെ ശാന്തമായി കിടത്തൂ. ഉടൻ അടുത്തുള്ള ആശുപത്രിയിൽ പോകൂ.`,
-    ta: `🚨 **இது ஒரு மருத்துவ அவசரநிலை.**\n\n**உடனடியாக 112 அழைக்கவும்**\n\n${name}-ஐ அமைதியாக வைத்திருங்கள். உடனடியாக அருகிலுள்ள மருத்துவமனைக்கு செல்லுங்கள்.`,
-    hi: `🚨 **यह एक चिकित्सा आपात स्थिति है।**\n\n**तुरंत 112 पर कॉल करें**\n\n${name} को शांत रखें और तुरंत नजदीकी अस्पताल जाएं।`
+    en: `🚨 **This sounds like a medical emergency.**\n\n**Call emergency services immediately: ${num}**\n\nWhile you wait:\n- Keep ${name} calm and still\n- Do not give any food or water\n- If unconscious and breathing: place on their side\n- If not breathing: begin CPR if you know how\n\n**Go to your nearest hospital emergency room right now.**\n\nI am an AI and cannot assess emergencies. Please call a doctor or ${num} immediately.`,
+    ml: `🚨 **ഇത് ഒരു മെഡിക്കൽ അടിയന്തരാവസ്ഥ ആണ്.**\n\n**ഉടൻ ${num} വിളിക്കൂ**\n\n${name}-നെ ശാന്തമായി കിടത്തൂ. ഉടൻ അടുത്തുള്ള ആശുപത്രിയിൽ പോകൂ.`,
+    ta: `🚨 **இது ஒரு மருத்துவ அவசரநிலை.**\n\n**உடனடியாக ${num} அழைக்கவும்**\n\n${name}-ஐ அமைதியாக வைத்திருங்கள். உடனடியாக அருகிலுள்ள மருத்துவமனைக்கு செல்லுங்கள்.`,
+    hi: `🚨 **यह एक चिकित्सा आपात स्थिति है।**\n\n**तुरंत ${num} पर कॉल करें**\n\n${name} को शांत रखें और तुरंत नजदीकी अस्पताल जाएं।`
   };
   return responses[language] || responses.en;
 }
@@ -215,7 +216,7 @@ ${(healthRecords || []).length > 0
   ).join('\n')
   : 'No health records yet.'}
 
-UPCOMING VACCINES (IAP schedule)
+UPCOMING VACCINES
 ${upcomingVaccines.length > 0
   ? upcomingVaccines.map(v => `${v.vaccine_name} — due ${v.next_due}`).join('\n')
   : 'All vaccines up to date or none scheduled.'}
@@ -230,7 +231,7 @@ ${upcomingVaccines.length > 0
 export function buildDrBloomSystemPrompt(childProfileFolder, intent = 'warm', language = 'en') {
   const languageInstruction = {
     en: 'Respond in English.',
-    ml: 'Respond in Malayalam (മലയാളം). Use natural, conversational Malayalam that a Kerala mother would use with her family doctor.',
+    ml: 'Respond in Malayalam (മലയാളം). Use natural, conversational Malayalam.',
     ta: 'Respond in Tamil (தமிழ்). Use warm, natural Tamil.',
     hi: 'Respond in Hindi (हिंदी). Use simple, warm Hindi.',
     te: 'Respond in Telugu (తెలుగు). Use warm, natural Telugu.',
@@ -254,7 +255,7 @@ The parent needs reassurance, understanding, and practical guidance — not a me
 
   return `You are Dr. Bloom, a warm and knowledgeable pediatric AI companion built into ChildBloom.
 
-You are not a replacement for a real pediatrician. You are the trusted, always-available voice that helps Indian parents understand their child's development, make sense of what they are seeing, and know when to seek professional help.
+You are not a replacement for a real pediatrician. You are the trusted, always-available voice that helps parents everywhere understand their child's development, make sense of what they are seeing, and know when to seek professional help.
 
 ${languageInstruction}
 
@@ -277,17 +278,18 @@ RESPONSE STRUCTURE
    - Part B — Graded action path: try at home first → what to watch → clear line to see a doctor
 5. CLOSING (1 sentence): One warm, specific next step. Not vague encouragement — a real action.
 
-INDIA-SPECIFIC KNOWLEDGE (apply this before general Western guidance)
-- IAP 2023-2024 vaccination schedule takes precedence over CDC/AAP schedule
-- Ragi (344mg calcium/100g) is evidence-backed as first food at 6 months — better than rice cereal
-- Extended breastfeeding to 2 years: WHO/IAP recommend, 7.5 IQ advantage (PROBIT trial)
-- Shishu Abhyanga (coconut oil summer, sesame oil winter): increases oxytocin, improves weight gain — evidence-backed
-- Colostrum = baby's first vaccine — NEVER discard
-- Iron deficiency anaemia affects 50–58% of Indian pregnant women — supplementation is critical
+GLOBAL EVIDENCE-BASED KNOWLEDGE
+- Follow the local/regional vaccination schedule (WHO EPI, AAP, IAP, NHS, etc.) — reference generically unless this child's profile implies a specific country
+- Ragi/finger millet (344mg calcium/100g) is evidence-backed as first food at 6 months — superior to plain rice cereal
+- Extended breastfeeding to 2 years: WHO recommends globally, 7.5 IQ advantage (PROBIT trial)
+- Infant massage with gentle oil (coconut, sunflower, or similar): increases oxytocin, improves weight gain — evidence-backed across cultures
+- Colostrum = baby's first vaccine — NEVER discard, universally critical
+- Iron deficiency anaemia is the world's most common nutritional deficiency in pregnancy — supplementation is critical everywhere
 - WHO Motor milestone windows are ranges, not fixed dates: walking window 8.2–17.6 months
 - Red flags at ANY age: regression in any skill previously acquired → always urgent referral
-- No honey before 12 months (infant botulism risk), no salt/sugar in first year
-- Kajal/kohl: NOT recommended — lead toxicity and tear duct blockage risk
+- No honey before 12 months (infant botulism risk), no salt/sugar in first year — universal
+- Kajal/kohl/surma/tiro: NOT recommended anywhere — lead toxicity and tear duct blockage risk
+- Respect local foods and customs: if the parent mentions culturally specific foods (ragi, dal, khichdi, congee, purées, oatmeal, etc.), engage with those rather than defaulting to Western examples
 
 MEDICAL DISCLAIMER INTEGRATION
 Weave naturally — never as a cold legal statement.
@@ -398,7 +400,7 @@ export const WEEKLY_INSIGHT_ADDENDUM = `
 ADDITIONAL RULES FOR WEEKLY INSIGHT:
 - Write exactly 3 focused paragraphs (~120 words total)
 - Paragraph 1: A specific, clinical observation about the child's development at this exact age — reference expected milestones
-- Paragraph 2: One concrete, practical suggestion using Indian foods, routines, or customs appropriate for this age (ragi porridge, dal water, oil massage, outdoor play, etc.)
+- Paragraph 2: One concrete, practical suggestion using locally available foods, routines, or customs appropriate for this age (age-appropriate purées, soft grains, gentle massage, outdoor play, etc.) — adapt to any cultural context if cues are present in the profile
 - Paragraph 3: Address any concerns directly with honest, gentle guidance; if everything looks healthy, give one proactive tip for the week ahead
 - Tone: warm but clinically confident — like a trusted family doctor, not a generic wellness app
 - End with the child's name`;

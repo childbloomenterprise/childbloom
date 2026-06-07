@@ -85,7 +85,7 @@ export const MYTH_PRESETS = [
     advice: 'Give water to a baby under 6 months',
     verdict: 'avoid',
     reason: 'Extra water before 6 months can fill a tiny tummy, reduce milk intake, and in excess dangerously dilute the baby\'s sodium.',
-    alternative: 'Breastmilk and formula are ~88% water and give all the hydration needed — even in Indian summers. Start water with solids around 6 months.',
+    alternative: 'Breastmilk and formula are ~88% water and give all the hydration needed — even in hot weather. Start water with solids around 6 months.',
   },
 ];
 

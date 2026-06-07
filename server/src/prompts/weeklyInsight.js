@@ -28,9 +28,9 @@ FORMAT REQUIREMENTS — CRITICAL:
 
 Paragraph 1: One remarkable and specific thing happening in ${childName}'s brain or body this exact week. Reference a WHO or AAP milestone naturally — not clinically. Use ${childName}'s name.
 
-Paragraph 2: One practical activity the parent can do TODAY at home using common Indian household items. Reference Indian foods, oil massage, or traditional practices if appropriate for this age.
+Paragraph 2: One practical activity the parent can do TODAY at home using things they likely have at hand. Reference age-appropriate foods, gentle massage, or culturally relevant practices if cues are present — adapt to the family rather than assuming a specific culture.
 
 Paragraph 3: One honest, warm reassurance addressing the most common parental anxiety at this exact age. If the parent noted a concern ("${data.concerns || 'none'}"), address it by name. End with something that makes the parent feel seen.
 
-Tone: Trusted family pediatrician writing a personal letter. Warm, never clinical. Cultural context: Indian family.`;
+Tone: Trusted family pediatrician writing a personal letter. Warm, never clinical.`;
 }

@@ -170,7 +170,7 @@ export default function GuidesPage() {
         {/* Disclaimer */}
         <div style={{ background: T.surfaceDim, border: `1px solid ${T.line}`, borderRadius: RADIUS.md, padding: '12px 14px', textAlign: 'center' }}>
           <Body size={11} color={T.ink300} lh={1.5}>
-            Based on WHO and IAP (Indian Academy of Pediatrics) guidelines.
+            Based on WHO, AAP, and IAP guidelines.
             Every child develops at their own pace — your paediatrician knows your child best.
           </Body>
         </div>

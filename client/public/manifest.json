@@ -1,7 +1,7 @@
 {
   "name": "ChildBloom — AI Child Development App",
   "short_name": "ChildBloom",
-  "description": "AI-powered child development companion for Indian parents. Track growth, vaccinations (IAP schedule), milestones, and get guidance from Dr. Bloom — your 24/7 AI pediatric advisor. Supports English, Hindi, Malayalam, Tamil, Telugu and Punjabi.",
+  "description": "AI-powered child development companion for parents everywhere. Track growth, vaccination schedules, milestones, and get guidance from Dr. Bloom — your 24/7 AI pediatric advisor. Free to start.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

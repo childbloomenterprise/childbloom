@@ -26,7 +26,7 @@ const BLOCKED_PREFIXES = [
   '/actuator/', '/telescope/',
 ];
 
-export function middleware(request) {
+export default function middleware(request) {
   const { pathname } = new URL(request.url);
 
   if (
@@ -41,5 +41,5 @@ export function middleware(request) {
 }
 
 export const config = {
-  matcher: '/(.*)',
+  runtime: 'edge',
 };

@@ -40,8 +40,8 @@ export default function PrivacyPage() {
 
           <Section title="Who we are">
             <Body size={13} color={T.ink700} lh={1.6}>
-              ChildBloom is a child development companion app for Indian parents,
-              operated by ChildBloom Enterprise. We are based in India and comply
+              ChildBloom is a global child development companion app,
+              operated by ChildBloom Enterprise. We are incorporated in India and comply
               with India's <strong>Digital Personal Data Protection (DPDP) Act, 2023</strong>.
             </Body>
             <Body size={13} color={T.ink700} lh={1.6}>
@@ -207,7 +207,7 @@ export default function PrivacyPage() {
         </Card>
 
         <Mono size={12} color={T.ink300} style={{ textAlign: 'center', display: 'block' }}>
-          ChildBloom · privacy@childbloom.app · India
+          ChildBloom · privacy@childbloom.app
         </Mono>
 
         <Spacer h={24} />

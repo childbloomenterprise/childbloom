@@ -1,6 +1,6 @@
 # ChildBloom
 
-A warm, emotionally intelligent child development companion for Indian parents — built with React, Vercel serverless functions, Supabase, and Claude AI (Dr. Bloom persona).
+A warm, emotionally intelligent child development companion — built with React, Vercel serverless functions, Supabase, and Claude AI (Dr. Bloom persona).
 
 ## Google OAuth Setup
 

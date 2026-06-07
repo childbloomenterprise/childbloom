@@ -43,9 +43,9 @@ const GUIDE_CONTENT = {
   toddler: {
     sections: [
       { title: 'Language is exploding', items: ['12-18 months: 10-50 words, points at objects', '18-24 months: Two-word phrases ("more milk", "go park")', '2-3 years: Short sentences, 200+ words', 'Read aloud daily — picture books in any language help', 'Narrate daily activities to build vocabulary'] },
-      { title: 'What to feed a toddler', items: ['Offer family foods cut into small pieces', 'Include roti, rice, dal, vegetables, curd, and fruits daily', 'Serve whole milk and ghee — toddlers need healthy fats', 'Allow self-feeding even if messy — it builds motor skills', "Don't force-feed; trust their appetite"] },
+      { title: 'What to feed a toddler', items: ['Offer family foods cut into small pieces', 'Include grains, legumes, vegetables, dairy, and fruits daily', 'Serve whole milk and healthy fats — toddlers need them for brain development', 'Allow self-feeding even if messy — it builds motor skills', "Don't force-feed; trust their appetite"] },
       { title: 'Big feelings, small person', items: ['Tantrums are normal — stay calm, validate feelings', 'Set simple, consistent limits', 'Praise effort, not just results', 'Encourage play with other children', 'Start simple chores: putting toys away, wiping spills'] },
-      { title: 'Health checks coming up', items: ['15-18 months: MMR 2nd dose, Varicella', 'Annual dental checkup from age 1', 'Check vision and hearing if concerns arise', 'Deworm every 6 months as per IAP guidelines'] },
+      { title: 'Health checks coming up', items: ['15-18 months: MMR 2nd dose, Varicella', 'Annual dental checkup from age 1', 'Check vision and hearing if concerns arise', 'Deworm as recommended by your local pediatric guidelines'] },
     ],
   },
   preschool: {
@@ -136,7 +136,7 @@ export default function GuideDetailPage() {
       <div style={{ padding: '0 16px 24px' }}>
         <div style={{ background: T.surfaceDim, border: `1px solid ${T.line}`, borderRadius: RADIUS.md, padding: '12px 14px', textAlign: 'center' }}>
           <Body size={11} color={T.ink300} lh={1.5}>
-            Based on WHO and IAP (Indian Academy of Pediatrics) guidelines.
+            Based on WHO, AAP, and IAP guidelines.
             Every child develops at their own pace — your paediatrician knows your child best.
           </Body>
         </div>

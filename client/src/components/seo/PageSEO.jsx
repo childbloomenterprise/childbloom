@@ -35,7 +35,7 @@ export default function PageSEO({
 }) {
   const fullTitle = title
     ? title.includes(SITE_NAME) ? title : `${title} | ${SITE_NAME}`
-    : `${SITE_NAME} — AI Child Development App for Indian Parents`;
+    : `${SITE_NAME} — AI Child Development Companion`;
 
   const resolvedCanonical = canonical
     ? `${SITE_URL}${canonical}`

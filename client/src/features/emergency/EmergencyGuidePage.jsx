@@ -14,7 +14,7 @@ const MEDICAL_WEB_PAGE_SCHEMA = {
   '@type': 'MedicalWebPage',
   name: 'Pediatric First-Aid Guide for Parents — ChildBloom',
   url: 'https://childbloom.in/emergency',
-  description: 'Step-by-step pediatric first-aid guides for Indian parents. Covers infant CPR, choking, seizure, burns, fever, and more. Based on WHO and IAP guidelines.',
+  description: 'Step-by-step pediatric first-aid guides for parents and caregivers. Covers infant CPR, choking, seizure, burns, fever, and more. Based on WHO guidelines.',
   audience: { '@type': 'Audience', audienceType: 'Parents and Caregivers' },
   medicalAudience: { '@type': 'MedicalAudience', audienceType: 'Patient' },
   about: { '@type': 'MedicalCondition', name: 'Pediatric First Aid' },
@@ -45,8 +45,8 @@ export default function EmergencyGuidePage() {
   return (
     <div data-theme-root style={{ background: T.bg, minHeight: '100dvh', fontFamily: FONTS.sans }}>
       <PageSEO
-        title="Pediatric First-Aid Guide for Indian Parents — ChildBloom"
-        description="Step-by-step first-aid for infant CPR, choking, anaphylaxis, seizure, burns and more. Read aloud, one step at a time, fully offline. Based on WHO and IAP guidelines."
+        title="Pediatric First-Aid Guide — ChildBloom"
+        description="Step-by-step first-aid for infant CPR, choking, anaphylaxis, seizure, burns and more. Read aloud, one step at a time, fully offline. Based on WHO guidelines."
         canonical="/emergency"
         structuredData={MEDICAL_WEB_PAGE_SCHEMA}
       />
