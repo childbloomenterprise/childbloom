@@ -203,11 +203,11 @@
       </div>
       <p class="step-why">This tells Google you're in. Tap the button, then tap “Become a tester” on the page that opens.</p>
       <div class="step-actions">
-        <a class="btn btn-primary" id="btn-optin" href="https://play.google.com/apps/testing/com.childbloom.app" target="_blank" rel="noopener">
+        <a class=”btn btn-primary” id=”btn-optin” href=”https://play.google.com/apps/testing/com.childbloom.app” target=”_blank” rel=”noopener”>
           Opt in as a tester
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg>
+          <svg width=”16” height=”16” viewBox=”0 0 24 24” fill=”none” stroke=”currentColor” stroke-width=”2.4” stroke-linecap=”round” stroke-linejoin=”round”><path d=”M7 17 17 7M9 7h8v8”/></svg>
         </a>
-        <p class="hint">You should see <b>“You are a tester.”</b> Same Google account as Step 1.</p>
+        <p class=”hint”>You should see <b>”You are a tester.”</b> Use the <b>same Google account</b> as Step 1, and make sure your <b>Play Store country is India</b>.<br>If you just joined the group, <b>wait 2 minutes first</b>.</p>
         <div class="donerow">
           <label><input type="checkbox" id="chk-2" /> I've opted in</label>
         </div>
@@ -241,17 +241,31 @@
     </section>
 
     <!-- Help -->
-    <details class="help">
+    <details class=”help”>
       <summary>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .8-1 1.7M12 17h.01" stroke-linecap="round"/></svg>
-        It says “item not found” or “app not available”
-        <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        <svg width=”18” height=”18” viewBox=”0 0 24 24” fill=”none” stroke=”currentColor” stroke-width=”2.2”><circle cx=”12” cy=”12” r=”9”/><path d=”M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .8-1 1.7M12 17h.01” stroke-linecap=”round”/></svg>
+        It says “URL not found” on the opt-in page
+        <svg class=”chev” width=”16” height=”16” viewBox=”0 0 24 24” fill=”none” stroke=”currentColor” stroke-width=”2.4” stroke-linecap=”round” stroke-linejoin=”round”><path d=”m6 9 6 6 6-6”/></svg>
       </summary>
-      <div class="body">
+      <div class=”body”>
+        <p>This error means Google doesn't recognise your account as an approved tester. Three things to check:</p>
+        <p><b>1. Wait 2 minutes after joining the group.</b> Google Groups membership takes a moment to propagate to Play Store.</p>
+        <p><b>2. Use the same Google account everywhere.</b> The Gmail you joined the group with must be the active account in your Play Store (Play Store → profile icon → check the account at the top).</p>
+        <p><b>3. Your Play Store country must be India.</b> The app is currently published for India only. If your Play Store account is set to another country, opt-in won't work yet.</p>
+        <p>Still stuck? Email <a href=”mailto:childbloomenterprise@gmail.com”>childbloomenterprise@gmail.com</a> and we'll sort it out.</p>
+      </div>
+    </details>
+    <details class=”help”>
+      <summary>
+        <svg width=”18” height=”18” viewBox=”0 0 24 24” fill=”none” stroke=”currentColor” stroke-width=”2.2”><circle cx=”12” cy=”12” r=”9”/><path d=”M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .8-1 1.7M12 17h.01” stroke-linecap=”round”/></svg>
+        It says “item not found” or “app not available”
+        <svg class=”chev” width=”16” height=”16” viewBox=”0 0 24 24” fill=”none” stroke=”currentColor” stroke-width=”2.4” stroke-linecap=”round” stroke-linejoin=”round”><path d=”m6 9 6 6 6-6”/></svg>
+      </summary>
+      <div class=”body”>
         <p><b>Wait ~15 minutes after opting in.</b> Google needs a little time to unlock the download for your account.</p>
         <p><b>Use the same Google account everywhere</b> — the one that joined the group and opted in must be the active account in your Play Store (Play Store → profile icon → check the account at the top).</p>
-        <p><b>It's Android only</b> for now. iPhone can't install the test build, but you can use ChildBloom free in any browser at <a href="https://childbloom.in" target="_blank" rel="noopener">childbloom.in</a>.</p>
-        <p>Still stuck? Email <a href="mailto:childbloomenterprise@gmail.com">childbloomenterprise@gmail.com</a> and we'll sort it out.</p>
+        <p><b>It's Android only</b> for now. iPhone can't install the test build, but you can use ChildBloom free in any browser at <a href=”https://childbloom.in” target=”_blank” rel=”noopener”>childbloom.in</a>.</p>
+        <p>Still stuck? Email <a href=”mailto:childbloomenterprise@gmail.com”>childbloomenterprise@gmail.com</a> and we'll sort it out.</p>
       </div>
     </details>
 
