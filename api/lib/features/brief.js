@@ -13,7 +13,7 @@ function istDateStr(d = new Date()) {
   return ist.toISOString().slice(0, 10);
 }
 
-export default async function handler(req, res) {
+export async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', corsOrigin());
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');

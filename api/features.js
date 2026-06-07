@@ -9,11 +9,13 @@
 //   POST /api/myth-check   -> /api/features?fn=myth    (api/lib/features/myth.js)
 //   POST /api/parse-log    -> /api/features?fn=parse   (api/lib/features/parse.js)
 //
-// The real handlers live in api/lib/** which Vercel does NOT count as functions.
+// The real handlers live in api/lib/** and use NAMED exports (no `export
+// default`), so Vercel does NOT treat them as Serverless Functions — only files
+// with a default-export handler under api/ count toward the Hobby 12-function cap.
 
-import brief from './lib/features/brief.js';
-import myth from './lib/features/myth.js';
-import parse from './lib/features/parse.js';
+import { handler as brief } from './lib/features/brief.js';
+import { handler as myth } from './lib/features/myth.js';
+import { handler as parse } from './lib/features/parse.js';
 
 const HANDLERS = { brief, myth, parse };
 
