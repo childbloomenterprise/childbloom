@@ -4,8 +4,8 @@
 // api/agent/cron.js. RLS guarantees the caller can only read their own child.
 
 import { createClient } from '@supabase/supabase-js';
-import { corsOrigin } from '../lib/models.js';
-import { isUuid } from '../lib/rateLimit.js';
+import { corsOrigin } from '../models.js';
+import { isUuid } from '../rateLimit.js';
 
 // India Standard Time date (UTC+5:30) as YYYY-MM-DD — must match cron.js.
 function istDateStr(d = new Date()) {

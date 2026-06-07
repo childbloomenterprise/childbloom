@@ -72,6 +72,9 @@
   ],
   "rewrites": [
     { "source": "/join", "destination": "/join.html" },
+    { "source": "/api/brief/today", "destination": "/api/features?fn=brief" },
+    { "source": "/api/myth-check", "destination": "/api/features?fn=myth" },
+    { "source": "/api/parse-log", "destination": "/api/features?fn=parse" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

@@ -16,11 +16,11 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
-import { FAST_MODEL, corsOrigin } from './lib/models.js';
-import { checkRateLimit, logUsage, isString, sanitizeText } from './lib/rateLimit.js';
-import { isPremium } from './lib/premium.js';
-import { consumeFeatureQuota } from './lib/featureQuota.js';
-import { track } from './lib/posthog.js';
+import { FAST_MODEL, corsOrigin } from '../models.js';
+import { checkRateLimit, logUsage, isString, sanitizeText } from '../rateLimit.js';
+import { isPremium } from '../premium.js';
+import { consumeFeatureQuota } from '../featureQuota.js';
+import { track } from '../posthog.js';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
