@@ -71,6 +71,7 @@
     }
   ],
   "rewrites": [
+    { "source": "/join", "destination": "/join.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
