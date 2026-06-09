@@ -17,6 +17,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import { useChildById } from '../../hooks/useChild';
 import useAuthStore from '../../stores/authStore';
+import useUiStore from '../../stores/uiStore';
 import CBIcon from '../../components/cb/CBIcon';
 import WheelPicker, { ML_ITEMS } from '../../components/cb/WheelPicker';
 import { T, FONTS, RADIUS } from '../../components/cb/tokens';
@@ -64,10 +65,19 @@ function formatTimer(secs) {
 function BottomSheet({ open, onClose, label, children }) {
   const ref = useRef(null);
   useFocusTrap(ref, open, onClose);
+  const openModal  = useUiStore((s) => s.openModal);
+  const closeModal = useUiStore((s) => s.closeModal);
   useEffect(() => {
-    document.body.style.overflow = open ? 'hidden' : '';
-    return () => { document.body.style.overflow = ''; };
-  }, [open]);
+    if (!open) return;
+    // Take over the screen: lock body scroll + hide the bottom dock/SOS so the
+    // sheet's Save button is never covered by the floating tab bar.
+    document.body.style.overflow = 'hidden';
+    openModal();
+    return () => {
+      document.body.style.overflow = '';
+      closeModal();
+    };
+  }, [open, openModal, closeModal]);
 
   return (
     <>

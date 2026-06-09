@@ -21,6 +21,7 @@ import CBIcon from './CBIcon';
 import CBLogoMark from './CBLogoMark';
 import { T } from './tokens';
 import { useScrollVisibility } from '../../hooks/useScrollVisibility';
+import useUiStore from '../../stores/uiStore';
 
 export default function CBTabBar() {
   const navigate  = useNavigate();
@@ -28,7 +29,14 @@ export default function CBTabBar() {
   const child     = useSelectedChild();
   const childId   = child?.id;
   const session   = useAuthStore((s) => s.session);
-  const { visible, atTop } = useScrollVisibility();
+  const { visible: scrollVisible, atTop } = useScrollVisibility();
+
+  // Hide the dock entirely while a modal/bottom-sheet is open. The dock is a
+  // sibling of the page in AppLayout and PageTransition wraps each page in a
+  // stacking context, so otherwise the dock paints OVER the sheet and covers
+  // its Save button (the classic "have to scroll to save" bug).
+  const modalOpen = useUiStore((s) => s.modalCount > 0);
+  const visible = scrollVisible && !modalOpen;
 
   const timelinePath = childId ? `/child/${childId}/updates` : (session ? '/dashboard' : '/auth');
   const carePath     = '/care';

@@ -2,6 +2,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import CBIcon from './CBIcon';
 import { FONTS } from './tokens';
+import useUiStore from '../../stores/uiStore';
 
 // Persistent floating SOS button → one tap to the emergency triage screen.
 // Shown only on the two hub screens (Home + Care) to keep the rest of the app
@@ -12,8 +13,11 @@ export default function SosButton() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { t } = useTranslation();
+  const modalOpen = useUiStore((s) => s.modalCount > 0);
 
   if (!HUB_ROUTES.includes(pathname)) return null;
+  // A modal/bottom-sheet owns the screen — don't float over it.
+  if (modalOpen) return null;
 
   const go = () => {
     try { navigator.vibrate?.(12); } catch { /* noop */ }

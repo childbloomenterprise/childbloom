@@ -13,6 +13,7 @@ import {
   HRow, Stack, Spacer, Divider, SectionLabel, ChromeBtn,
   Avatar, AIBubble, TimelineEntry,
 } from '../../components/cb/primitives';
+import TodayHub from '../dashboard/TodayHub';
 
 const COLOR_BY_KIND = {
   feed:      T.brandWash,
@@ -148,6 +149,14 @@ export default function UpdateHistoryPage() {
         </Card>
 
         <Spacer h={18} />
+
+        {/* Today's rich stack — moved off Home to keep Home calm (Apple deference). */}
+        {childId && (
+          <>
+            <TodayHub child={child} />
+            <Spacer h={24} />
+          </>
+        )}
 
         {/* Empty today */}
         {events.length === 0 && (

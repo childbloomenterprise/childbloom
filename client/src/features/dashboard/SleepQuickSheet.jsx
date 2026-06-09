@@ -19,6 +19,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import useAuthStore from '../../stores/authStore';
+import useUiStore from '../../stores/uiStore';
 import { T, FONTS, RADIUS } from '../../components/cb/tokens';
 import { Display, Mono, Body, Spacer } from '../../components/cb/primitives';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
@@ -72,12 +73,19 @@ export default function SleepQuickSheet({ open, onClose, childId }) {
   const intervalRef = useRef(null);
   const dialogRef   = useRef(null);
   useFocusTrap(dialogRef, open, onClose);
+  const openModal  = useUiStore((s) => s.openModal);
+  const closeModal = useUiStore((s) => s.closeModal);
 
-  // ── Lock body scroll while open ──────────────────────────────────────────
+  // ── Lock body scroll + hide the bottom dock/SOS while open ────────────────
   useEffect(() => {
-    document.body.style.overflow = open ? 'hidden' : '';
-    return () => { document.body.style.overflow = ''; };
-  }, [open]);
+    if (!open) return;
+    document.body.style.overflow = 'hidden';
+    openModal();
+    return () => {
+      document.body.style.overflow = '';
+      closeModal();
+    };
+  }, [open, openModal, closeModal]);
 
   // ── Restore timer from localStorage on open ──────────────────────────────
   useEffect(() => {
