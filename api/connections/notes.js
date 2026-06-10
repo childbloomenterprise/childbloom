@@ -6,6 +6,9 @@
 // Auth: Bearer token (Supabase JWT for the parent).
 
 import { createClient } from '@supabase/supabase-js';
+import { isUuid } from '../lib/rateLimit.js';
+
+const MAX_NOTES_CHARS = 4000;
 
 const ALLOWED_ORIGINS = [
   process.env.FRONTEND_ORIGIN || 'https://childbloom-pi.vercel.app',
@@ -45,7 +48,10 @@ export default async function handler(req, res) {
   if (authError || !user) return res.status(401).json({ error: 'Unauthorized' });
 
   const { connectionId, notes } = req.body || {};
-  if (!connectionId) return res.status(400).json({ error: 'connectionId required' });
+  if (!isUuid(connectionId)) return res.status(400).json({ error: 'connectionId must be a valid UUID' });
+  if (notes != null && (typeof notes !== 'string' || notes.length > MAX_NOTES_CHARS)) {
+    return res.status(400).json({ error: `notes must be a string of at most ${MAX_NOTES_CHARS} characters` });
+  }
 
   const admin = createClient(supabaseUrl, serviceKey, {
     auth: { autoRefreshToken: false, persistSession: false },
@@ -78,6 +84,9 @@ export default async function handler(req, res) {
     })
     .eq('id', connectionId);
 
-  if (updateErr) return res.status(500).json({ error: updateErr.message });
+  if (updateErr) {
+    console.error('[connections/notes] update failed:', updateErr.message);
+    return res.status(500).json({ error: 'Could not save notes. Please try again.' });
+  }
   return res.status(200).json({ ok: true });
 }

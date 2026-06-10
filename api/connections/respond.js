@@ -7,6 +7,7 @@
 // Security: only updates connections where the child's parent_id matches auth.uid().
 
 import { createClient } from '@supabase/supabase-js';
+import { isUuid } from '../lib/rateLimit.js';
 
 const ALLOWED_ORIGINS = [
   process.env.FRONTEND_ORIGIN || 'https://childbloom-pi.vercel.app',
@@ -50,8 +51,8 @@ export default async function handler(req, res) {
   if (authError || !user) return res.status(401).json({ error: 'Unauthorized' });
 
   const { connectionId, action } = req.body || {};
-  if (!connectionId || !['approve', 'decline'].includes(action)) {
-    return res.status(400).json({ error: 'connectionId and action (approve|decline) required' });
+  if (!isUuid(connectionId) || !['approve', 'decline'].includes(action)) {
+    return res.status(400).json({ error: 'connectionId (UUID) and action (approve|decline) required' });
   }
 
   const newStatus = action === 'approve' ? 'active' : 'declined';
@@ -93,7 +94,10 @@ export default async function handler(req, res) {
     })
     .eq('id', connectionId);
 
-  if (updateErr) return res.status(500).json({ error: updateErr.message });
+  if (updateErr) {
+    console.error('[connections/respond] update failed:', updateErr.message);
+    return res.status(500).json({ error: 'Could not update the connection. Please try again.' });
+  }
 
   // Mark the related notification as read
   await admin
@@ -107,7 +111,9 @@ export default async function handler(req, res) {
   // Uses the internal cross-app endpoint authenticated with the shared service key.
   if (newStatus === 'active') {
     const drBloomUrl  = process.env.DRBLOOM_URL || 'https://dr-bloom-git-main-childbloomenterprises-projects.vercel.app';
-    const internalKey = process.env.SUPABASE_SERVICE_ROLE_KEY; // shared key — Dr. Bloom verifies CHILDBLOOM_SERVICE_ROLE_KEY
+    // Prefer a dedicated cross-app key; falls back to the legacy shared key so
+    // nothing breaks until DRBLOOM_INTERNAL_KEY is set in BOTH apps' env vars.
+    const internalKey = process.env.DRBLOOM_INTERNAL_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     // Fetch child name for the notification title
     const { data: childData } = await admin

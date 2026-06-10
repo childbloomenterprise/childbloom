@@ -87,6 +87,15 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'No image provided' });
   }
 
+  // Clamp the free-text fields that get interpolated into the Claude prompt.
+  const safeChildName = typeof childName === 'string'
+    ? childName.replace(/[\r\n]/g, ' ').slice(0, 80).trim() || 'unknown'
+    : 'unknown';
+  const ageNum = Number(childAgeMonths);
+  const safeAgeMonths = Number.isFinite(ageNum) && ageNum >= 0 && ageNum <= 240
+    ? Math.round(ageNum)
+    : 'unknown';
+
   // Size guard — base64 inflates ~4/3, so cap at MAX_IMAGE_BYTES * 4/3 raw chars.
   if (imageBase64.length > MAX_IMAGE_BYTES * 1.4) {
     return res.status(413).json({
@@ -130,7 +139,7 @@ export default async function handler(req, res) {
             },
             {
               type: 'text',
-              text: `Extract all medical information from this hospital bill/receipt. Child name: ${childName || 'unknown'}, Age: ${childAgeMonths || 'unknown'} months.`,
+              text: `Extract all medical information from this hospital bill/receipt. Child name: ${safeChildName}, Age: ${safeAgeMonths} months.`,
             },
           ],
         },
