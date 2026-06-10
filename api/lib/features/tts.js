@@ -1,6 +1,8 @@
+// POST /api/tts (rewritten to /api/features?fn=tts — see vercel.json).
+// Named export so this file does NOT count toward the Hobby 12-function cap.
 import { createClient } from '@supabase/supabase-js';
-import { corsOrigin } from './lib/models.js';
-import { checkRateLimit, logUsage } from './lib/rateLimit.js';
+import { corsOrigin } from '../models.js';
+import { checkRateLimit, logUsage } from '../rateLimit.js';
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
@@ -16,7 +18,7 @@ const TTS_RATE_TIERS = [
   { limit: 200, windowSec: 86400, message: 'TTS daily limit reached.' },
 ];
 
-export default async function handler(req, res) {
+export async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', corsOrigin());
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');

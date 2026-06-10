@@ -7,7 +7,8 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     environment: 'node',
-    include: ['api/**/*.test.js'],
+    // Tests live OUTSIDE api/ so Vercel's function counter never sees them.
+    include: ['api-tests/**/*.test.js'],
     globals: true,
   },
 });

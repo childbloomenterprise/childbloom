@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { consumeFeatureQuota, weekStart } from './featureQuota.js';
+﻿import { describe, it, expect } from 'vitest';
+import { consumeFeatureQuota, weekStart } from '../api/lib/featureQuota.js';
 
 // Minimal in-memory stand-in for the Supabase service client. Models the two
 // calls consumeFeatureQuota makes: a filtered .select(...).maybeSingle() read
@@ -30,7 +30,7 @@ function makeFakeDb() {
 
 describe('weekStart', () => {
   it('returns a Monday-based ISO date string (UTC)', () => {
-    // 2026-06-04 is a Thursday → week start Monday 2026-06-01
+    // 2026-06-04 is a Thursday â†’ week start Monday 2026-06-01
     expect(weekStart(new Date('2026-06-04T10:00:00Z'))).toBe('2026-06-01');
     // Monday maps to itself
     expect(weekStart(new Date('2026-06-01T00:00:00Z'))).toBe('2026-06-01');

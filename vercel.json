@@ -75,6 +75,9 @@
     { "source": "/api/brief/today", "destination": "/api/features?fn=brief" },
     { "source": "/api/myth-check", "destination": "/api/features?fn=myth" },
     { "source": "/api/parse-log", "destination": "/api/features?fn=parse" },
+    { "source": "/api/tts", "destination": "/api/features?fn=tts" },
+    { "source": "/api/send-review", "destination": "/api/features?fn=review" },
+    { "source": "/api/health", "destination": "/api/features?fn=health" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
