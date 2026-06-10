@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
+import { celebrate } from '../../lib/bloomBurst';
 import { useChildById } from '../../hooks/useChild';
 import useAuthStore from '../../stores/authStore';
 import { useAchievements } from '../../hooks/useAchievements';
@@ -72,6 +73,7 @@ export default function GrowthPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['growth-records', childId] });
+      celebrate();
       setShowForm(false);
       setFormData({ record_date: format(new Date(), 'yyyy-MM-dd'), weight_kg: '', height_cm: '', head_circumference_cm: '' });
       const newTotal = records.length + 1;

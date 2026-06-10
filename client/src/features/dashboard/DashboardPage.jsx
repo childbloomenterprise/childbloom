@@ -21,14 +21,8 @@ import {
   Stack, HRow, Spacer, ChromeBtn, Avatar,
 } from '../../components/cb/primitives';
 import SleepQuickSheet from './SleepQuickSheet';
-
-function getGreeting() {
-  const h = new Date().getHours();
-  if (h < 12) return 'Good morning';
-  if (h < 17) return 'Good afternoon';
-  if (h < 21) return 'Good evening';
-  return 'Quiet night';
-}
+import useHomePulse from './useHomePulse';
+import { getWarmGreeting } from '../../lib/homePulse';
 
 // Human, warm age line — "10 days old", "6 weeks old", "14 months old".
 export function formatChildAge(dob) {
@@ -89,6 +83,7 @@ export default function DashboardPage() {
   const parentName = user?.user_metadata?.full_name?.split(' ')[0] || 'there';
   const childInitial = child?.name?.[0] || 'B';
   const ageLabel = formatChildAge(child?.date_of_birth);
+  const pulse = useHomePulse(childId);
 
   return (
     <div data-theme-root style={{ background: T.bg, minHeight: '100dvh', fontFamily: FONTS.sans, paddingBottom: 24 }}>
@@ -106,7 +101,7 @@ export default function DashboardPage() {
 
       {/* ── The hero: greeting · child · age — the one thing that matters first ── */}
       <div style={{ padding: '20px 20px 0' }}>
-        <Body size={13} color={T.ink400} weight={500}>{getGreeting()}, {parentName}</Body>
+        <Body size={13} color={T.ink400} weight={500}>{getWarmGreeting()}, {parentName}</Body>
         <Spacer h={6} />
         <Display size={36} italic weight={500} lh={1.05}>
           {child?.name || 'your little one'}
@@ -116,6 +111,11 @@ export default function DashboardPage() {
             <Spacer h={6} />
             <Body size={14} color={T.ink500}>
               {ageLabel ? `${ageLabel} · ` : ''}{format(new Date(), 'EEEE')}
+              {pulse.streak >= 2 && (
+                <span style={{ color: T.gold, fontWeight: 600 }}>
+                  {' '}· ✦ {pulse.streak >= 7 ? '7+' : pulse.streak}-day streak
+                </span>
+              )}
             </Body>
           </>
         )}
@@ -128,18 +128,26 @@ export default function DashboardPage() {
             <QuickTile
               icon="bottle"
               label="Feed"
-              sub="Bottle, breast, pump"
+              sub={pulse.lastFeedAgo
+                ? `Last feed · ${pulse.lastFeedAgo}`
+                : 'Bottle, breast, pump'}
               onClick={() => navigate(`/child/${childId}/food`)}
               aria-label="Log a feed"
             />
             <QuickTile
               icon="moon"
               label="Sleep"
-              sub="Start the nap timer"
+              sub={pulse.napElapsedMin != null
+                ? `● Nap in progress · ${pulse.napElapsedMin < 60
+                    ? `${pulse.napElapsedMin}m`
+                    : `${Math.floor(pulse.napElapsedMin / 60)}h ${pulse.napElapsedMin % 60}m`}`
+                : pulse.sleepHoursToday != null
+                  ? `${pulse.sleepHoursToday}h logged today`
+                  : 'Start the nap timer'}
               accent="#3B5BDB"
               tint="#EBF4FF"
               onClick={() => setSleepSheetOpen(true)}
-              aria-label="Log sleep"
+              aria-label={pulse.napElapsedMin != null ? 'Nap in progress — open sleep timer' : 'Log sleep'}
             />
             <QuickTile
               icon="sparkle"
@@ -153,11 +161,28 @@ export default function DashboardPage() {
             <QuickTile
               icon="chart"
               label="Growth"
-              sub="Weight & height"
+              sub={pulse.latestWeightKg != null
+                ? `Last · ${pulse.latestWeightKg} kg`
+                : 'Weight & height'}
               onClick={() => navigate(`/child/${childId}/growth`)}
               aria-label="Track growth measurements"
             />
           </div>
+
+          {/* Rhythm whisper — gentle prediction from this week's real feeds */}
+          {pulse.nextFeed && (
+            <Body
+              size={12}
+              color={T.ink400}
+              style={{ marginTop: 14, textAlign: 'center' }}
+              aria-live="polite"
+            >
+              {pulse.nextFeed.at <= new Date()
+                ? `${child?.name || 'Baby'} is usually fed around now`
+                : `Next feed usually around ${format(pulse.nextFeed.at, 'h:mm a')}`}
+              {' · '}from this week's rhythm
+            </Body>
+          )}
         </div>
       )}
 

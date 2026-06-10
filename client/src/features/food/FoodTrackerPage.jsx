@@ -27,6 +27,7 @@ import {
   SegmentedToggle,
 } from '../../components/cb/primitives';
 import { computeBottleSuggestions, computeBreastSuggestions } from '../../lib/feedLearning';
+import { celebrate } from '../../lib/bloomBurst';
 import { format, differenceInMinutes, differenceInHours } from 'date-fns';
 
 // ── Animations ────────────────────────────────────────────────────────────
@@ -919,7 +920,11 @@ export default function FoodTrackerPage() {
       setSaveError('');
       queryClient.setQueryData(['food-logs', childId], (old = []) => [newLog, ...(old || [])]);
       queryClient.invalidateQueries({ queryKey: ['food-logs', childId] });
+      // Keep Home's living tiles + Timeline in sync with the new feed.
+      queryClient.invalidateQueries({ queryKey: ['food-logs-today', childId] });
+      queryClient.invalidateQueries({ queryKey: ['food-logs-7d', childId] });
       setSaved(true);
+      celebrate();
       setTimeout(() => {
         setSheetOpen(false);
         setTimeout(() => { setSaved(false); setNotes(''); setFeedType('breast'); }, 400);

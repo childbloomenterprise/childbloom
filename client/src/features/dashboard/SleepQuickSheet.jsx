@@ -18,6 +18,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
+import { celebrate } from '../../lib/bloomBurst';
 import useAuthStore from '../../stores/authStore';
 import useUiStore from '../../stores/uiStore';
 import { T, FONTS, RADIUS } from '../../components/cb/tokens';
@@ -173,7 +174,7 @@ export default function SleepQuickSheet({ open, onClose, childId }) {
       qc.invalidateQueries({ queryKey: ['sleep-logs-7d', childId] });
       localStorage.removeItem(STORAGE_KEY(childId));
       setSaved(true);
-      try { navigator.vibrate?.([30, 50, 30]); } catch (_) {}
+      celebrate();
       setTimeout(() => {
         onClose();
         setTimeout(() => {
