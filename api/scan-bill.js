@@ -1,8 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
-import { DEFAULT_MODEL, corsOrigin } from './lib/models.js';
-import { checkRateLimit, logUsage } from './lib/rateLimit.js';
-import { track } from './lib/posthog.js';
+import { DEFAULT_MODEL, corsOrigin } from './_lib/models.js';
+import { checkRateLimit, logUsage } from './_lib/rateLimit.js';
+import { track } from './_lib/posthog.js';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 

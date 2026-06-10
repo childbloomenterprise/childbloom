@@ -16,12 +16,12 @@
 // default`), so Vercel does NOT treat them as Serverless Functions — only files
 // with a default-export handler under api/ count toward the Hobby 12-function cap.
 
-import { handler as brief } from './lib/features/brief.js';
-import { handler as myth } from './lib/features/myth.js';
-import { handler as parse } from './lib/features/parse.js';
-import { handler as tts } from './lib/features/tts.js';
-import { handler as review } from './lib/features/review.js';
-import { corsOrigin } from './lib/models.js';
+import { handler as brief } from './_lib/features/brief.js';
+import { handler as myth } from './_lib/features/myth.js';
+import { handler as parse } from './_lib/features/parse.js';
+import { handler as tts } from './_lib/features/tts.js';
+import { handler as review } from './_lib/features/review.js';
+import { corsOrigin } from './_lib/models.js';
 
 function health(req, res) {
   res.setHeader('Access-Control-Allow-Origin', corsOrigin());

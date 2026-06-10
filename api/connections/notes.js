@@ -6,7 +6,7 @@
 // Auth: Bearer token (Supabase JWT for the parent).
 
 import { createClient } from '@supabase/supabase-js';
-import { isUuid } from '../lib/rateLimit.js';
+import { isUuid } from '../_lib/rateLimit.js';
 
 const MAX_NOTES_CHARS = 4000;
 

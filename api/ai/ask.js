@@ -1,8 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
-import { FAST_MODEL, corsOrigin } from '../lib/models.js';
-import { checkRateLimit, logUsage, isString, isUuid, sanitizeText } from '../lib/rateLimit.js';
-import { isPremium, consumeFreeQuota } from '../lib/premium.js';
+import { FAST_MODEL, corsOrigin } from '../_lib/models.js';
+import { checkRateLimit, logUsage, isString, isUuid, sanitizeText } from '../_lib/rateLimit.js';
+import { isPremium, consumeFreeQuota } from '../_lib/premium.js';
 import {
   isEmergency,
   getEmergencyResponse,
@@ -12,8 +12,8 @@ import {
   isMedicalTopic,
   getSuggestedQuestions,
   getAgePrecision,
-} from '../lib/drBloomPrompt.js';
-import { track } from '../lib/posthog.js';
+} from '../_lib/drBloomPrompt.js';
+import { track } from '../_lib/posthog.js';
 
 const ASK_RATE_TIERS = [
   { limit: 3,   windowSec: 60,    message: 'Slow down — only 3 questions per minute. Take a breath and try again in a moment.' },

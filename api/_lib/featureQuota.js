@@ -5,7 +5,7 @@
 // allowance that never touches Dr. Bloom's shared ai_usage bucket.
 //
 // Usage (server-side only — uses the service role):
-//   import { consumeFeatureQuota } from '../lib/featureQuota.js';
+//   import { consumeFeatureQuota } from '../_lib/featureQuota.js';
 //   const quota = await consumeFeatureQuota(user.id, 'myth_check', 3);
 //   if (!quota.allowed) return res.status(402).json({ ... });
 //

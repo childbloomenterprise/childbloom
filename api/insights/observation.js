@@ -16,8 +16,8 @@
 // not run yet), the endpoint still works — it just skips caching.
 
 import { createClient } from '@supabase/supabase-js';
-import { corsOrigin } from '../lib/models.js';
-import { checkRateLimit, logUsage, isUuid } from '../lib/rateLimit.js';
+import { corsOrigin } from '../_lib/models.js';
+import { checkRateLimit, logUsage, isUuid } from '../_lib/rateLimit.js';
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 

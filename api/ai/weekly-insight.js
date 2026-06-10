@@ -1,9 +1,9 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
-import { DEFAULT_MODEL, corsOrigin } from '../lib/models.js';
-import { DR_BLOOM_SYSTEM_PROMPT, WEEKLY_INSIGHT_ADDENDUM } from '../lib/drBloomPrompt.js';
-import { checkRateLimit, logUsage, sanitizeText } from '../lib/rateLimit.js';
-import { track } from '../lib/posthog.js';
+import { DEFAULT_MODEL, corsOrigin } from '../_lib/models.js';
+import { DR_BLOOM_SYSTEM_PROMPT, WEEKLY_INSIGHT_ADDENDUM } from '../_lib/drBloomPrompt.js';
+import { checkRateLimit, logUsage, sanitizeText } from '../_lib/rateLimit.js';
+import { track } from '../_lib/posthog.js';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);

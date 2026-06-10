@@ -1,5 +1,5 @@
-﻿import { describe, it, expect } from 'vitest';
-import { consumeFeatureQuota, weekStart } from '../api/lib/featureQuota.js';
+import { describe, it, expect } from 'vitest';
+import { consumeFeatureQuota, weekStart } from '../api/_lib/featureQuota.js';
 
 // Minimal in-memory stand-in for the Supabase service client. Models the two
 // calls consumeFeatureQuota makes: a filtered .select(...).maybeSingle() read

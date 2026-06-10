@@ -9,9 +9,9 @@
 
 import { createClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
-import { FAST_MODEL } from '../lib/models.js';
-import { buildDailyBriefPrompt, parseBriefJson } from '../lib/dailyBriefPrompt.js';
-import { track } from '../lib/posthog.js';
+import { FAST_MODEL } from '../_lib/models.js';
+import { buildDailyBriefPrompt, parseBriefJson } from '../_lib/dailyBriefPrompt.js';
+import { track } from '../_lib/posthog.js';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 

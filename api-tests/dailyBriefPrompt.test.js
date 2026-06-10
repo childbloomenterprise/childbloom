@@ -1,5 +1,5 @@
-﻿import { describe, it, expect } from 'vitest';
-import { buildDailyBriefPrompt, parseBriefJson } from '../api/lib/dailyBriefPrompt.js';
+import { describe, it, expect } from 'vitest';
+import { buildDailyBriefPrompt, parseBriefJson } from '../api/_lib/dailyBriefPrompt.js';
 
 function sampleData(overrides = {}) {
   // ~5 months old

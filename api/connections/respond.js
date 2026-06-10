@@ -7,7 +7,7 @@
 // Security: only updates connections where the child's parent_id matches auth.uid().
 
 import { createClient } from '@supabase/supabase-js';
-import { isUuid } from '../lib/rateLimit.js';
+import { isUuid } from '../_lib/rateLimit.js';
 
 const ALLOWED_ORIGINS = [
   process.env.FRONTEND_ORIGIN || 'https://childbloom-pi.vercel.app',
