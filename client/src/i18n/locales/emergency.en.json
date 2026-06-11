@@ -23,6 +23,23 @@
       "startOver": "Start over",
       "close": "Close",
       "reviewed": "Source: {{source}} · reviewed {{date}}"
+    },
+    "scenes": {
+      "speedSlow": "½× slow",
+      "speedNormal": "1× speed",
+      "checkInfant": "Tap the foot · Watch the chest · 10 seconds",
+      "checkChild": "Tap the shoulder · Call their name · Watch the chest",
+      "layFlat": "Firm flat surface · Floor is best",
+      "placeTwoFinger": "2 fingers · Centre of chest · Below nipple line",
+      "placeHeel": "Heel of one hand · Centre of chest · Arms straight",
+      "pushInfant": "Push 4 cm deep · Let the chest rise back",
+      "pushChild": "Push 5 cm deep · Shoulders above your hands",
+      "beat30": "30 pushes · Follow the beat · Count out loud",
+      "airway": "Tilt the head back gently · Lift the chin",
+      "breathsInfant": "Cover mouth AND nose · 2 small puffs · Watch the chest rise",
+      "breathsChild": "Pinch the nose · Seal the mouth · 1 second per breath",
+      "cycle302": "30 pushes · 2 breaths · Repeat without stopping",
+      "recovery": "Roll onto the side · Head tilted back · Stay with them"
     }
   }
 }

@@ -1,3 +1,22 @@
 {
-  "_todo": "Translate sos.* into Punjabi. Until then, English (emergency.en.json) is inherited via the i18n merge."
+  "_todo": "Translate sos.* into Punjabi. Until then, English (emergency.en.json) is inherited via the i18n merge.",
+  "sos": {
+    "scenes": {
+      "speedSlow": "½× ਹੌਲੀ",
+      "speedNormal": "1× ਰਫ਼ਤਾਰ",
+      "checkInfant": "ਪੈਰ ਥਪਥਪਾਓ · ਛਾਤੀ ਦੇਖੋ · 10 ਸਕਿੰਟ",
+      "checkChild": "ਮੋਢਾ ਥਪਥਪਾਓ · ਨਾਂ ਲੈ ਕੇ ਬੁਲਾਓ · ਛਾਤੀ ਦੇਖੋ",
+      "layFlat": "ਸਖ਼ਤ ਪੱਧਰੀ ਸਤ੍ਹਾ · ਫਰਸ਼ ਸਭ ਤੋਂ ਵਧੀਆ",
+      "placeTwoFinger": "2 ਉਂਗਲਾਂ · ਛਾਤੀ ਦੇ ਵਿਚਕਾਰ · ਨਿੱਪਲ ਰੇਖਾ ਤੋਂ ਹੇਠਾਂ",
+      "placeHeel": "ਹਥੇਲੀ ਦਾ ਹੇਠਲਾ ਹਿੱਸਾ · ਛਾਤੀ ਦੇ ਵਿਚਕਾਰ · ਬਾਹਾਂ ਸਿੱਧੀਆਂ",
+      "pushInfant": "4 ਸੈਂਟੀਮੀਟਰ ਡੂੰਘਾ ਦਬਾਓ · ਛਾਤੀ ਨੂੰ ਵਾਪਸ ਉੱਠਣ ਦਿਓ",
+      "pushChild": "5 ਸੈਂਟੀਮੀਟਰ ਡੂੰਘਾ ਦਬਾਓ · ਮੋਢੇ ਹੱਥਾਂ ਦੇ ਉੱਪਰ",
+      "beat30": "30 ਵਾਰ ਦਬਾਓ · ਤਾਲ ਨਾਲ · ਉੱਚੀ ਗਿਣੋ",
+      "airway": "ਸਿਰ ਹੌਲੀ ਜਿਹੇ ਪਿੱਛੇ ਝੁਕਾਓ · ਠੋਡੀ ਚੁੱਕੋ",
+      "breathsInfant": "ਮੂੰਹ ਅਤੇ ਨੱਕ ਦੋਵੇਂ ਢੱਕੋ · 2 ਹਲਕੀਆਂ ਫੂਕਾਂ · ਛਾਤੀ ਉੱਠਦੀ ਦੇਖੋ",
+      "breathsChild": "ਨੱਕ ਦਬਾਓ · ਮੂੰਹ ਸੀਲ ਕਰੋ · ਹਰ ਸਾਹ 1 ਸਕਿੰਟ",
+      "cycle302": "30 ਵਾਰ ਦਬਾਓ · 2 ਸਾਹ · ਬਿਨਾਂ ਰੁਕੇ ਦੁਹਰਾਓ",
+      "recovery": "ਪਾਸੇ ਵੱਲ ਲਿਟਾਓ · ਸਿਰ ਪਿੱਛੇ ਝੁਕਿਆ · ਕੋਲ ਰਹੋ"
+    }
+  }
 }

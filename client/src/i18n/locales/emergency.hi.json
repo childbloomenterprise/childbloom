@@ -1,3 +1,22 @@
 {
-  "_todo": "Translate sos.* into Hindi. Until then, English (emergency.en.json) is inherited via the i18n merge."
+  "_todo": "Translate sos.* into Hindi. Until then, English (emergency.en.json) is inherited via the i18n merge.",
+  "sos": {
+    "scenes": {
+      "speedSlow": "½× धीमा",
+      "speedNormal": "1× गति",
+      "checkInfant": "पैर थपथपाएं · छाती देखें · 10 सेकंड",
+      "checkChild": "कंधा थपथपाएं · नाम पुकारें · छाती देखें",
+      "layFlat": "सख्त समतल सतह · फर्श सबसे अच्छा",
+      "placeTwoFinger": "2 उंगलियां · छाती के बीच में · निप्पल रेखा के नीचे",
+      "placeHeel": "हथेली का निचला हिस्सा · छाती के बीच में · बाहें सीधी",
+      "pushInfant": "4 सेमी गहरा दबाएं · छाती को वापस उठने दें",
+      "pushChild": "5 सेमी गहरा दबाएं · कंधे हाथों के ऊपर",
+      "beat30": "30 बार दबाएं · ताल के साथ · ज़ोर से गिनें",
+      "airway": "सिर धीरे से पीछे झुकाएं · ठुड्डी उठाएं",
+      "breathsInfant": "मुंह और नाक दोनों ढकें · 2 हल्की फूंकें · छाती उठती देखें",
+      "breathsChild": "नाक दबाएं · मुंह से मुंह सटाएं · हर सांस 1 सेकंड",
+      "cycle302": "30 बार दबाएं · 2 सांसें · बिना रुके दोहराएं",
+      "recovery": "करवट लिटाएं · सिर पीछे झुका · साथ रहें"
+    }
+  }
 }

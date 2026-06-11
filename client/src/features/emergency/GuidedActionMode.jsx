@@ -3,6 +3,7 @@ import { useParams, useNavigate, Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getEmergency, SEVERITY, resolveStep } from './data/emergencies';
 import { ILLUSTRATIONS, MINI_ILLUSTRATIONS } from './components/illustrations';
+import { SceneStage, getScene } from './components/scenes';
 import CPRRhythmCoach from './components/CPRRhythmCoach';
 import EmergencyTimer from './components/EmergencyTimer';
 import CBIcon from '../../components/cb/CBIcon';
@@ -99,7 +100,9 @@ export default function GuidedActionMode() {
   const step = steps[idx];
   const isLast = idx >= steps.length - 1;
 
-  // Small support illustration: the step's mini, else the protocol's hero (small).
+  // New animated scene for this step; legacy mini/hero kept as fallback
+  // until every emergency has scenes.
+  const scene = step?.scene ? getScene(step.scene) : null;
   const Mini = step?.stepIllustration ? MINI_ILLUSTRATIONS[step.stepIllustration] : null;
   const Hero = !Mini ? ILLUSTRATIONS[data.illustration] : null;
 
@@ -208,8 +211,23 @@ export default function GuidedActionMode() {
           />
         )}
 
-        {/* Support illustration (only when no metronome/timer dominates) */}
-        {!step.metronome && !step.seconds && (Mini || Hero) && (
+        {/* Animated scene — always shown when the step has one */}
+        {scene && (
+          <div style={{ width: '100%', maxWidth: step.metronome || step.seconds ? 340 : 430 }}>
+            <SceneStage
+              caption={t(scene.captionKey)}
+              accent={sev.color}
+              compact={!!(step.metronome || step.seconds)}
+              badges={scene.badges}
+              zoom={scene.zoom}
+            >
+              <scene.Component {...scene.props} />
+            </SceneStage>
+          </div>
+        )}
+
+        {/* Legacy illustration fallback (only when no scene and no metronome/timer) */}
+        {!scene && !step.metronome && !step.seconds && (Mini || Hero) && (
           <div style={{ width: '100%', maxWidth: 240, opacity: 0.95 }}>
             {Mini ? <Mini /> : <Hero severityColor={sev.color} />}
           </div>
