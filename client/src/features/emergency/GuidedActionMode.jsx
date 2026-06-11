@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useParams, useNavigate, Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { getEmergency, SEVERITY, resolveStep } from './data/emergencies';
 import { ILLUSTRATIONS, MINI_ILLUSTRATIONS } from './components/illustrations';
 import { SceneStage, getScene } from './components/scenes';
@@ -32,6 +33,7 @@ export default function GuidedActionMode() {
   });
 
   const { speak, stop } = useTextToSpeech();
+  const reduceMotion = useReducedMotion();
   useWakeLock(!done);
 
   const emergencyNumber = useMemo(() => getEmergencyNumber(), []);
@@ -161,8 +163,8 @@ export default function GuidedActionMode() {
       background: `linear-gradient(180deg, ${sev.tint} 0%, ${T.bg} 30%)`,
       fontFamily: FONTS.sans, display: 'flex', flexDirection: 'column',
     }}>
-      {/* Header: close · progress · mute */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 14px 8px', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 14px)' }}>
+      {/* Header: close · progress · mute (centered column on wide screens) */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 14px 8px', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 14px)', width: '100%', maxWidth: 592, margin: '0 auto' }}>
         <button onClick={() => { stop(); navigate('/emergency'); }} aria-label={t('sos.guided.close')} style={iconBtn}>
           <CBIcon name="close" size={22} stroke={2.2} />
         </button>
@@ -185,78 +187,92 @@ export default function GuidedActionMode() {
         </button>
       </div>
 
-      {/* Step body (scrollable middle) */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '8px 20px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 16 }}>
-        <h1 style={{
-          fontFamily: FONTS.serif, fontWeight: 600, fontSize: 30, lineHeight: 1.12,
-          letterSpacing: '-0.02em', color: T.ink900, margin: '8px 0 0',
-        }}>
-          {step.action}
-        </h1>
+      {/* Step body (scrollable middle, centered column on wide screens) */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '8px 20px 16px' }}>
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={idx}
+            initial={reduceMotion ? false : { opacity: 0, x: 26 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={reduceMotion ? undefined : { opacity: 0, x: -26 }}
+            transition={{ duration: 0.18, ease: 'easeOut' }}
+            style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center',
+              gap: 16, width: '100%', maxWidth: 560, margin: '0 auto',
+            }}
+          >
+            <h1 style={{
+              fontFamily: FONTS.serif, fontWeight: 600, fontSize: 30, lineHeight: 1.12,
+              letterSpacing: '-0.02em', color: T.ink900, margin: '8px 0 0',
+            }}>
+              {step.action}
+            </h1>
 
-        {/* Metronome (CPR) — auto-running, mute-aware */}
-        {step.metronome && data.rhythmCoach && (
-          <div style={{ width: '100%', maxWidth: 420 }}>
-            <CPRRhythmCoach kind={data.rhythmCoach} autoStart muted={muted} />
-          </div>
-        )}
+            {/* Animated scene — what to do, before anything else */}
+            {scene && (
+              <div style={{ width: '100%', maxWidth: step.metronome || step.seconds ? 320 : 440 }}>
+                <SceneStage
+                  caption={t(scene.captionKey)}
+                  accent={sev.color}
+                  compact={!!(step.metronome || step.seconds)}
+                  badges={scene.badges}
+                  zoom={scene.zoom}
+                >
+                  <scene.Component {...scene.props} />
+                </SceneStage>
+              </div>
+            )}
 
-        {/* Countdown timer */}
-        {step.seconds && (
-          <EmergencyTimer
-            seconds={step.seconds}
-            color={sev.color}
-            running
-            onComplete={step.autoAdvance ? goNext : undefined}
-          />
-        )}
+            {/* Legacy illustration fallback (until every emergency has scenes) */}
+            {!scene && !step.metronome && !step.seconds && (Mini || Hero) && (
+              <div style={{ width: '100%', maxWidth: 240, opacity: 0.95 }}>
+                {Mini ? <Mini /> : <Hero severityColor={sev.color} />}
+              </div>
+            )}
 
-        {/* Animated scene — always shown when the step has one */}
-        {scene && (
-          <div style={{ width: '100%', maxWidth: step.metronome || step.seconds ? 340 : 430 }}>
-            <SceneStage
-              caption={t(scene.captionKey)}
-              accent={sev.color}
-              compact={!!(step.metronome || step.seconds)}
-              badges={scene.badges}
-              zoom={scene.zoom}
-            >
-              <scene.Component {...scene.props} />
-            </SceneStage>
-          </div>
-        )}
+            {/* Metronome (CPR) — auto-running, mute-aware */}
+            {step.metronome && data.rhythmCoach && (
+              <div style={{ width: '100%', maxWidth: 420 }}>
+                <CPRRhythmCoach kind={data.rhythmCoach} autoStart muted={muted} />
+              </div>
+            )}
 
-        {/* Legacy illustration fallback (only when no scene and no metronome/timer) */}
-        {!scene && !step.metronome && !step.seconds && (Mini || Hero) && (
-          <div style={{ width: '100%', maxWidth: 240, opacity: 0.95 }}>
-            {Mini ? <Mini /> : <Hero severityColor={sev.color} />}
-          </div>
-        )}
+            {/* Countdown timer */}
+            {step.seconds && (
+              <EmergencyTimer
+                seconds={step.seconds}
+                color={sev.color}
+                running
+                onComplete={step.autoAdvance ? goNext : undefined}
+              />
+            )}
 
-        {/* Detail */}
-        {step.detail && (
-          <p style={{ fontSize: 17, color: T.ink700, lineHeight: 1.5, maxWidth: 420, margin: 0 }}>
-            {step.detail}
-          </p>
-        )}
+            {/* Detail */}
+            {step.detail && (
+              <p style={{ fontSize: 17, color: T.ink700, lineHeight: 1.5, maxWidth: 420, margin: 0 }}>
+                {step.detail}
+              </p>
+            )}
 
-        {/* Metronome depth cue */}
-        {step.metronome?.depthCue && (
-          <div style={{ fontSize: 15, fontWeight: 700, color: sev.color }}>
-            {step.metronome.depthCue}
-          </div>
-        )}
+            {/* Metronome depth cue */}
+            {step.metronome?.depthCue && (
+              <div style={{ fontSize: 15, fontWeight: 700, color: sev.color }}>
+                {step.metronome.depthCue}
+              </div>
+            )}
 
-        {/* Calming microcopy */}
-        {step.reassure && (
-          <div style={{ fontSize: 15, fontStyle: 'italic', color: '#16A34A', maxWidth: 380, lineHeight: 1.45 }}>
-            {step.reassure}
-          </div>
-        )}
+            {/* Calming microcopy */}
+            {step.reassure && (
+              <div style={{ fontSize: 15, fontStyle: 'italic', color: '#16A34A', maxWidth: 380, lineHeight: 1.45 }}>
+                {step.reassure}
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
       </div>
 
-      {/* Footer: Call bar + nav */}
-      <div style={{ padding: '10px 16px', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 10px)', display: 'flex', flexDirection: 'column', gap: 10, borderTop: `1px solid ${T.ink100}`, background: T.bg }}>
+      {/* Footer: Call bar + nav (centered column on wide screens) */}
+      <div style={{ padding: '10px 16px', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 10px)', display: 'flex', flexDirection: 'column', gap: 10, borderTop: `1px solid ${T.ink100}`, background: T.bg, width: '100%', maxWidth: 592, margin: '0 auto' }}>
         {callBar}
         <div style={{ display: 'flex', gap: 10, alignItems: 'stretch' }}>
           <button onClick={goBack} disabled={idx === 0} aria-label={t('sos.guided.back')}
@@ -274,7 +290,7 @@ export default function GuidedActionMode() {
             {!isLast && <CBIcon name="arrow-right" size={20} stroke={2.4} />}
           </button>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 2 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 2, flexWrap: 'wrap', gap: 6 }}>
           <button onClick={() => { stop(); navigate(`/emergency/${data.id}`); }}
             style={{ background: 'transparent', border: 'none', color: T.ink400, fontSize: 12, fontWeight: 600, cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>
             {t('sos.guided.readAll')}
