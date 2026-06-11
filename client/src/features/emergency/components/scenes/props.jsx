@@ -293,19 +293,69 @@ export function StingMark({ uid }) {
   );
 }
 
-/* generic child forearm close-up — canvas for wounds, stings, film */
+/* Realistic child forearm + relaxed hand, resting palm-down on a surface.
+   Used as the canvas for wounds, stings, cling film, water cooling.
+   Wound `mark` zone sits on the forearm around (230,206). Hand and
+   fingers at the left; elbow runs off-frame to the upper right. */
 export function ForearmCloseUp({ uid, mark = null }) {
+  const sk = g(uid, 'iskinL');
   return (
     <g>
-      {/* forearm diagonal across the lower stage */}
-      <path d="M 110,232 Q 190,196 300,188 Q 330,188 334,206 Q 336,224 312,230 Q 210,248 128,260 Q 108,260 106,248 Q 105,238 110,232 Z"
-        fill={g(uid, 'iskinL')} />
-      {/* small hand at the right end */}
-      <path d="M 326,192 Q 348,188 358,200 Q 364,212 352,220 Q 338,226 326,222 Q 332,210 326,206 Z" fill={g(uid, 'iskin')} />
-      <path d="M 342,198 Q 348,200 350,206 M 336,194 Q 342,196 346,202" fill="none" stroke="#A8632E" strokeWidth="1" strokeLinecap="round" opacity="0.4" />
-      {/* wrist crease + arm sheen */}
-      <path d="M 318,196 Q 322,206 318,216" fill="none" stroke="#A8632E" strokeWidth="1.3" opacity="0.4" />
-      <path d="M 140,228 Q 220,202 300,196" fill="none" stroke="rgba(255,240,220,0.7)" strokeWidth="3.5" strokeLinecap="round" />
+      {/* soft contact shadow under the whole arm */}
+      <ellipse cx="232" cy="252" rx="150" ry="13" fill="#33200E" opacity="0.18" filter={g(uid, 'blur6')} />
+
+      {/* ── forearm: wrist (left, ~x178) widening to the elbow off-frame (right) ── */}
+      <path d="M 176,228
+               Q 176,210 196,202 Q 250,184 312,184 Q 348,184 372,196
+               L 380,236 Q 352,250 312,250 Q 250,250 200,244 Q 178,242 176,228 Z"
+        fill={sk} />
+      {/* rounded top ridge — where the light lands, gives the cylinder its roll */}
+      <path d="M 192,206 Q 250,190 312,190 Q 344,190 366,200"
+        fill="none" stroke="rgba(255,243,224,0.7)" strokeWidth="9" strokeLinecap="round" opacity="0.85" />
+      <path d="M 200,200 Q 256,186 314,187" fill="none" stroke="rgba(255,250,238,0.55)" strokeWidth="3" strokeLinecap="round" />
+      {/* underside form-shadow — the arm turns away from the light here */}
+      <path d="M 196,240 Q 256,248 320,246 Q 352,245 372,236"
+        fill="none" stroke="#9C5B28" strokeWidth="9" strokeLinecap="round" opacity="0.22" />
+      {/* soft muscle/tendon hint along the forearm */}
+      <path d="M 236,224 Q 286,218 336,222" fill="none" stroke="#B97A40" strokeWidth="2" strokeLinecap="round" opacity="0.22" />
+
+      {/* ── wrist crease ── */}
+      <path d="M 182,214 Q 188,228 184,240" fill="none" stroke="#A8632E" strokeWidth="1.6" strokeLinecap="round" opacity="0.4" />
+      <path d="M 190,212 Q 196,228 191,242" fill="none" stroke="#A8632E" strokeWidth="1.2" strokeLinecap="round" opacity="0.28" />
+
+      {/* ── back of the hand ── */}
+      <path d="M 116,206 Q 120,194 140,194 Q 164,194 178,206 Q 186,216 180,230
+               Q 172,244 150,244 Q 126,244 116,232 Q 110,220 116,206 Z" fill={g(uid, 'iskin')} />
+      {/* knuckle ridge + tendon fan toward the fingers */}
+      <path d="M 124,210 Q 138,204 156,206" fill="none" stroke="rgba(255,243,224,0.6)" strokeWidth="3" strokeLinecap="round" />
+      <path d="M 128,222 L 116,214 M 138,224 L 126,214 M 148,224 L 138,213 M 158,222 L 150,212"
+        fill="none" stroke="#B97A40" strokeWidth="1.3" strokeLinecap="round" opacity="0.3" />
+
+      {/* ── four fingers, slightly fanned, pointing left ── */}
+      {[
+        { y: 196, len: 30, w: 8.5 },
+        { y: 207, len: 34, w: 9 },
+        { y: 219, len: 32, w: 9 },
+        { y: 231, len: 26, w: 8 },
+      ].map((f, i) => (
+        <g key={i}>
+          <path d={`M 124,${f.y} q -${f.len},${i < 2 ? -2 : 3} -${f.len + 6},${i < 2 ? -1 : 2}
+                    q -5,0 -5,${f.w / 2} q 0,${f.w / 2} 5,${f.w / 2}
+                    q ${f.len * 0.4},1 ${f.len + 4},-1 Z`} fill={g(uid, 'iskin')} />
+          {/* nail */}
+          <ellipse cx={124 - f.len - 3} cy={f.y + (i < 2 ? -1 : 2)} rx="3" ry="2.2" fill="rgba(255,238,218,0.75)" />
+          {/* knuckle crease */}
+          <path d={`M ${124 - f.len * 0.45},${f.y - 2} q 0,${f.w} 0,${f.w}`} fill="none" stroke="#A8632E" strokeWidth="0.9" opacity="0.3" />
+        </g>
+      ))}
+
+      {/* thumb tucked on the near/lower side */}
+      <path d="M 134,238 Q 124,250 110,250 Q 102,250 104,242 Q 108,234 120,232 Q 128,232 134,238 Z" fill={g(uid, 'iskin')} />
+      <ellipse cx="106" cy="246" rx="2.8" ry="2" fill="rgba(255,238,218,0.7)" />
+
+      {/* specular sheen on the back of the hand */}
+      <Spec uid={uid} cx="146" cy="208" rx="13" ry="6" opacity="0.45" />
+
       {mark}
     </g>
   );

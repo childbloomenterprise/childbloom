@@ -8,7 +8,7 @@
 import {
   useSvgId, g, FigureDefs, ChildSupine, FigureSideLying, InfantHeadUp,
   HandOpenPalm, HandChinLift, HandOnForehead,
-  TargetGlow, PulseRing, MotionArrow, ContactShadow, Spec, SKIN, HAIR,
+  TargetGlow, PulseRing, MotionArrow, ContactShadow, Spec, SKIN, HAIR, SHIRT,
 } from './figures';
 import {
   NoSign, Phone, ClockFace, HospitalIcon, TapStream, Cup, IcePack,
@@ -354,15 +354,75 @@ export function SceneClockNote() {
   );
 }
 
-/* ── EpiPen sequence ───────────────────────────────────────── */
+/* ── EpiPen sequence ───────────────────────────────────────────
+   A seated child's outer thigh, knee to the left, hip off-frame
+   right. Rounded, with the shorts hem near the hip. Injection
+   target sits mid-thigh around (224,222). */
 function Thigh({ uid }) {
+  const sk = g(uid, 'iskinL');
   return (
     <g>
-      {/* outer thigh — big friendly target */}
-      <path d="M 96,232 Q 180,196 300,200 Q 348,204 354,228 Q 356,250 320,256 Q 200,264 116,260 Q 92,256 92,244 Q 92,236 96,232 Z"
-        fill={g(uid, 'iskinL')} />
-      <path d="M 130,226 Q 220,206 320,212" fill="none" stroke="rgba(255,240,220,0.7)" strokeWidth="4" strokeLinecap="round" />
-      <ContactShadow uid={uid} cx={224} cy={264} rx={120} ry={8} opacity={0.2} />
+      <ellipse cx="230" cy="262" rx="158" ry="13" fill="#33200E" opacity="0.18" filter={g(uid, 'blur6')} />
+
+      {/* thigh mass — knee narrows at the left, hip widens right */}
+      <path d="M 96,238
+               Q 96,222 118,214 Q 150,202 196,200 Q 280,198 348,206
+               Q 384,212 388,236 Q 388,256 352,262 Q 280,268 196,266
+               Q 150,264 118,256 Q 96,250 96,238 Z" fill={sk} />
+      {/* top ridge highlight — the roll of the cylinder */}
+      <path d="M 120,220 Q 180,206 264,206 Q 332,208 372,220"
+        fill="none" stroke="rgba(255,243,224,0.7)" strokeWidth="11" strokeLinecap="round" opacity="0.8" />
+      <path d="M 132,214 Q 200,202 280,203" fill="none" stroke="rgba(255,250,238,0.5)" strokeWidth="3.5" strokeLinecap="round" />
+      {/* underside form-shadow */}
+      <path d="M 124,256 Q 200,264 300,262 Q 348,260 376,250"
+        fill="none" stroke="#9C5B28" strokeWidth="11" strokeLinecap="round" opacity="0.2" />
+      {/* knee cap hint at the left */}
+      <ellipse cx="124" cy="234" rx="20" ry="22" fill="rgba(255,238,218,0.25)" />
+      <ellipse cx="120" cy="228" rx="9" ry="7" fill="rgba(255,245,228,0.4)" />
+
+      {/* shorts hem draping over the hip (right) */}
+      <path d="M 330,200 Q 366,204 388,216 L 392,256 Q 372,266 344,266 Q 356,244 350,222 Q 344,208 330,200 Z"
+        fill={SHIRT.deep} />
+      <path d="M 338,210 Q 360,212 378,222" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="2.5" strokeLinecap="round" />
+      <path d="M 334,202 Q 348,224 344,250" fill="none" stroke={SHIRT.fold} strokeWidth="2" strokeLinecap="round" opacity="0.5" />
+
+      <Spec uid={uid} cx="210" cy="212" rx="20" ry="7" opacity="0.4" />
+    </g>
+  );
+}
+
+/* A clenched fist gripping a vertical pen barrel, forearm rising
+   off-frame above. Local (0,0) = centre of the grip; barrel runs
+   vertically through x=0. The forearm is what makes it read as a
+   real arm rather than a floating ball. */
+function EpiFist({ uid }) {
+  const sk = g(uid, 'askin');
+  return (
+    <g filter={g(uid, 'lift')}>
+      {/* forearm rising straight up out of the frame */}
+      <path d="M -20,-18 Q -22,-60 -18,-96 L 22,-96 Q 26,-58 22,-18 Z" fill={g(uid, 'askinL')} />
+      <path d="M -12,-30 Q -14,-64 -11,-92" fill="none" stroke="rgba(255,243,224,0.55)" strokeWidth="3.5" strokeLinecap="round" />
+      <path d="M 14,-26 Q 16,-60 13,-90" fill="none" stroke="#9C5B28" strokeWidth="3" strokeLinecap="round" opacity="0.25" />
+
+      {/* back of the clenched hand */}
+      <path d="M -20,-20 Q -22,2 -10,16 Q 2,26 16,18 Q 24,8 22,-12 Q 20,-24 8,-26 Q -10,-28 -20,-20 Z" fill={sk} />
+      {/* knuckle row across the top */}
+      <g>
+        {[-12, -3, 6, 15].map((x, i) => (
+          <ellipse key={i} cx={x} cy={-16 + (i === 0 || i === 3 ? 3 : 0)} rx="5" ry="4.5" fill={sk} />
+        ))}
+        {[-12, -3, 6, 15].map((x, i) => (
+          <ellipse key={'h' + i} cx={x - 1} cy={-18 + (i === 0 || i === 3 ? 3 : 0)} rx="2.4" ry="1.8" fill="rgba(255,243,224,0.6)" />
+        ))}
+      </g>
+      {/* fingers curling around the FRONT (left) of the barrel — stacked ridges */}
+      {[-8, 1, 10].map((y, i) => (
+        <path key={i} d={`M -18,${y} q -8,1 -10,3 q -1,2 1,4 q 3,2 9,1 Z`} fill={g(uid, 'askinL')} />
+      ))}
+      {/* thumb wrapping the near side */}
+      <path d="M 18,-8 Q 28,-6 28,6 Q 27,16 18,16 Q 12,14 13,4 Q 14,-6 18,-8 Z" fill={sk} />
+      <path d="M 20,-2 Q 24,2 21,8" fill="none" stroke="#8E5526" strokeWidth="1.2" strokeLinecap="round" opacity="0.45" />
+      <Spec uid={uid} cx="2" cy="-8" rx="8" ry="4.5" opacity="0.4" />
     </g>
   );
 }
@@ -373,16 +433,10 @@ export function SceneEpiGrip() {
     <>
       <FigureDefs uid={uid} />
       <Thigh uid={uid} />
-      {/* fist gripping the pen, orange tip pointing down */}
+      {/* pen held above the thigh, orange tip down, fist gripping it */}
       <g transform="translate(224,150)">
         <EpiPen uid={uid} cap />
-        {/* wrapped fist */}
-        <g transform="translate(0,-16)">
-          <path d="M -16,-14 Q -18,-30 -2,-34 Q 16,-36 20,-22 Q 22,-8 8,-2 Q -8,2 -16,-8 Z" fill={g(uid, 'askin')} />
-          <path d="M -10,-26 Q -4,-30 2,-28 M -12,-18 Q -6,-22 2,-20 M -10,-10 Q -4,-13 3,-12"
-            fill="none" stroke="#8E5526" strokeWidth="1.4" strokeLinecap="round" opacity="0.5" />
-          <Spec uid={uid} cx="4" cy="-22" rx="7" ry="4" opacity="0.4" />
-        </g>
+        <g transform="translate(0,-14)"><EpiFist uid={uid} /></g>
       </g>
       <TargetGlow uid={uid} cx={224} cy={222} r={24} />
     </>
@@ -418,10 +472,7 @@ export function SceneEpiInject({ hold = false }) {
       <g transform="translate(224,152)">
         <g className={hold ? 'sc-hold-press' : 'sc-inject'}>
           <EpiPen uid={uid} />
-          <g transform="translate(0,-16)">
-            <path d="M -16,-14 Q -18,-30 -2,-34 Q 16,-36 20,-22 Q 22,-8 8,-2 Q -8,2 -16,-8 Z" fill={g(uid, 'askin')} />
-            <path d="M -10,-26 Q -4,-30 2,-28 M -12,-18 Q -6,-22 2,-20" fill="none" stroke="#8E5526" strokeWidth="1.4" strokeLinecap="round" opacity="0.5" />
-          </g>
+          <g transform="translate(0,-14)"><EpiFist uid={uid} /></g>
         </g>
       </g>
     </>
@@ -818,17 +869,20 @@ export function SceneThermometerCheck() {
   return (
     <>
       <FigureDefs uid={uid} />
-      <ContactShadow uid={uid} cx={216} cy={262} rx={80} ry={8} />
-      <g transform="translate(232,192) scale(1.3)">
-        <CalmChildHead uid={uid} />
+      <ContactShadow uid={uid} cx={250} cy={262} rx={84} ry={8} />
+      {/* child's head, resting */}
+      <g transform="translate(268,196) scale(1.25)">
+        <CalmChildHead uid={uid} eyesClosed />
       </g>
-      {/* raised arm with the thermometer tucked in the armpit */}
-      <path d="M 196,236 Q 168,222 156,196 Q 152,184 162,180 Q 172,178 178,190 Q 188,212 206,226 Z"
-        fill={g(uid, 'iskinL')} />
-      <g transform="translate(196,228) rotate(40)">
+      {/* a parent's hand holds the thermometer up to read it */}
+      <g transform="translate(150,212) rotate(-24) scale(1.5)">
         <Thermometer uid={uid} />
       </g>
-      <TargetGlow uid={uid} cx={200} cy={232} r={18} />
+      <g transform="translate(118,250) rotate(-150) scale(0.9)">
+        <HandChinLift uid={uid} />
+      </g>
+      {/* focus on the reading */}
+      <TargetGlow uid={uid} cx={150} cy={166} r={18} />
     </>
   );
 }
