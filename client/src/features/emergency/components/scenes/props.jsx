@@ -169,16 +169,40 @@ export function Thermometer({ uid }) {
   );
 }
 
-/* soft blanket draped over a side-lying body (drawn to fit FigureSideLying) */
+/* soft quilted blanket draped over a side-lying body. Drawn to tuck
+   behind the shoulders and fall to the floor, with a diamond quilt
+   pattern + folds so it reads as fabric, not a solid lump. */
 export function BlanketOver({ uid }) {
+  const clip = `${uid}-blanketclip`;
   return (
     <g>
-      <path d="M 150,212 Q 200,182 268,192 Q 318,200 340,232 Q 344,248 330,254 Q 270,264 210,260 Q 168,256 154,240 Q 146,224 150,212 Z"
-        fill="#E8B86A" opacity="0.95" />
-      <path d="M 168,218 Q 230,196 320,218" fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth="3" strokeLinecap="round" />
-      <path d="M 176,236 Q 240,220 322,238" fill="none" stroke="rgba(120,70,20,0.25)" strokeWidth="2.5" strokeLinecap="round" />
-      {/* stitched hem */}
-      <path d="M 154,238 Q 230,258 330,250" fill="none" stroke="#B9853B" strokeWidth="2" strokeDasharray="5 4" opacity="0.7" />
+      <defs>
+        <clipPath id={clip}>
+          <path d="M 168,214 Q 214,186 272,194 Q 320,202 340,232 Q 344,248 330,255 Q 272,264 214,261 Q 184,258 172,244 Q 164,228 168,214 Z" />
+        </clipPath>
+        <linearGradient id={`${uid}-blanket`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#F0C97E" />
+          <stop offset="100%" stopColor="#D9A24E" />
+        </linearGradient>
+      </defs>
+      {/* drape that tucks behind the shoulder, leaving the head + arm out */}
+      <path d="M 168,214 Q 214,186 272,194 Q 320,202 340,232 Q 344,248 330,255 Q 272,264 214,261 Q 184,258 172,244 Q 164,228 168,214 Z"
+        fill={`url(#${uid}-blanket)`} />
+      {/* quilt stitching — diagonal diamonds, clipped to the blanket */}
+      <g clipPath={`url(#${clip})`} stroke="#B9853B" strokeWidth="1.3" opacity="0.4" fill="none">
+        {[-40, 0, 40, 80, 120, 160].map((d) => (
+          <path key={'a' + d} d={`M ${170 + d},180 L ${130 + d},270`} />
+        ))}
+        {[-40, 0, 40, 80, 120, 160, 200].map((d) => (
+          <path key={'b' + d} d={`M ${120 + d},180 L ${160 + d},270`} />
+        ))}
+      </g>
+      {/* top fold highlight + soft shadow under the roll */}
+      <path d="M 180,206 Q 240,190 318,212" fill="none" stroke="rgba(255,248,228,0.6)" strokeWidth="4" strokeLinecap="round" />
+      <path d="M 178,232 Q 244,220 326,236" fill="none" stroke="rgba(150,95,30,0.25)" strokeWidth="3" strokeLinecap="round" />
+      {/* binding hem along the bottom edge */}
+      <path d="M 172,246 Q 240,262 330,253" fill="none" stroke="#C9924A" strokeWidth="5" strokeLinecap="round" />
+      <path d="M 172,246 Q 240,262 330,253" fill="none" stroke="#8A6230" strokeWidth="1.4" strokeDasharray="5 4" opacity="0.7" />
     </g>
   );
 }

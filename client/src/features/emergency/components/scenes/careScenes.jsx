@@ -232,14 +232,26 @@ export function SceneRaiseLimb() {
     <>
       <FigureDefs uid={uid} />
       <ChildSupine uid={uid} />
-      {/* raised arm overlay — lifted high with a supporting hand */}
-      <path d="M 196,214 Q 216,176 240,148 Q 248,140 254,148 Q 258,156 250,164 Q 230,190 214,220 Z"
-        fill={g(uid, 'iskinL')} />
-      <path d="M 244,150 Q 254,140 262,142 Q 268,146 263,154 Q 256,160 248,158 Z" fill={g(uid, 'iskin')} />
-      <g transform="translate(262,166) rotate(40) scale(0.9)">
-        <HandChinLift uid={uid} sleeve={false} />
+      {/* the child's own arm lifted high — upper arm, elbow, forearm,
+          tapering to a relaxed little hand at the top */}
+      <path d="M 198,216 Q 210,184 226,156 Q 232,144 244,146 Q 252,148 250,160
+               Q 244,188 224,216 Q 210,222 198,216 Z" fill={g(uid, 'iskinL')} />
+      {/* top ridge + elbow shading */}
+      <path d="M 214,210 Q 226,182 240,156" fill="none" stroke="rgba(255,243,224,0.6)" strokeWidth="3.5" strokeLinecap="round" />
+      <ellipse cx="222" cy="214" rx="11" ry="8" fill="rgba(180,110,55,0.18)" />
+      {/* little hand at the top, fingers relaxed */}
+      <g transform="translate(244,150)">
+        <path d="M -4,-8 Q -2,-20 8,-22 Q 18,-22 20,-12 Q 20,-3 12,0 Q 2,2 -4,-2 Z" fill={g(uid, 'iskin')} />
+        <path d="M 6,-21 Q 5,-28 10,-29 Q 14,-28 13,-22 M 12,-21 Q 13,-28 18,-28 Q 21,-26 19,-21"
+          fill="none" stroke={g(uid, 'iskin')} strokeWidth="5" strokeLinecap="round" />
+        <ellipse cx="10" cy="-27" rx="2" ry="1.6" fill="rgba(255,238,218,0.7)" />
+        <Spec uid={uid} cx="6" cy="-12" rx="6" ry="3.5" opacity="0.4" />
       </g>
-      <MotionArrow uid={uid} d="M 286,196 Q 290,168 278,144" width={3.5} />
+      {/* parent hand supporting the wrist */}
+      <g transform="translate(266,178) rotate(48) scale(0.85)">
+        <HandChinLift uid={uid} />
+      </g>
+      <MotionArrow uid={uid} d="M 286,196 Q 292,166 276,142" width={3.5} />
       {/* heart-level reference line */}
       <path d="M 96,206 H 360" stroke="var(--accent)" strokeWidth="1.5" strokeDasharray="5 7" opacity="0.5" />
     </>
