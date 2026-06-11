@@ -161,16 +161,20 @@ export function SceneEyeRinse() {
   return (
     <>
       <FigureDefs uid={uid} />
-      <ContactShadow uid={uid} cx={220} cy={262} rx={80} ry={8} />
-      {/* head tilted back so water runs across the eye */}
-      <g transform="translate(228,206) rotate(-28) scale(1.3)">
+      <ContactShadow uid={uid} cx={232} cy={262} rx={84} ry={8} />
+      {/* head turned up-left so the affected eye faces the stream */}
+      <g transform="translate(238,210) rotate(-34) scale(1.3)">
         <CalmChildHead uid={uid} eyesClosed />
       </g>
-      <g transform="translate(150,88) scale(0.85)">
-        <TapStream uid={uid} length={95} />
+      {/* tap positioned so the water column lands ON the eye (~208,196) */}
+      <g transform="translate(192,58) scale(0.92)">
+        <TapStream uid={uid} length={150} />
       </g>
-      {/* gentle hand holding the eyelid area */}
-      <g transform="translate(196,182) rotate(-30) scale(0.8)">
+      {/* water sheeting off the cheek after hitting the eye */}
+      <path className="sc-flow" d="M 206,202 q -6,16 -14,26 M 216,204 q -2,16 -8,28" fill="none"
+        stroke="#7FB1E8" strokeWidth="3" strokeLinecap="round" strokeDasharray="8 6" opacity="0.7" />
+      {/* gentle fingers holding the eye open */}
+      <g transform="translate(212,176) rotate(-46) scale(0.8)">
         <HandChinLift uid={uid} fingerOnly />
       </g>
     </>
