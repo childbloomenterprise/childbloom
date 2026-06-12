@@ -840,6 +840,9 @@ export default function FoodTrackerPage() {
   const { data: child } = useChildById(childId);
   const user = useAuthStore((s) => s.user);
   const { reward } = useLogReward(childId);
+  const {
+    repeat: repeatFeed, isRepeating, undo: repeatUndo, justSaved: repeatJustSaved,
+  } = useRepeatLastFeed(childId);
   const queryClient = useQueryClient();
   const today = format(new Date(), 'yyyy-MM-dd');
 
@@ -1000,7 +1003,16 @@ export default function FoodTrackerPage() {
                 <Body size={14} color={T.ink300}>No feeds logged today</Body>
               )}
               <Spacer h={4} />
-              <Button variant="primary" size="sm" icon="plus" onClick={() => openSheet()}>Log feed</Button>
+              <HRow gap={8}>
+                <Button variant="primary" size="sm" icon="plus" onClick={() => openSheet()}>Log feed</Button>
+                {lastFeed && (repeatJustSaved ? (
+                  <Button variant="ghost" size="sm" onClick={repeatUndo}>Undo</Button>
+                ) : (
+                  <Button variant="ghost" size="sm" onClick={repeatFeed} disabled={isRepeating}>
+                    {isRepeating ? 'Saving…' : 'Repeat'}
+                  </Button>
+                ))}
+              </HRow>
             </Stack>
           </HRow>
         </Card>

@@ -38,6 +38,7 @@ import { getDailySuggestion } from '../../lib/bloomAreas';
 import BriefCard from '../brief/BriefCard';
 import SweetSpotCard from '../sleep/SweetSpotCard';
 import QuickLogBar from '../quicklog/QuickLogBar';
+import NudgeCard from '../quicklog/NudgeCard';
 import GardenChip from '../bloom/GardenChip';
 
 // ── Tone palette for the primary observation card ──────────────────────────
@@ -390,6 +391,12 @@ export default function TodayHub({ child }) {
           <Spacer h={14} />
           <SweetSpotCard child={child} sleepLogs={sleepLogs7d} />
         </>
+      )}
+
+      {/* ── Rhythm nudge — the app proposes the log, parent confirms ──
+           (renders nothing, including its top margin, when there is no nudge) */}
+      {isLive && (
+        <NudgeCard childId={childId} foodLogs7d={foodLogs7d} lastFeed={lastFeedFromRecent} />
       )}
 
       {/* ── Quick log — voice + one-tap diaper/meds ── */}

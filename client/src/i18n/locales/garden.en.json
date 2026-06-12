@@ -19,6 +19,17 @@
       "thriving": "Thriving"
     }
   },
+  "nudge": {
+    "eyebrow": "From this week's rhythm",
+    "question": "Was there a feed around {{time}}?",
+    "yes": "Yes, log it",
+    "no": "No",
+    "saving": "Logging…",
+    "saved": "Feed logged for {{time}}",
+    "undo": "Undo",
+    "error": "Could not save. Check your connection.",
+    "aria": "Suggested feed log"
+  },
   "ach": {
     "unlocked": "Achievement unlocked",
     "first_log": {
