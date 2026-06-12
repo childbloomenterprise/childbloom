@@ -19,6 +19,35 @@
       "thriving": "Thriving"
     }
   },
+  "recap": {
+    "cardTitle": "{{name}}'s week in bloom is ready",
+    "cardSub": "Week of {{week}} — the numbers and a line worth sharing",
+    "open": "Open",
+    "eyebrow": "Weekly Bloom Recap",
+    "yourLittleOne": "Your little one",
+    "feeds": "Feeds",
+    "sleep": "Sleep",
+    "days": "Days logged",
+    "streak": "{{n}}-day rhythm",
+    "ready": "doctor-ready",
+    "label": {
+      "doctorReady": "Doctor-ready record",
+      "takingShape": "A record taking shape",
+      "justStarting": "Just getting started"
+    },
+    "tierLine": {
+      "parched": "The garden was quiet this week",
+      "budding": "The garden is budding this week",
+      "growing": "The garden is growing this week",
+      "thriving": "The garden is thriving this week"
+    },
+    "share": "Share this week",
+    "close": "Close",
+    "aria": "Weekly Bloom Recap",
+    "shareTitle": "{{name}}'s week in bloom 🌱",
+    "shareStats": "{{feeds}} feeds · {{sleep}}h sleep · {{days}}/7 days logged",
+    "shareStreak": "{{n}}-day logging streak ✦"
+  },
   "nudge": {
     "eyebrow": "From this week's rhythm",
     "question": "Was there a feed around {{time}}?",

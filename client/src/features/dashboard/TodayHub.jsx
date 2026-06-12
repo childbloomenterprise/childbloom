@@ -36,6 +36,7 @@ import { useObservation } from '../../hooks/useObservation';
 import { useBloomMoments } from '../../hooks/useBloomMoments';
 import { getDailySuggestion } from '../../lib/bloomAreas';
 import BriefCard from '../brief/BriefCard';
+import BloomRecapCard from '../weekly-report/BloomRecapCard';
 import SweetSpotCard from '../sleep/SweetSpotCard';
 import QuickLogBar from '../quicklog/QuickLogBar';
 import NudgeCard from '../quicklog/NudgeCard';
@@ -363,6 +364,9 @@ export default function TodayHub({ child }) {
           <BriefCard child={child} />
         </div>
       )}
+
+      {/* ── Weekly Bloom Recap — the Monday pride moment ── */}
+      {isLive && <BloomRecapCard childId={childId} childName={child?.name} />}
 
       {/* ── Primary observation — the one big thing ── */}
       <ObservationCard obs={observation} onCta={onCta} />
