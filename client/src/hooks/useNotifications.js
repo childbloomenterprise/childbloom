@@ -54,7 +54,28 @@ export function useNotifications() {
               onLink:    () => navigate('/inbox'),
               linkLabel: 'View in Doctor Inbox →',
             });
-          } else if (n.type !== 'connection_request') {
+          } else if (n.type === 'streak_risk') {
+            // Agent: streak about to break — one log saves it. The Timeline
+            // tab (/child/:id/updates) hosts QuickLogBar + TodayHub.
+            const childId = n.data?.child_id;
+            addToast({
+              type:      'info',
+              message:   n.title ?? 'Your logging streak needs one log today',
+              duration:  10000,
+              onLink:    () => navigate(childId ? `/child/${childId}/updates` : '/dashboard'),
+              linkLabel: 'Log something →',
+            });
+          } else if (n.type === 'recap_ready') {
+            // Agent: weekly Bloom Recap is ready (card sits on the Timeline).
+            const childId = n.data?.child_id;
+            addToast({
+              type:      'info',
+              message:   n.title ?? 'Your weekly Bloom Recap is ready',
+              duration:  10000,
+              onLink:    () => navigate(childId ? `/child/${childId}/updates` : '/dashboard'),
+              linkLabel: 'See the week →',
+            });
+          } else {
             // Generic fallback for any future notification types
             addToast({
               type:    'info',

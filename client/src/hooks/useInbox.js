@@ -4,10 +4,14 @@ import useAuthStore from '../stores/authStore';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? '' : 'http://localhost:3001');
 
+// Agent-written notification types shown in the Inbox "Activity" list.
+const ACTIVITY_TYPES = ['streak_risk', 'recap_ready', 'daily_brief'];
+
 export function useInbox() {
   const user = useAuthStore((s) => s.user);
   const [requests, setRequests] = useState([]);
   const [doctorMessages, setDoctorMessages] = useState([]);
+  const [activity, setActivity] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -17,8 +21,8 @@ export function useInbox() {
     try {
       const childIds = await getChildIds(user.id);
 
-      // Load ALL connection requests + doctor messages in parallel
-      const [connRes, msgRes] = await Promise.all([
+      // Load connection requests + doctor messages + agent activity in parallel
+      const [connRes, msgRes, actRes] = await Promise.all([
         supabase
           .from('doctor_child_connections')
           .select(`
@@ -37,17 +41,38 @@ export function useInbox() {
           .eq('type', 'doctor_message')
           .order('created_at', { ascending: false })
           .limit(50),
+
+        supabase
+          .from('notifications')
+          .select('id, type, title, body, data, created_at, is_read')
+          .eq('recipient_id', user.id)
+          .in('type', ACTIVITY_TYPES)
+          .order('created_at', { ascending: false })
+          .limit(30),
       ]);
 
       if (connRes.error) throw connRes.error;
       setRequests(connRes.data ?? []);
       setDoctorMessages(msgRes.data ?? []);
+      setActivity(actRes.data ?? []);
     } catch (e) {
       setError(e.message);
     } finally {
       setLoading(false);
     }
   }, [user?.id]);
+
+  // Mark all unread agent-activity rows read (RLS update policy: own rows).
+  const markActivityRead = useCallback(async () => {
+    if (!user?.id) return;
+    const unread = activity.filter((a) => !a.is_read).map((a) => a.id);
+    if (!unread.length) return;
+    setActivity((prev) => prev.map((a) => ({ ...a, is_read: true })));
+    await supabase
+      .from('notifications')
+      .update({ is_read: true, read_at: new Date().toISOString() })
+      .in('id', unread);
+  }, [user?.id, activity]);
 
   // Real-time: re-fetch when connections change for this parent's children
   useEffect(() => {
@@ -121,8 +146,13 @@ export function useInbox() {
   }, []);
 
   const pendingCount = requests.filter((r) => r.status === 'pending').length;
+  const unreadActivityCount = activity.filter((a) => !a.is_read).length;
 
-  return { requests, doctorMessages, loading, error, pendingCount, respond, saveNotes, refetch: fetchRequests };
+  return {
+    requests, doctorMessages, activity, loading, error,
+    pendingCount, unreadActivityCount,
+    respond, saveNotes, markActivityRead, refetch: fetchRequests,
+  };
 }
 
 async function getChildIds(userId) {

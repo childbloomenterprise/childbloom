@@ -378,6 +378,7 @@ function EmptyState({ filter }) {
     pending:  { icon: 'clock',   title: 'No pending requests',        sub: 'You\'re all caught up.' },
     approved: { icon: 'check',   title: 'No approved connections',    sub: 'Approve a doctor\'s request to see them here.' },
     messages: { icon: 'doctor',  title: 'No messages yet',            sub: 'When a connected doctor sends you a note, it will appear here.' },
+    activity: { icon: 'sparkle', title: 'No activity yet',            sub: 'Streak reminders and weekly recaps from ChildBloom will appear here.' },
   };
   const m = messages[filter] || messages.all;
   return (
@@ -397,13 +398,51 @@ function EmptyState({ filter }) {
   );
 }
 
+// One agent-notification row in the Activity tab.
+const ACTIVITY_ICON = { streak_risk: 'leaf', recap_ready: 'sparkle', daily_brief: 'sun' };
+
+function ActivityRow({ n, onOpen }) {
+  return (
+    <button
+      onClick={onOpen}
+      style={{
+        width: '100%', textAlign: 'left', cursor: 'pointer',
+        background: T.surface, border: `0.5px solid ${T.line}`, borderRadius: RADIUS.md,
+        padding: '13px 16px', display: 'flex', gap: 12, alignItems: 'flex-start',
+        fontFamily: FONTS.sans, opacity: n.is_read ? 0.72 : 1,
+      }}
+    >
+      <div style={{
+        width: 36, height: 36, borderRadius: RADIUS.md, flexShrink: 0,
+        background: T.brandWash, color: T.brand,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <CBIcon name={ACTIVITY_ICON[n.type] || 'bell'} size={16} stroke={1.6} />
+      </div>
+      <Stack gap={3} style={{ flex: 1, minWidth: 0 }}>
+        <HRow gap={6} style={{ alignItems: 'center', flexWrap: 'wrap' }}>
+          <Body size={13.5} weight={n.is_read ? 500 : 700} color={T.ink900}>{n.title}</Body>
+          {!n.is_read && <span style={{ width: 7, height: 7, borderRadius: 999, background: T.brand, flexShrink: 0 }} />}
+        </HRow>
+        {n.body && <Body size={12.5} color={T.ink500} lh={1.5}>{n.body}</Body>}
+        <Mono size={10} color={T.ink400}>
+          {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
+        </Mono>
+      </Stack>
+    </button>
+  );
+}
+
 export default function InboxPage() {
   const navigate = useNavigate();
-  const { requests, doctorMessages, loading, pendingCount, respond, saveNotes } = useInbox();
+  const {
+    requests, doctorMessages, activity, loading, pendingCount,
+    unreadActivityCount, respond, saveNotes, markActivityRead,
+  } = useInbox();
   const { data: children = [] } = useChildren();
   const [filter, setFilter] = useState('all');
 
-  const filtered = filter === 'messages'
+  const filtered = (filter === 'messages' || filter === 'activity')
     ? []
     : requests.filter((r) => {
         if (filter === 'pending')  return r.status === 'pending';
@@ -411,11 +450,17 @@ export default function InboxPage() {
         return true;
       });
 
+  const openActivityTab = () => {
+    setFilter('activity');
+    markActivityRead();
+  };
+
   const tabs = [
     { id: 'all',      label: 'All',      count: requests.length },
     { id: 'pending',  label: 'Pending',  count: requests.filter(r => r.status === 'pending').length },
     { id: 'approved', label: 'Approved', count: requests.filter(r => r.status === 'active').length },
     { id: 'messages', label: 'Messages', count: doctorMessages.length },
+    { id: 'activity', label: 'Activity', count: unreadActivityCount },
   ];
 
   return (
@@ -461,7 +506,7 @@ export default function InboxPage() {
           return (
             <button
               key={tab.id}
-              onClick={() => setFilter(tab.id)}
+              onClick={() => (tab.id === 'activity' ? openActivityTab() : setFilter(tab.id))}
               style={{
                 height: 34, padding: '0 14px', borderRadius: RADIUS.pill, border: 'none',
                 background: active ? T.brand : T.surfaceDim,
@@ -493,7 +538,26 @@ export default function InboxPage() {
 
       {/* Content */}
       <div style={{ padding: '0 16px' }}>
-        {filter === 'messages' ? (
+        {filter === 'activity' ? (
+          /* Agent activity tab — streak nudges + weekly recaps */
+          loading ? <LoadingState /> :
+          activity.length === 0 ? (
+            <Card p={0}><EmptyState filter="activity" /></Card>
+          ) : (
+            <Stack gap={10}>
+              {activity.map((n) => (
+                <ActivityRow
+                  key={n.id}
+                  n={n}
+                  onOpen={() => {
+                    const childId = n.data?.child_id;
+                    navigate(childId ? `/child/${childId}/updates` : '/dashboard');
+                  }}
+                />
+              ))}
+            </Stack>
+          )
+        ) : filter === 'messages' ? (
           /* Doctor messages tab */
           loading ? <LoadingState /> :
           doctorMessages.length === 0 ? (
