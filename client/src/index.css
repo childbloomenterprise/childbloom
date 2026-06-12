@@ -322,6 +322,17 @@ html { overscroll-behavior: none; }
 }
 .typewriter-cursor { animation: cursor-blink 0.8s ease-in-out infinite; }
 
+/* Gold streak chip — one gentle pulse when Home loads with a live streak */
+@keyframes streak-pulse {
+  0%   { opacity: 0.4; transform: scale(0.96); }
+  55%  { opacity: 1;   transform: scale(1.04); }
+  100% { opacity: 1;   transform: scale(1); }
+}
+.cb-streak-pulse { display: inline-block; animation: streak-pulse 0.9s ease-out 0.3s both; }
+@media (prefers-reduced-motion: reduce) {
+  .cb-streak-pulse { animation: none; }
+}
+
 /* ── Landing page ─────────────────────────────── */
 @keyframes grid-drift {
   0%, 100% { background-position: 0 0; }

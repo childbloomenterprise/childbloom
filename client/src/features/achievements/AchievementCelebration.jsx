@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import useAchievementStore from '../../stores/achievementStore';
 import { T, FONTS, RADIUS } from '../../components/cb/tokens';
 
@@ -37,6 +38,7 @@ function generateParticles(count) {
 }
 
 export default function AchievementCelebration() {
+  const { t } = useTranslation();
   const celebration = useAchievementStore((s) => s.celebration);
   const dismiss = useAchievementStore((s) => s.dismissCelebration);
   const particles = useRef(generateParticles(36));
@@ -112,7 +114,7 @@ export default function AchievementCelebration() {
           color: celebration.color || T.brand,
           marginBottom: 8,
         }}>
-          Achievement unlocked
+          {t('ach.unlocked', 'Achievement unlocked')}
         </div>
 
         {/* Title */}
@@ -121,7 +123,7 @@ export default function AchievementCelebration() {
           fontWeight: 400, letterSpacing: '-0.02em', color: T.ink900,
           lineHeight: 1.2, marginBottom: 10,
         }}>
-          {celebration.title}
+          {t(`ach.${celebration.key}.title`, celebration.title)}
         </div>
 
         {/* Desc */}
@@ -129,7 +131,7 @@ export default function AchievementCelebration() {
           fontFamily: FONTS.sans, fontSize: 14, color: T.ink500,
           lineHeight: 1.5, marginBottom: 24,
         }}>
-          {celebration.desc}
+          {t(`ach.${celebration.key}.desc`, celebration.desc)}
         </div>
 
         {/* CTA */}

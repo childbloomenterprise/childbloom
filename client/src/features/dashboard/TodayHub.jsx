@@ -38,6 +38,7 @@ import { getDailySuggestion } from '../../lib/bloomAreas';
 import BriefCard from '../brief/BriefCard';
 import SweetSpotCard from '../sleep/SweetSpotCard';
 import QuickLogBar from '../quicklog/QuickLogBar';
+import GardenChip from '../bloom/GardenChip';
 
 // ── Tone palette for the primary observation card ──────────────────────────
 // Apple-level idea: tone is communicated via subtle ink + a thin accent,
@@ -374,6 +375,14 @@ export default function TodayHub({ child }) {
           hoursSinceLastFeedVal={hoursSinceLast}
         />
       </div>
+
+      {/* ── Garden chip — logging waters the Bloom Garden ── */}
+      {isLive && (
+        <>
+          <Spacer h={14} />
+          <GardenChip childId={childId} foodLogs7d={foodLogs7d} sleepLogs7d={sleepLogs7d} />
+        </>
+      )}
 
       {/* ── Sleep SweetSpot — next-nap window predictor ── */}
       {isLive && (

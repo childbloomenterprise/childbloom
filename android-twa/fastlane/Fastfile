@@ -1,0 +1,82 @@
+default_platform(:android)
+
+platform :android do
+
+  desc "Build signed AAB"
+  lane :build do
+    gradle(
+      task: "bundle",
+      build_type: "Release",
+      project_dir: "./",
+      properties: {
+        "android.injected.signing.store.file" => ENV["KEYSTORE_PATH"],
+        "android.injected.signing.store.password" => ENV["KEYSTORE_PASSWORD"],
+        "android.injected.signing.key.alias" => ENV["KEY_ALIAS"],
+        "android.injected.signing.key.password" => ENV["KEY_PASSWORD"],
+      }
+    )
+  end
+
+  desc "Upload to Internal Testing"
+  lane :internal do
+    build
+    upload_to_play_store(
+      track: "internal",
+      aab: "app/build/outputs/bundle/release/app-release.aab",
+      json_key: ENV["PLAY_STORE_JSON_KEY"],
+      package_name: "com.childbloom.app",
+      skip_upload_apk: true,
+      skip_upload_metadata: true,
+      skip_upload_changelogs: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+    )
+  end
+
+  desc "Upload directly to Closed Alpha track"
+  lane :promote_alpha do
+    upload_to_play_store(
+      track: "alpha",
+      aab: "app/build/outputs/bundle/release/app-release.aab",
+      json_key: ENV["PLAY_STORE_JSON_KEY"],
+      package_name: "com.childbloom.app",
+      skip_upload_apk: true,
+      skip_upload_metadata: true,
+      skip_upload_changelogs: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+      rollout: "1.0",
+    )
+  end
+
+  desc "Promote Alpha → Production"
+  lane :promote_production do
+    upload_to_play_store(
+      track: "alpha",
+      track_promote_to: "production",
+      json_key: ENV["PLAY_STORE_JSON_KEY"],
+      package_name: "com.childbloom.app",
+      skip_upload_apk: true,
+      skip_upload_aab: true,
+      skip_upload_metadata: true,
+    )
+  end
+
+  desc "Full deploy: build → internal (run this for every new release)"
+  lane :deploy do
+    build
+    upload_to_play_store(
+      track: "internal",
+      aab: "app/build/outputs/bundle/release/app-release.aab",
+      json_key: ENV["PLAY_STORE_JSON_KEY"],
+      package_name: "com.childbloom.app",
+      skip_upload_apk: true,
+      skip_upload_metadata: true,
+      skip_upload_changelogs: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+    )
+    UI.success("Uploaded to Internal Testing. After 14-day closed test, run: fastlane promote_production")
+  end
+
+end

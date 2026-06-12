@@ -18,7 +18,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
-import { celebrate } from '../../lib/bloomBurst';
+import { useLogReward } from '../../hooks/useLogReward';
 import useAuthStore from '../../stores/authStore';
 import useUiStore from '../../stores/uiStore';
 import { T, FONTS, RADIUS } from '../../components/cb/tokens';
@@ -60,6 +60,7 @@ function formatDecimalHours(secs) {
 
 export default function SleepQuickSheet({ open, onClose, childId }) {
   const user = useAuthStore((s) => s.user);
+  const { reward } = useLogReward(childId);
   const qc   = useQueryClient();
   const today = format(new Date(), 'yyyy-MM-dd');
 
@@ -174,7 +175,7 @@ export default function SleepQuickSheet({ open, onClose, childId }) {
       qc.invalidateQueries({ queryKey: ['sleep-logs-7d', childId] });
       localStorage.removeItem(STORAGE_KEY(childId));
       setSaved(true);
-      celebrate();
+      reward({ source: 'timer', types: ['sleep'] });
       setTimeout(() => {
         onClose();
         setTimeout(() => {

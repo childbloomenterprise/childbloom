@@ -1,0 +1,70 @@
+{
+  "garden": {
+    "wateredToast": "The garden is watered for today 🌱",
+    "chip": {
+      "watered": "Watered today",
+      "thirsty": "One log waters it",
+      "day": "day {{n}}",
+      "aria": "Open the Bloom Garden"
+    },
+    "strip": {
+      "watered": "Watered today — every log is water",
+      "thirsty": "Not watered yet — one log will do it",
+      "daysAria": "{{n}} of 7 days watered this week"
+    },
+    "tier": {
+      "parched": "Parched",
+      "budding": "Budding",
+      "growing": "Growing",
+      "thriving": "Thriving"
+    }
+  },
+  "ach": {
+    "unlocked": "Achievement unlocked",
+    "first_log": {
+      "title": "First Drop",
+      "desc": "Logged your very first feed, sleep or diaper",
+      "hint": "Log anything — a feed, a nap, a diaper"
+    },
+    "first_voice_log": {
+      "title": "Just Said It",
+      "desc": "Logged hands-free with your voice",
+      "hint": "Use the mic to log something"
+    },
+    "night_hero": {
+      "title": "3am Hero",
+      "desc": "Logged in the small hours — we see you",
+      "hint": "Save a log between midnight and 5am"
+    },
+    "full_picture": {
+      "title": "Full Picture",
+      "desc": "Feed, sleep and diaper — all in one day",
+      "hint": "Log all three types in a single day"
+    },
+    "streak_3": {
+      "title": "Three in a Row",
+      "desc": "3 days of logging — a rhythm is forming",
+      "hint": "Log on 3 days in a row"
+    },
+    "streak_7": {
+      "title": "One Full Week",
+      "desc": "7 straight days — the garden never went dry",
+      "hint": "Log on 7 days in a row"
+    },
+    "streak_14": {
+      "title": "Fortnight of Care",
+      "desc": "14 consecutive days of showing up",
+      "hint": "Log on 14 days in a row"
+    },
+    "streak_30": {
+      "title": "A Whole Month",
+      "desc": "30 days straight — this is devotion",
+      "hint": "Log on 30 days in a row"
+    },
+    "logs_100": {
+      "title": "Century of Care",
+      "desc": "100 logs — every one a small act of love",
+      "hint": "Save 100 logs in total"
+    }
+  }
+}

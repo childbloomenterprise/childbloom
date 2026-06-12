@@ -12,6 +12,7 @@ import useAuthStore from '../../stores/authStore';
 import { track } from '../../lib/analytics';
 import { T, FONTS, RADIUS } from '../../components/cb/tokens';
 import { Body, Mono, Spacer } from '../../components/cb/primitives';
+import { useLogReward } from '../../hooks/useLogReward';
 import { writeEvents } from './parseLog';
 
 const FEED_TYPES = ['bottle', 'breast', 'formula', 'solid'];
@@ -126,6 +127,7 @@ export default function LogConfirmSheet({ open, events: initialEvents, child, me
   const { t } = useTranslation();
   const qc = useQueryClient();
   const user = useAuthStore((s) => s.user);
+  const { reward } = useLogReward(child?.id);
   const [events, setEvents] = useState([]);
 
   useEffect(() => {
@@ -143,7 +145,7 @@ export default function LogConfirmSheet({ open, events: initialEvents, child, me
     onSuccess: ({ invalidateKeys, types }) => {
       invalidateKeys.forEach((key) => qc.invalidateQueries({ queryKey: key }));
       types.forEach((type) => track('quick_log_used', { method, type }));
-      try { navigator.vibrate?.([30, 50, 30]); } catch (_) {}
+      reward({ source: method === 'voice' ? 'voice' : 'tap', types, count: types.length });
       onClose(true);
     },
   });

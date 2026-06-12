@@ -112,7 +112,7 @@ export default function DashboardPage() {
             <Body size={14} color={T.ink500}>
               {ageLabel ? `${ageLabel} · ` : ''}{format(new Date(), 'EEEE')}
               {pulse.streak >= 2 && (
-                <span style={{ color: T.gold, fontWeight: 600 }}>
+                <span className="cb-streak-pulse" style={{ color: T.gold, fontWeight: 600 }}>
                   {' '}· ✦ {pulse.streak >= 7 ? '7+' : pulse.streak}-day streak
                 </span>
               )}

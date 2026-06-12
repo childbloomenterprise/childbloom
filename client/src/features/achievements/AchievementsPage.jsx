@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAchievements } from '../../hooks/useAchievements';
 import { ACHIEVEMENT_CATEGORIES } from '../../lib/achievementDefs';
 import CBIcon from '../../components/cb/CBIcon';
@@ -9,7 +10,7 @@ import {
   Stack, HRow, Spacer, Divider, Card, ProgressBar,
 } from '../../components/cb/primitives';
 
-function AchievementCard({ achievement, unlocked, unlockedAt }) {
+function AchievementCard({ achievement, unlocked, unlockedAt, t }) {
   const cat = ACHIEVEMENT_CATEGORIES[achievement.category];
 
   return (
@@ -44,11 +45,11 @@ function AchievementCard({ achievement, unlocked, unlockedAt }) {
         </div>
 
         <Stack gap={3} style={{ flex: 1 }}>
-          <Body size={13} weight={700} color={T.ink900}>{achievement.title}</Body>
-          <Body size={11} color={T.ink500} lh={1.4}>{achievement.desc}</Body>
+          <Body size={13} weight={700} color={T.ink900}>{t(`ach.${achievement.key}.title`, achievement.title)}</Body>
+          <Body size={11} color={T.ink500} lh={1.4}>{t(`ach.${achievement.key}.desc`, achievement.desc)}</Body>
           {!unlocked && achievement.hint && (
             <Mono size={10} color={T.ink300} style={{ marginTop: 2 }}>
-              {achievement.hint}
+              {t(`ach.${achievement.key}.hint`, achievement.hint)}
             </Mono>
           )}
           {unlocked && unlockedAt && (
@@ -68,6 +69,7 @@ function AchievementCard({ achievement, unlocked, unlockedAt }) {
 
 export default function AchievementsPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { allAchievements, unlockedKeys, unlocked, tryUnlock } = useAchievements();
 
   const totalCount = allAchievements.length;
@@ -79,7 +81,7 @@ export default function AchievementsPage() {
     tryUnlock('welcome');
   }, [tryUnlock]);
 
-  const categoryOrder = ['milestone', 'bloom', 'care', 'growth'];
+  const categoryOrder = ['milestone', 'rhythm', 'bloom', 'care', 'growth'];
   const byCategory = categoryOrder.map((cat) => ({
     cat,
     meta: ACHIEVEMENT_CATEGORIES[cat],
@@ -152,6 +154,7 @@ export default function AchievementsPage() {
                   achievement={a}
                   unlocked={unlockedKeys.has(a.key)}
                   unlockedAt={unlockedMap[a.key]}
+                  t={t}
                 />
               ))}
             </Stack>

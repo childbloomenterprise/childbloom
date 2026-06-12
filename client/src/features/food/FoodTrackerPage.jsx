@@ -27,7 +27,7 @@ import {
   SegmentedToggle,
 } from '../../components/cb/primitives';
 import { computeBottleSuggestions, computeBreastSuggestions } from '../../lib/feedLearning';
-import { celebrate } from '../../lib/bloomBurst';
+import { useLogReward } from '../../hooks/useLogReward';
 import { format, differenceInMinutes, differenceInHours } from 'date-fns';
 
 // ── Animations ────────────────────────────────────────────────────────────
@@ -839,6 +839,7 @@ export default function FoodTrackerPage() {
   const { id: childId } = useParams();
   const { data: child } = useChildById(childId);
   const user = useAuthStore((s) => s.user);
+  const { reward } = useLogReward(childId);
   const queryClient = useQueryClient();
   const today = format(new Date(), 'yyyy-MM-dd');
 
@@ -924,7 +925,7 @@ export default function FoodTrackerPage() {
       queryClient.invalidateQueries({ queryKey: ['food-logs-today', childId] });
       queryClient.invalidateQueries({ queryKey: ['food-logs-7d', childId] });
       setSaved(true);
-      celebrate();
+      reward({ source: 'timer', types: ['feed'] });
       setTimeout(() => {
         setSheetOpen(false);
         setTimeout(() => { setSaved(false); setNotes(''); setFeedType('breast'); }, 400);

@@ -6,10 +6,12 @@ import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { format } from 'date-fns';
 import useAuthStore from '../stores/authStore';
+import { useLogReward } from './useLogReward';
 
 export function useRepeatLastSleep(childId) {
   const qc = useQueryClient();
   const user = useAuthStore((s) => s.user);
+  const { reward } = useLogReward(childId);
   const [justSaved, setJustSaved] = useState(null);
   const undoTimeout = useRef(null);
 
@@ -52,6 +54,7 @@ export function useRepeatLastSleep(childId) {
       qc.setQueryData(['sleep-logs-today', childId], (old = []) => [newLog, ...(old || [])]);
       qc.setQueryData(['sleep-logs-recent', childId], (old = []) => [newLog, ...(old || []).slice(0, 4)]);
       qc.invalidateQueries({ queryKey: ['sleep-logs-7d', childId] });
+      reward({ source: 'repeat', types: ['sleep'] });
       setJustSaved({ id: newLog.id });
       clearTimeout(undoTimeout.current);
       undoTimeout.current = setTimeout(() => setJustSaved(null), 4000);

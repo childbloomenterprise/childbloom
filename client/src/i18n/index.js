@@ -30,6 +30,15 @@ import emTe from './locales/emergency.te.json';
 import emMl from './locales/emergency.ml.json';
 import emPa from './locales/emergency.pa.json';
 
+// Bloom Garden / logging-rewards strings (gamified logging loop) — same
+// isolated-bundle pattern. All 6 languages shipped translated.
+import gdEn from './locales/garden.en.json';
+import gdHi from './locales/garden.hi.json';
+import gdTa from './locales/garden.ta.json';
+import gdTe from './locales/garden.te.json';
+import gdMl from './locales/garden.ml.json';
+import gdPa from './locales/garden.pa.json';
+
 export const LANGUAGES = [
   { code: 'en', label: 'English', nativeLabel: 'English' },
   { code: 'hi', label: 'Hindi', nativeLabel: 'हिन्दी' },
@@ -44,12 +53,12 @@ i18n
   .use(initReactI18next)
   .init({
     resources: {
-      en: { translation: { ...en, ...retEn, ...emEn } },
-      hi: { translation: { ...hi, ...retEn, ...retHi, ...emEn, ...emHi } },
-      ta: { translation: { ...ta, ...retEn, ...retTa, ...emEn, ...emTa } },
-      te: { translation: { ...te, ...retEn, ...retTe, ...emEn, ...emTe } },
-      ml: { translation: { ...ml, ...retEn, ...retMl, ...emEn, ...emMl } },
-      pa: { translation: { ...pa, ...retEn, ...retPa, ...emEn, ...emPa } },
+      en: { translation: { ...en, ...retEn, ...emEn, ...gdEn } },
+      hi: { translation: { ...hi, ...retEn, ...retHi, ...emEn, ...emHi, ...gdEn, ...gdHi } },
+      ta: { translation: { ...ta, ...retEn, ...retTa, ...emEn, ...emTa, ...gdEn, ...gdTa } },
+      te: { translation: { ...te, ...retEn, ...retTe, ...emEn, ...emTe, ...gdEn, ...gdTe } },
+      ml: { translation: { ...ml, ...retEn, ...retMl, ...emEn, ...emMl, ...gdEn, ...gdMl } },
+      pa: { translation: { ...pa, ...retEn, ...retPa, ...emEn, ...emPa, ...gdEn, ...gdPa } },
     },
     fallbackLng: 'en',
     interpolation: { escapeValue: false },

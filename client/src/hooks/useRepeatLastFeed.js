@@ -10,10 +10,12 @@ import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { format } from 'date-fns';
 import useAuthStore from '../stores/authStore';
+import { useLogReward } from './useLogReward';
 
 export function useRepeatLastFeed(childId) {
   const qc = useQueryClient();
   const user = useAuthStore((s) => s.user);
+  const { reward } = useLogReward(childId);
   const [justSaved, setJustSaved] = useState(null); // { id } | null
   const undoTimeout = useRef(null);
 
@@ -60,6 +62,7 @@ export function useRepeatLastFeed(childId) {
       qc.setQueryData(['food-logs', childId], (old = []) => [newLog, ...(old || [])]);
       qc.setQueryData(['food-logs-recent', childId], (old = []) => [newLog, ...(old || []).slice(0, 4)]);
       qc.invalidateQueries({ queryKey: ['food-logs-today', childId] });
+      reward({ source: 'repeat', types: ['feed'] });
       setJustSaved({ id: newLog.id });
       clearTimeout(undoTimeout.current);
       undoTimeout.current = setTimeout(() => setJustSaved(null), 4000);

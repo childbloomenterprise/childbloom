@@ -3,7 +3,10 @@
 
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { differenceInDays } from 'date-fns';
+import { differenceInDays, format } from 'date-fns';
+import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
+import { supabase } from '../../lib/supabase';
 import { useChildById } from '../../hooks/useChild';
 import { useBloomMoments } from '../../hooks/useBloomMoments';
 import { T, FONTS, RADIUS } from '../../components/cb/tokens';
@@ -13,6 +16,7 @@ import {
 } from '../../components/cb/primitives';
 import CBIcon from '../../components/cb/CBIcon';
 import { BLOOM_AREAS } from '../../lib/bloomAreas';
+import { computeVitality, logDerivedAreaBoost, mergeAreaCounts } from '../../lib/gardenVitality';
 import BloomMomentSheet from './BloomMomentSheet';
 
 // Soft bloom shape — abstract flower SVG. State drives petal opacity.
@@ -83,17 +87,62 @@ function BloomTile({ area, count, onClick }) {
 
 export default function BloomGardenPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { id: childId } = useParams();
   const { data: child } = useChildById(childId);
   const { momentsByArea, moments, add, isAdding } = useBloomMoments(childId);
   const [sheetOpen, setSheetOpen] = useState(false);
+
+  // This week's logs — water for the garden. Same query keys as TodayHub /
+  // Home so the cache stays warm and this page costs nothing extra.
+  const { data: foodLogs7d = [] } = useQuery({
+    queryKey: ['food-logs-7d', childId],
+    queryFn: async () => {
+      const sevenAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+      const { data } = await supabase.from('food_logs').select('*')
+        .eq('child_id', childId).gte('logged_at', sevenAgo)
+        .order('logged_at', { ascending: false });
+      return data || [];
+    },
+    enabled: !!childId,
+    staleTime: 5 * 60 * 1000,
+  });
+  const { data: sleepLogs7d = [] } = useQuery({
+    queryKey: ['sleep-logs-7d', childId],
+    queryFn: async () => {
+      const sevenAgo = format(new Date(Date.now() - 7 * 86400000), 'yyyy-MM-dd');
+      const { data } = await supabase.from('sleep_logs').select('*')
+        .eq('child_id', childId).gte('logged_date', sevenAgo)
+        .order('logged_date', { ascending: false });
+      return data || [];
+    },
+    enabled: !!childId,
+    staleTime: 5 * 60 * 1000,
+  });
+  const { data: quickLogs7d = [] } = useQuery({
+    queryKey: ['quick-logs-7d', childId],
+    queryFn: async () => {
+      const sevenAgo = format(new Date(Date.now() - 7 * 86400000), 'yyyy-MM-dd');
+      const { data } = await supabase.from('quick_logs').select('id, logged_date')
+        .eq('child_id', childId).gte('logged_date', sevenAgo);
+      return data || [];
+    },
+    enabled: !!childId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const vitality = computeVitality({ foodLogs7d, sleepLogs7d, quickLogs7d });
+  const areaCounts = mergeAreaCounts(momentsByArea, logDerivedAreaBoost({
+    feedCount7d: foodLogs7d.length,
+    sleepCount7d: sleepLogs7d.length,
+  }));
 
   const ageInDays = child?.date_of_birth
     ? differenceInDays(new Date(), new Date(child.date_of_birth))
     : null;
 
   const totalMoments = moments.length;
-  const blooming = BLOOM_AREAS.filter(a => (momentsByArea[a.key] || 0) >= 1);
+  const blooming = BLOOM_AREAS.filter(a => (areaCounts[a.key] || 0) >= 1);
   const childName = child?.name || 'your little one';
 
   // Lead headline — acknowledgement-first
@@ -137,7 +186,37 @@ export default function BloomGardenPage() {
         <Body size={13} color={T.ink500} lh={1.5}>{subhead}</Body>
       </div>
 
-      <Spacer h={22} />
+      <Spacer h={16} />
+
+      {/* Vitality strip — this week's water, derived from logs */}
+      <div style={{ padding: '0 16px' }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          padding: '10px 14px', background: T.surface,
+          border: `0.5px solid ${T.line}`, borderRadius: RADIUS.md,
+        }}>
+          <span aria-hidden="true" style={{ fontSize: 15, opacity: vitality.wateredToday ? 1 : 0.35 }}>💧</span>
+          <Body size={12} color={T.ink700} weight={600} style={{ flex: 1 }}>
+            {vitality.wateredToday
+              ? t('garden.strip.watered', 'Watered today — every log is water')
+              : t('garden.strip.thirsty', 'Not watered yet — one log will do it')}
+          </Body>
+          <div style={{ display: 'flex', gap: 4 }} aria-label={t('garden.strip.daysAria', '{{n}} of 7 days watered this week', { n: vitality.daysWatered7 })}>
+            {Array.from({ length: 7 }, (_, i) => (
+              <span key={i} style={{
+                width: 6, height: 6, borderRadius: 999,
+                background: i < vitality.daysWatered7 ? '#1D9E75' : 'transparent',
+                border: i < vitality.daysWatered7 ? 'none' : `1px solid ${T.ink200}`,
+              }} />
+            ))}
+          </div>
+          <Mono size={9} color={T.ink400} style={{ letterSpacing: '0.1em' }}>
+            {t(`garden.tier.${vitality.tier}`, vitality.tier).toUpperCase()}
+          </Mono>
+        </div>
+      </div>
+
+      <Spacer h={14} />
 
       {/* The garden — 2×4 grid */}
       <div style={{ padding: '0 16px' }}>
@@ -146,7 +225,7 @@ export default function BloomGardenPage() {
             <BloomTile
               key={area.key}
               area={area}
-              count={momentsByArea[area.key] || 0}
+              count={areaCounts[area.key] || 0}
               onClick={() => navigate(`/child/${childId}/bloom/${area.key}`)}
             />
           ))}
