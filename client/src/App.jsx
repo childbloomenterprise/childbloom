@@ -28,6 +28,8 @@ const GuideDetailPage   = lazy(() => import('./features/guides/GuideDetailPage')
 const AskAiPage         = lazy(() => import('./features/ask/AskAiPage'));
 const SettingsPage      = lazy(() => import('./features/settings/SettingsPage'));
 const PrivacyPage       = lazy(() => import('./features/privacy/PrivacyPage'));
+const TermsPage         = lazy(() => import('./features/legal/TermsPage'));
+const RefundPage        = lazy(() => import('./features/legal/RefundPage'));
 const EmergencyGuidePage  = lazy(() => import('./features/emergency/EmergencyGuidePage'));
 const EmergencyTopicPage  = lazy(() => import('./features/emergency/EmergencyTopicPage'));
 const GuidedActionMode    = lazy(() => import('./features/emergency/GuidedActionMode'));
@@ -173,6 +175,8 @@ export default function App() {
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/onboarding"    element={<OnboardingPage />} />
           <Route path="/privacy"       element={<PrivacyPage />} />
+          <Route path="/terms"         element={<TermsPage />} />
+          <Route path="/refund"        element={<RefundPage />} />
           <Route path="/join"          element={<JoinPage />} />
           <Route path="*"              element={<NotFound />} />
         </Routes>

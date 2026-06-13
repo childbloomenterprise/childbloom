@@ -371,7 +371,9 @@ export default function SettingsPage() {
               <Divider />
             </>
           )}
-          <SettingsRow icon="shield" label="Privacy" onClick={() => navigate('/privacy')} last />
+          <SettingsRow icon="shield" label="Privacy" onClick={() => navigate('/privacy')} />
+          <SettingsRow icon="clipboard" label="Terms of Service" onClick={() => navigate('/terms')} />
+          <SettingsRow icon="crown" label="Refunds & Cancellation" onClick={() => navigate('/refund')} last />
         </Card>
 
         <Spacer h={20} />

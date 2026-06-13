@@ -756,6 +756,8 @@ export default function LandingPage() {
             <a onClick={() => scrollTo('features')}>Features</a>
             <a onClick={() => scrollTo('ai')}>Dr. Bloom</a>
             <a onClick={() => navigate('/privacy')}>Privacy</a>
+            <a onClick={() => navigate('/terms')}>Terms</a>
+            <a onClick={() => navigate('/refund')}>Refunds</a>
             <a onClick={() => navigate('/emergency')}>Emergency</a>
             <a onClick={handleGoogle} style={{ cursor: 'pointer' }}>Sign in</a>
           </nav>

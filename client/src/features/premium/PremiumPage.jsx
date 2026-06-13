@@ -169,8 +169,24 @@ export default function PremiumPage() {
 
         <Spacer h={16} />
         <Body size={11} color={T.ink300} style={{ textAlign: 'center', padding: '0 16px' }}>
-          Manual activation during early access. Refunds within 7 days via email.
+          Manual activation during early access. No auto-renewal — Premium expires unless you renew.
         </Body>
+        <Spacer h={8} />
+        <div style={{ textAlign: 'center', fontSize: 11 }}>
+          <a
+            onClick={() => navigate('/refund')}
+            style={{ color: T.ink400, textDecoration: 'underline', cursor: 'pointer' }}
+          >
+            Refund &amp; cancellation policy
+          </a>
+          <span style={{ color: T.ink300 }}>{'  ·  '}</span>
+          <a
+            onClick={() => navigate('/terms')}
+            style={{ color: T.ink400, textDecoration: 'underline', cursor: 'pointer' }}
+          >
+            Terms
+          </a>
+        </div>
 
       </div>
     </div>
