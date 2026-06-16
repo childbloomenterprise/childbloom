@@ -30,6 +30,7 @@ const SettingsPage      = lazy(() => import('./features/settings/SettingsPage'))
 const PrivacyPage       = lazy(() => import('./features/privacy/PrivacyPage'));
 const TermsPage         = lazy(() => import('./features/legal/TermsPage'));
 const RefundPage        = lazy(() => import('./features/legal/RefundPage'));
+const MadaDemoPage      = lazy(() => import('./features/mada-demo/MadaDemoPage'));
 const EmergencyGuidePage  = lazy(() => import('./features/emergency/EmergencyGuidePage'));
 const EmergencyTopicPage  = lazy(() => import('./features/emergency/EmergencyTopicPage'));
 const GuidedActionMode    = lazy(() => import('./features/emergency/GuidedActionMode'));
@@ -177,6 +178,7 @@ export default function App() {
           <Route path="/privacy"       element={<PrivacyPage />} />
           <Route path="/terms"         element={<TermsPage />} />
           <Route path="/refund"        element={<RefundPage />} />
+          <Route path="/mada-demo"     element={<MadaDemoPage />} />
           <Route path="/join"          element={<JoinPage />} />
           <Route path="*"              element={<NotFound />} />
         </Routes>
