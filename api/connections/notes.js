@@ -11,8 +11,11 @@ import { isUuid } from '../_lib/rateLimit.js';
 const MAX_NOTES_CHARS = 4000;
 
 const ALLOWED_ORIGINS = [
-  process.env.FRONTEND_ORIGIN || 'https://childbloom-pi.vercel.app',
-];
+  'https://childbloom.in',
+  'https://www.childbloom.in',
+  'https://childbloom-pi.vercel.app',
+  process.env.FRONTEND_ORIGIN,
+].filter(Boolean);
 
 function corsHeaders(origin) {
   const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
