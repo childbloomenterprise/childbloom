@@ -110,15 +110,10 @@ export default async function handler(req, res) {
     .eq('type', 'connection_request')
     .contains('data', { child_id: conn.child_id });
 
-  // Notify doctor in Dr. Bloom when parent approves — so they get a real-time toast.
-  // Uses the internal cross-app endpoint authenticated with the shared service key.
+  // Notify the doctor of the approval. Unified architecture: the doctor reads
+  // ChildBloom notifications by recipient_id, so we insert directly into the
+  // shared notifications table — no cross-app HTTP call, no DRBLOOM_INTERNAL_KEY.
   if (newStatus === 'active') {
-    const drBloomUrl  = process.env.DRBLOOM_URL || 'https://dr-bloom-git-main-childbloomenterprises-projects.vercel.app';
-    // Prefer a dedicated cross-app key; falls back to the legacy shared key so
-    // nothing breaks until DRBLOOM_INTERNAL_KEY is set in BOTH apps' env vars.
-    const internalKey = process.env.DRBLOOM_INTERNAL_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    // Fetch child name for the notification title
     const { data: childData } = await admin
       .from('children')
       .select('name, first_name')
@@ -126,17 +121,14 @@ export default async function handler(req, res) {
       .single();
     const childName = childData?.first_name || childData?.name || 'your patient';
 
-    fetch(`${drBloomUrl}/api/notifications/internal`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json', 'x-internal-key': internalKey },
-      body:    JSON.stringify({
-        doctor_id:  conn.doctor_id,
-        event_type: 'connection_approved',
-        title:      `Access approved for ${childName}`,
-        body:       'The parent approved your connection request in ChildBloom. You can now view their health data.',
-      }),
-    }).catch(err => console.error('[respond] Dr. Bloom notify failed:', err));
-    // Fire-and-forget — don't block the response on this
+    const { error: notifErr } = await admin.from('notifications').insert({
+      recipient_id: conn.doctor_id,
+      type:         'connection_approved',
+      title:        `Access approved for ${childName}`,
+      body:         'The parent approved your connection request. You can now view their health data.',
+      data:         { child_id: conn.child_id },
+    });
+    if (notifErr) console.error('[respond] doctor notify failed:', notifErr.message);
   }
 
   return res.status(200).json({ ok: true, status: newStatus });
