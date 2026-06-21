@@ -3,6 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import useAuthStore from '../stores/authStore';
 import useUiStore from '../stores/uiStore';
+import i18n from '../i18n';
+import { DOCTOR_NOTIFICATION_TYPES, doctorNotificationPath } from '../lib/doctorCare';
+
+// Default toast copy when the server didn't send a title (server titles are
+// authoritative when present). Keys resolve via i18n with English fallback.
+const DOCTOR_TOAST_KEYS = {
+  prescription_added:   'doctorcare.toast.prescription',
+  visit_summary:        'doctorcare.toast.visit',
+  vaccination_recorded: 'doctorcare.toast.vaccine',
+  connection_approved:  'doctorcare.toast.connectionApproved',
+};
 
 /**
  * Subscribes to the `notifications` table for the signed-in parent.
@@ -74,6 +85,18 @@ export function useNotifications() {
               duration:  10000,
               onLink:    () => navigate(childId ? `/child/${childId}/updates` : '/dashboard'),
               linkLabel: 'See the week →',
+            });
+          } else if (DOCTOR_NOTIFICATION_TYPES.has(n.type)) {
+            // Doctor authored something (prescription / visit summary / vaccine)
+            // or approved a connection — deep-link straight to the child's
+            // "From your doctor" page so the new record is one tap away.
+            const childId = n.data?.child_id;
+            addToast({
+              type:      'drBloom',
+              message:   n.title ?? i18n.t(DOCTOR_TOAST_KEYS[n.type], { defaultValue: 'Update from your doctor' }),
+              duration:  10000,
+              onLink:    () => navigate(doctorNotificationPath(n.type, childId) || '/inbox'),
+              linkLabel: i18n.t('doctorcare.toast.view', { defaultValue: 'View →' }),
             });
           } else {
             // Generic fallback for any future notification types

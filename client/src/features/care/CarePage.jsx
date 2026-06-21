@@ -1,6 +1,7 @@
 // Care hub — emergency profile, upcoming vaccines/checkups, records grid, history.
 // Routes from `/care` (also reachable via tab bar). Public — guests see demo state.
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import { useSelectedChild } from '../../hooks/useChild';
@@ -61,6 +62,7 @@ function RecordTile({ icon, label, sub, pct, onClick }) {
 
 export default function CarePage() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const child = useSelectedChild();
   const session = useAuthStore((s) => s.session);
   const childId = child?.id;
@@ -231,6 +233,13 @@ export default function CarePage() {
                 sub="Doctor visits, meds"
                 pct={1}
                 onClick={() => navigate(`/child/${childId}/health`)}
+              />
+              <RecordTile
+                icon="doctor"
+                label={t('doctorcare.tileLabel', { defaultValue: 'From your doctor' })}
+                sub={t('doctorcare.tileSub', { defaultValue: 'Visits, prescriptions, vaccines' })}
+                pct={1}
+                onClick={() => navigate(`/child/${childId}/doctor`)}
               />
               <RecordTile
                 icon="sparkle"

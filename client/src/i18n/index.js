@@ -51,6 +51,18 @@ import ldTe from './locales/landing.te.json';
 import ldMl from './locales/landing.ml.json';
 import ldPa from './locales/landing.pa.json';
 
+// Doctor-care strings (parent-facing "From your doctor" surface — Stage 1 of the
+// Dr. Bloom <-> ChildBloom unification). Same isolated-bundle pattern: English is
+// the source of truth; the other five files are `_todo` placeholders that omit the
+// `doctorcare` key so the shallow spread keeps the full English object until
+// translated (TODO).
+import dcEn from './locales/doctorcare.en.json';
+import dcHi from './locales/doctorcare.hi.json';
+import dcTa from './locales/doctorcare.ta.json';
+import dcTe from './locales/doctorcare.te.json';
+import dcMl from './locales/doctorcare.ml.json';
+import dcPa from './locales/doctorcare.pa.json';
+
 export const LANGUAGES = [
   { code: 'en', label: 'English', nativeLabel: 'English' },
   { code: 'hi', label: 'Hindi', nativeLabel: 'हिन्दी' },
@@ -65,12 +77,12 @@ i18n
   .use(initReactI18next)
   .init({
     resources: {
-      en: { translation: { ...en, ...retEn, ...emEn, ...gdEn, ...ldEn } },
-      hi: { translation: { ...hi, ...retEn, ...retHi, ...emEn, ...emHi, ...gdEn, ...gdHi, ...ldEn, ...ldHi } },
-      ta: { translation: { ...ta, ...retEn, ...retTa, ...emEn, ...emTa, ...gdEn, ...gdTa, ...ldEn, ...ldTa } },
-      te: { translation: { ...te, ...retEn, ...retTe, ...emEn, ...emTe, ...gdEn, ...gdTe, ...ldEn, ...ldTe } },
-      ml: { translation: { ...ml, ...retEn, ...retMl, ...emEn, ...emMl, ...gdEn, ...gdMl, ...ldEn, ...ldMl } },
-      pa: { translation: { ...pa, ...retEn, ...retPa, ...emEn, ...emPa, ...gdEn, ...gdPa, ...ldEn, ...ldPa } },
+      en: { translation: { ...en, ...retEn, ...emEn, ...gdEn, ...ldEn, ...dcEn } },
+      hi: { translation: { ...hi, ...retEn, ...retHi, ...emEn, ...emHi, ...gdEn, ...gdHi, ...ldEn, ...ldHi, ...dcEn, ...dcHi } },
+      ta: { translation: { ...ta, ...retEn, ...retTa, ...emEn, ...emTa, ...gdEn, ...gdTa, ...ldEn, ...ldTa, ...dcEn, ...dcTa } },
+      te: { translation: { ...te, ...retEn, ...retTe, ...emEn, ...emTe, ...gdEn, ...gdTe, ...ldEn, ...ldTe, ...dcEn, ...dcTe } },
+      ml: { translation: { ...ml, ...retEn, ...retMl, ...emEn, ...emMl, ...gdEn, ...gdMl, ...ldEn, ...ldMl, ...dcEn, ...dcMl } },
+      pa: { translation: { ...pa, ...retEn, ...retPa, ...emEn, ...emPa, ...gdEn, ...gdPa, ...ldEn, ...ldPa, ...dcEn, ...dcPa } },
     },
     fallbackLng: 'en',
     interpolation: { escapeValue: false },

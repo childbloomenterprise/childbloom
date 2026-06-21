@@ -1,0 +1,3 @@
+{
+  "_todo": "Malayalam translation pending — inherits the full English `doctorcare` bundle (spread before this file in i18n/index.js). Do NOT add a partial `doctorcare` object here or the shallow merge will drop the English sibling keys."
+}

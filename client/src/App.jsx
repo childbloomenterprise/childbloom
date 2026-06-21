@@ -35,6 +35,7 @@ const EmergencyGuidePage  = lazy(() => import('./features/emergency/EmergencyGui
 const EmergencyTopicPage  = lazy(() => import('./features/emergency/EmergencyTopicPage'));
 const GuidedActionMode    = lazy(() => import('./features/emergency/GuidedActionMode'));
 const CarePage          = lazy(() => import('./features/care/CarePage'));
+const DoctorCarePage    = lazy(() => import('./features/care/DoctorCarePage'));
 const FamilyPage        = lazy(() => import('./features/family/FamilyPage'));
 const AuthPage          = lazy(() => import('./features/auth/AuthPage'));
 const AuthCallback      = lazy(() => import('./features/auth/AuthCallback'));
@@ -152,6 +153,7 @@ export default function App() {
             <Route path="/child/:id/food"              element={<FoodTrackerPage />} />
             <Route path="/child/:id/health"            element={<HealthRecordsPage />} />
             <Route path="/child/:id/vaccinations"      element={<VaccinationPage />} />
+            <Route path="/child/:id/doctor"            element={<DoctorCarePage />} />
             <Route path="/child/:id/bloom"             element={<BloomGardenPage />} />
             <Route path="/child/:id/bloom/:area"       element={<BloomAreaPage />} />
             <Route path="/emergency"                   element={<EmergencyGuidePage />} />

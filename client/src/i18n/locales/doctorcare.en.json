@@ -1,0 +1,59 @@
+{
+  "doctorcare": {
+    "title": "From your doctor",
+    "subtitle": "Visits, prescriptions and vaccines your doctor recorded",
+    "tileLabel": "From your doctor",
+    "tileSub": "Visits, prescriptions, vaccines",
+    "yourChild": "your child",
+    "empty": {
+      "title": "Nothing from a doctor yet",
+      "body": "When a doctor connects to {{name}} in Dr. Bloom and you approve, their visit notes, prescriptions and vaccines appear here automatically.",
+      "bodyNoChild": "When a doctor connects to your child and you approve, their visit notes, prescriptions and vaccines appear here automatically."
+    },
+    "doctors": {
+      "title": "Your care team",
+      "since": "Since {{date}}",
+      "specialtyFallback": "Pediatrician"
+    },
+    "rx": {
+      "title": "Prescriptions",
+      "active": "Active",
+      "past": "Past",
+      "noneActive": "No active prescriptions.",
+      "nonePast": "No past prescriptions.",
+      "by": "By {{doctor}}",
+      "on": "on {{date}}",
+      "instructions": "Instructions"
+    },
+    "visits": {
+      "title": "Visits",
+      "none": "No visit notes yet.",
+      "chiefComplaint": "Reason for visit",
+      "assessment": "Assessment",
+      "plan": "Plan",
+      "followUp": "Follow-up in {{days}} days"
+    },
+    "vaccines": {
+      "title": "Vaccines recorded by your doctor",
+      "dose": "Dose {{n}}",
+      "at": "at {{facility}}",
+      "by": "by {{name}}",
+      "nextDue": "Next due {{date}}"
+    },
+    "visitType": {
+      "routine": "Routine check-up",
+      "followUp": "Follow-up",
+      "sick": "Sick visit",
+      "emergency": "Emergency",
+      "vaccination": "Vaccination"
+    },
+    "disclaimer": "These records were entered by your connected doctor. For anything urgent, contact your doctor or local emergency services.",
+    "toast": {
+      "prescription": "New prescription from your doctor",
+      "visit": "New visit summary from your doctor",
+      "vaccine": "Your doctor recorded a vaccine",
+      "connectionApproved": "You're connected with your doctor",
+      "view": "View →"
+    }
+  }
+}
