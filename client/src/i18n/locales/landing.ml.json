@@ -1,0 +1,3 @@
+{
+  "_todo": "Translate landing.problems.* into Malayalam. Until then, English (landing.en.json) is inherited via the i18n merge. When translating, include the FULL landing.problems structure — a partial file would drop sibling keys via shallow object-spread merge."
+}

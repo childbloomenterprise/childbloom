@@ -1,0 +1,96 @@
+{
+  "landing": {
+    "problems": {
+      "nav": "Real moments",
+      "eyebrow": "Built for the real moments",
+      "title": "Every worry has a quiet place to land.",
+      "subhead": "From the first growth check to the 3am scare, ChildBloom meets the moments that actually keep you up — each one met with calm, evidence-based guidance built for Indian families.",
+      "sourcesLabel": "Sources",
+      "sources": {
+        "nfhs": "National Family Health Survey (NFHS-5), 2019–21, Ministry of Health & Family Welfare, Government of India.",
+        "clinic": "Indian clinical studies on early-childhood developmental screening.",
+        "who": "World Health Organization — maternal mental health."
+      },
+      "pillars": {
+        "health": {
+          "title": "Health & Growth",
+          "c1": {
+            "problem": "Is my child growing normally?",
+            "feature": "Growth tracking",
+            "solution": "Plots weight, height and head against WHO percentiles in plain language — and flags it early if the curve dips.",
+            "stat": "36% of under-5s in India are stunted."
+          },
+          "c2": {
+            "problem": "How is my child doing overall?",
+            "feature": "Weekly check-in",
+            "solution": "A two-minute weekly check-in becomes one clear, AI-written insight — your whole week, understood at a glance."
+          }
+        },
+        "feeding": {
+          "title": "Feeding & Nutrition",
+          "c1": {
+            "problem": "What do I feed, and when?",
+            "feature": "Food tracker",
+            "solution": "An Indian food tracker with stage-by-stage first-food guidance — so every meal fits your child's age.",
+            "stat": "Low dietary diversity is a leading driver of child malnutrition."
+          },
+          "c2": {
+            "problem": "Picky eating is so stressful.",
+            "feature": "Smart suggestions",
+            "solution": "Age-appropriate meal ideas tuned to what your child already eats — gentle nudges, never pressure."
+          }
+        },
+        "sleep": {
+          "title": "Sleep & Daily Care",
+          "c1": {
+            "problem": "The baby won't sleep, there's no routine.",
+            "feature": "Sleep SweetSpot",
+            "solution": "Predicts the next nap from your child's wake windows — so you catch the sleepy window instead of missing it."
+          },
+          "c2": {
+            "problem": "Logging every little thing is exhausting.",
+            "feature": "Voice & one-tap logging",
+            "solution": "Speak it or tap it in seconds, then wake up to a calm Daily Bloom Brief that sums up the day for you."
+          }
+        },
+        "development": {
+          "title": "Development & Milestones",
+          "c1": {
+            "problem": "Am I missing a delay?",
+            "feature": "Bloom Path",
+            "solution": "Tracks milestones by age with gentle red-flag prompts — so nothing important slips by unnoticed.",
+            "stat": "37% of developmental delays in India are caught only at age 3 or later."
+          },
+          "c2": {
+            "problem": "Is this normal, or should I worry?",
+            "feature": "Myth-buster",
+            "solution": "Evidence-based answers to everyday questions — calm facts instead of WhatsApp rumours."
+          }
+        },
+        "safety": {
+          "title": "Safety & Peace of Mind",
+          "c1": {
+            "problem": "There's an emergency and I freeze.",
+            "feature": "Offline SOS",
+            "solution": "Step-by-step, read-aloud first aid that works without signal — CPR, choking and burns, guided in the moment."
+          },
+          "c2": {
+            "problem": "Vaccines and records are total chaos.",
+            "feature": "Vaccines & records",
+            "solution": "An IAP-schedule tracker, health records and a doctor-ready PDF — your child's whole history, one tap away.",
+            "stat": "Only 76.4% of Indian children aged 12–23 months are fully vaccinated."
+          }
+        },
+        "wellbeing": {
+          "title": "Parent Wellbeing",
+          "c1": {
+            "problem": "I feel overwhelmed and alone at 3am.",
+            "feature": "Dr. Bloom",
+            "solution": "Warm, judgment-free support whenever you need it, plus a gentle wellbeing check-in that looks after you too.",
+            "stat": "1 in 5 Indian mothers experience postpartum depression."
+          }
+        }
+      }
+    }
+  }
+}

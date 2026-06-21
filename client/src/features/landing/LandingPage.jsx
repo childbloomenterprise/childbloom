@@ -3,8 +3,9 @@
 // All styles are scoped under .cb-landing to avoid clashing with the
 // theme-system CSS variables (which use the same `--brand`/`--ink` names).
 
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../hooks/useAuth';
 import { track } from '../../lib/analytics';
 
@@ -247,6 +248,41 @@ const LANDING_CSS = `
   .cb-landing .bc { padding:26px; }
   .cb-landing nav.cbl-nav { padding:0 20px; }
 }
+
+/* ── Built for the real moments · ProblemsWeSolve ───────────────── */
+.cb-landing .pws { background:var(--lwarm); }
+.cb-landing .pws .sec-header { text-align:center; max-width:640px; margin-left:auto; margin-right:auto; }
+.cb-landing .pws .sec-sub { margin-left:auto; margin-right:auto; }
+.cb-landing .pws-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }
+.cb-landing .pws-pillar { background:var(--lsurface); border-radius:var(--lr-xl); padding:26px 24px 24px; box-shadow:var(--lsh-md),var(--lsh-ring); display:flex; flex-direction:column; }
+.cb-landing .pws-head { display:flex; align-items:center; gap:12px; margin-bottom:18px; }
+.cb-landing .pws-ic { width:42px; height:42px; border-radius:var(--lr-md); background:var(--lbrand-wash); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.cb-landing .pws-ic svg { width:21px; height:21px; stroke:var(--lbrand); fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+.cb-landing .pws-ttl { font-family:var(--lserif); font-size:19px; font-style:italic; font-weight:400; letter-spacing:-.02em; line-height:1.1; color:var(--link); }
+.cb-landing .pws-cards { display:flex; flex-direction:column; gap:12px; flex:1; }
+.cb-landing .pws-card { background:var(--ldim); border:1px solid var(--lline); border-radius:var(--lr-lg); padding:16px 17px 15px; }
+.cb-landing .pws-q { position:relative; padding-left:17px; font-family:var(--lserif); font-size:15px; font-style:italic; line-height:1.4; color:var(--link-700); }
+.cb-landing .pws-q::before { content:'\\201C'; position:absolute; left:0; top:1px; font-family:var(--lserif); font-size:21px; line-height:1; color:var(--laccent); }
+.cb-landing .pws-divider { display:flex; align-items:center; gap:8px; margin:11px 0 10px; }
+.cb-landing .pws-divider .ln { flex:1; height:1px; background:var(--lline); }
+.cb-landing .pws-divider svg { width:14px; height:14px; stroke:var(--lbrand-soft); fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; flex-shrink:0; }
+.cb-landing .pws-feature { font-size:10px; font-weight:700; letter-spacing:.13em; text-transform:uppercase; color:var(--lbrand); margin-bottom:5px; }
+.cb-landing .pws-sol { font-size:13.5px; line-height:1.55; color:var(--link); }
+.cb-landing .pws-stat { display:block; margin-top:9px; font-size:11.5px; line-height:1.45; color:var(--link-500); }
+.cb-landing .pws-fn { color:var(--lbrand); font-weight:700; text-decoration:none; }
+.cb-landing .pws-fn:hover { text-decoration:underline; }
+.cb-landing .pws-fn:focus-visible { outline:2px solid var(--lbrand); outline-offset:2px; border-radius:3px; }
+.cb-landing .pws-sources { margin-top:34px; max-width:780px; margin-left:auto; margin-right:auto; }
+.cb-landing .pws-sources-t { font-size:10px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--link-500); text-align:center; margin-bottom:9px; }
+.cb-landing .pws-sources ol { list-style:none; display:flex; flex-direction:column; gap:5px; }
+.cb-landing .pws-sources li { font-size:11.5px; line-height:1.5; color:var(--link-500); text-align:center; }
+.cb-landing .pws-sources li b { color:var(--lbrand); font-weight:700; margin-right:5px; font-variant-numeric:tabular-nums; }
+@media(max-width:960px){ .cb-landing .pws-grid { grid-template-columns:repeat(2,1fr); } }
+@media(max-width:600px){ .cb-landing .pws-grid { grid-template-columns:1fr; } }
+@media(prefers-reduced-motion:reduce){
+  .cb-landing .fu { transition:none; opacity:1; transform:none; }
+  .cb-landing .hero-dot, .cb-landing .trust-track { animation:none; }
+}
 `;
 
 const BloomLogoSVG = () => (
@@ -268,8 +304,38 @@ const GoogleIcon = () => (
   </svg>
 );
 
+// "Built for the real moments" (ProblemsWeSolve) — six pillars that map our
+// already-built features to the parent pain each one answers. Structure only
+// (icons + which card carries a sourced stat); all copy lives in i18n under
+// landing.problems.*. Footnote numbers map to the sources list under the grid.
+const PWS_SOURCES = [
+  { id: 'nfhs', n: 1 },
+  { id: 'clinic', n: 2 },
+  { id: 'who', n: 3 },
+];
+
+const PwsArrow = () => (
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v13M6 12l6 6 6-6" /></svg>
+);
+
+const PWS_PILLARS = [
+  { id: 'health', icon: <><path d="M3 17l6-6 4 4 8-8" /><path d="M15 7h6v6" /></>,
+    cards: [{ k: 'c1', src: 'nfhs' }, { k: 'c2' }] },
+  { id: 'feeding', icon: <path d="M9 3l3 5 3-5M12 8v6M7 14a5 5 0 0010 0" />,
+    cards: [{ k: 'c1', src: 'nfhs' }, { k: 'c2' }] },
+  { id: 'sleep', icon: <path d="M21 12.8A8 8 0 1111.2 3a6.5 6.5 0 009.8 9.8z" />,
+    cards: [{ k: 'c1' }, { k: 'c2' }] },
+  { id: 'development', icon: <path d="M5 21V4h13l-3 4 3 4H5" />,
+    cards: [{ k: 'c1', src: 'clinic' }, { k: 'c2' }] },
+  { id: 'safety', icon: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />,
+    cards: [{ k: 'c1' }, { k: 'c2', src: 'nfhs' }] },
+  { id: 'wellbeing', icon: <path d="M12 21s-7-4.5-7-10a4 4 0 017-2.6A4 4 0 0119 11c0 5.5-7 10-7 10z" />,
+    cards: [{ k: 'c1', src: 'who' }] },
+];
+
 export default function LandingPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { signInWithGoogle } = useAuth();
   const [authError, setAuthError] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
@@ -326,6 +392,7 @@ export default function LandingPage() {
         </a>
         <ul className="nav-links">
           <li><a onClick={() => scrollTo('features')}>Features</a></li>
+          <li><a onClick={() => scrollTo('moments')}>{t('landing.problems.nav')}</a></li>
           <li><a onClick={() => scrollTo('how')}>How it works</a></li>
           <li><a onClick={() => scrollTo('ai')}>Bloom AI</a></li>
           <li><a onClick={() => scrollTo('premium')}>Premium</a></li>
@@ -491,7 +558,7 @@ export default function LandingPage() {
       <div className="trust-strip" aria-hidden="true">
         <div className="trust-track">
           {[1, 2].map((dup) => (
-            <>
+            <Fragment key={dup}>
               {[
                 '3 SECONDS TO LOG A FEED',
                 'ONE-TAP + VOICE LOGGING',
@@ -506,7 +573,7 @@ export default function LandingPage() {
                   <span className="trust-sep"></span>
                 </span>
               ))}
-            </>
+            </Fragment>
           ))}
         </div>
       </div>
@@ -602,6 +669,62 @@ export default function LandingPage() {
                 ))}
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* BUILT FOR THE REAL MOMENTS (ProblemsWeSolve) */}
+      <section className="section pws" id="moments" aria-labelledby="pws-title">
+        <div className="wrap">
+          <div className="sec-header fu">
+            <p className="eyebrow sec-eyebrow">{t('landing.problems.eyebrow')}</p>
+            <h2 className="sec-title" id="pws-title">{t('landing.problems.title')}</h2>
+            <p className="sec-sub">{t('landing.problems.subhead')}</p>
+          </div>
+
+          <div className="pws-grid">
+            {PWS_PILLARS.map((p, pi) => (
+              <div key={p.id} className={`pws-pillar fu d${(pi % 3) + 1}`}>
+                <div className="pws-head">
+                  <div className="pws-ic"><svg viewBox="0 0 24 24" aria-hidden="true">{p.icon}</svg></div>
+                  <h3 className="pws-ttl">{t(`landing.problems.pillars.${p.id}.title`)}</h3>
+                </div>
+                <div className="pws-cards">
+                  {p.cards.map((c) => {
+                    const base = `landing.problems.pillars.${p.id}.${c.k}`;
+                    const source = PWS_SOURCES.find((s) => s.id === c.src);
+                    return (
+                      <div key={c.k} className="pws-card">
+                        <p className="pws-q">{t(`${base}.problem`)}</p>
+                        <div className="pws-divider" aria-hidden="true">
+                          <span className="ln" />
+                          <PwsArrow />
+                          <span className="ln" />
+                        </div>
+                        <p className="pws-feature">{t(`${base}.feature`)}</p>
+                        <p className="pws-sol">{t(`${base}.solution`)}</p>
+                        {source && (
+                          <span className="pws-stat" title={t(`landing.problems.sources.${source.id}`)}>
+                            {t(`${base}.stat`)}{' '}
+                            <sup><a className="pws-fn" href={`#pws-src-${source.n}`}
+                              aria-label={`${t('landing.problems.sourcesLabel')} ${source.n}`}>{source.n}</a></sup>
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="pws-sources fu">
+            <p className="pws-sources-t">{t('landing.problems.sourcesLabel')}</p>
+            <ol>
+              {PWS_SOURCES.map((s) => (
+                <li key={s.id} id={`pws-src-${s.n}`}><b>{s.n}</b>{t(`landing.problems.sources.${s.id}`)}</li>
+              ))}
+            </ol>
           </div>
         </div>
       </section>
